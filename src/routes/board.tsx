@@ -21,6 +21,14 @@ export const Route = createFileRoute("/board")({
 
 const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 
+const TASK_SPRINT_MAP: Record<string, string> = {
+  t1: "sprint-q3-4", t2: "sprint-q3-4", t4: "sprint-q3-4",
+  t5: "sprint-q3-4", t10: "sprint-q3-4", t12: "sprint-q3-4",
+  t3: "sprint-q3-3", t9: "sprint-q3-3",
+  t6: "sprint-q3-3", t7: "sprint-q3-2", t8: "sprint-q3-2",
+  t11: "sprint-q3-2",
+};
+
 function BoardPage() {
   const { tasks, updateTask, users, requestJump, activeProjectId, projectTabs } = useStore();
   const navigate = useNavigate();
@@ -33,10 +41,18 @@ function BoardPage() {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
   }, [projectTabs, activeProjectId]);
 
-  const filtered = useMemo(
-    () => tasks.filter((t) => (query ? t.title.toLowerCase().includes(query.toLowerCase()) : true)),
-    [tasks, query]
-  );
+  const filtered = useMemo(() => {
+    return tasks.filter((t) => {
+      // Must match active project
+      if (t.projectId && t.projectId !== activeProjectId) return false;
+      // Must be in active sprint (either the task or its parent task is mapped)
+      const sprintId = TASK_SPRINT_MAP[t.id] || TASK_SPRINT_MAP[t.parentId || ""] || "backlog";
+      if (sprintId !== "sprint-q3-4") return false;
+      // Filter by search query
+      if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
+      return true;
+    });
+  }, [tasks, activeProjectId, query]);
   const byCol = useMemo(() => {
     const map: Record<ColumnId, Task[]> = { new: [], active: [], staging: [], deployed: [] };
     filtered.forEach((t) => map[t.column].push(t));

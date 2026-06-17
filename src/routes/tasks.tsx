@@ -1,9 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import {
-  ListTodo, Plus, Search, Filter, ChevronDown, X,
-  Calendar, Clock, Crown, Bot, Zap, MousePointerClick,
-  CheckCircle2, Circle, AlertCircle, ArrowUpDown,
+  ListTodo, Plus, Search, X, Calendar, Clock, Crown, Bot, Zap, MousePointerClick,
+  CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/tasks")({
   head: () => ({
     meta: [
       { title: "Tasks — Queen PM" },
-      { name: "description", content: "All tasks across every sprint and project." },
+      { name: "description", content: "All tasks inside the active project including subtasks." },
     ],
   }),
   component: TasksPage,
@@ -36,27 +35,62 @@ const TASK_SPRINT_MAP: Record<string, string> = {
   t11: "sprint-q3-2",
 };
 
-type GroupBy = "sprint" | "status" | "priority";
+type GroupBy = "sprint" | "status" | "priority" | "none";
 type SortBy = "created" | "priority" | "title";
 
 function TasksPage() {
-  const { tasks, users, addTask } = useStore();
+  const { tasks, users, addTask, activeProjectId, projectTabs } = useStore();
+
+  const activeProject = useMemo(() => {
+    return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
+  }, [projectTabs, activeProjectId]);
 
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<ColumnId | "all">("all");
   const [filterPriority, setFilterPriority] = useState<Priority | "all">("all");
-  const [groupBy, setGroupBy] = useState<GroupBy>("sprint");
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [sortBy, setSortBy] = useState<SortBy>("created");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  
+  // Modals / Inputs
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newColumn, setNewColumn] = useState<ColumnId>("new");
+  const [newParentId, setNewParentId] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return tasks
+  // Active Project Tasks (including subtasks)
+  const projectTasks = useMemo(() => {
+    return tasks.filter((t) => !t.projectId || t.projectId === activeProjectId);
+  }, [tasks, activeProjectId]);
+
+  // Root tasks vs Subtasks map
+  const { rootTasks, subtasksByParent } = useMemo(() => {
+    const roots: Task[] = [];
+    const subs: Record<string, Task[]> = {};
+    
+    projectTasks.forEach((t) => {
+      if (t.parentId) {
+        if (!subs[t.parentId]) subs[t.parentId] = [];
+        subs[t.parentId].push(t);
+      } else {
+        roots.push(t);
+      }
+    });
+    return { rootTasks: roots, subtasksByParent: subs };
+  }, [projectTasks]);
+
+  // Filtered root tasks
+  const filteredRoots = useMemo(() => {
+    return rootTasks
       .filter((t) => {
-        if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
+        // Search query applies to title
+        if (query && !t.title.toLowerCase().includes(query.toLowerCase())) {
+          // If a subtask matches, keep the parent
+          const children = subtasksByParent[t.id] || [];
+          const matchesChild = children.some((c) => c.title.toLowerCase().includes(query.toLowerCase()));
+          if (!matchesChild) return false;
+        }
         if (filterStatus !== "all" && t.column !== filterStatus) return false;
         if (filterPriority !== "all" && t.priority !== filterPriority) return false;
         return true;
@@ -67,16 +101,20 @@ function TasksPage() {
         const order: Priority[] = ["urgent", "high", "medium", "low"];
         return order.indexOf(a.priority) - order.indexOf(b.priority);
       });
-  }, [tasks, query, filterStatus, filterPriority, sortBy]);
+  }, [rootTasks, subtasksByParent, query, filterStatus, filterPriority, sortBy]);
 
-  const grouped = useMemo(() => {
+  // Grouped root tasks
+  const grouped = useMemo<{ id: string; label: string; badge?: string; badgeColor?: string; items: Task[] }[]>(() => {
+    if (groupBy === "none") {
+      return [{ id: "all", label: "All Tasks", items: filteredRoots }];
+    }
     if (groupBy === "sprint") {
       return SPRINT_GROUPS.map((sg) => ({
         id: sg.id,
         label: sg.label,
         badge: sg.active ? "Active" : undefined,
-        badgeColor: "text-emerald-300 bg-emerald-500/10 ring-emerald-500/30",
-        items: filtered.filter((t) => (TASK_SPRINT_MAP[t.id] ?? "backlog") === sg.id),
+        badgeColor: "text-emerald-305 bg-emerald-500/10 ring-emerald-500/30",
+        items: filteredRoots.filter((t) => (TASK_SPRINT_MAP[t.id] ?? "backlog") === sg.id),
       })).filter((g) => g.items.length > 0);
     }
     if (groupBy === "status") {
@@ -87,7 +125,7 @@ function TasksPage() {
           label: meta.label,
           badge: undefined,
           badgeColor: "",
-          items: filtered.filter((t) => t.column === col),
+          items: filteredRoots.filter((t) => t.column === col),
         };
       }).filter((g) => g.items.length > 0);
     }
@@ -97,9 +135,9 @@ function TasksPage() {
       label: p.charAt(0).toUpperCase() + p.slice(1),
       badge: undefined,
       badgeColor: "",
-      items: filtered.filter((t) => t.priority === p),
+      items: filteredRoots.filter((t) => t.priority === p),
     })).filter((g) => g.items.length > 0);
-  }, [filtered, groupBy]);
+  }, [filteredRoots, groupBy]);
 
   const toggleGroup = (id: string) => {
     setCollapsedGroups((s) => {
@@ -122,71 +160,85 @@ function TasksPage() {
       originMessageId: null,
       originChannelId: null,
       createdAt: Date.now(),
+      projectId: activeProjectId,
+      parentId: newParentId || undefined,
     };
     addTask(task);
     setNewTitle("");
+    setNewParentId(null);
     setIsNewTaskOpen(false);
   };
 
-  const stats = useMemo(() => ({
-    total: tasks.length,
-    done: tasks.filter((t) => t.column === "deployed").length,
-    active: tasks.filter((t) => t.column === "active").length,
-    urgent: tasks.filter((t) => t.priority === "urgent").length,
-  }), [tasks]);
+  const openSubtaskModal = (parentId: string) => {
+    setNewParentId(parentId);
+    setNewPriority("medium");
+    setNewColumn("new");
+    setIsNewTaskOpen(true);
+  };
+
+  const stats = useMemo(() => {
+    const all = projectTasks;
+    return {
+      total: all.length,
+      done: all.filter((t) => t.column === "deployed").length,
+      active: all.filter((t) => t.column === "active").length,
+      urgent: all.filter((t) => t.priority === "urgent").length,
+    };
+  }, [projectTasks]);
 
   return (
     <AppShell>
       <div className="h-full overflow-y-auto">
         <div className="max-w-[1200px] mx-auto px-8 py-7 space-y-6">
 
-          {/* ── Header ── */}
+          {/* Header */}
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-                <ListTodo className="size-3.5 text-fuchsia-400" /> All Tasks
+                <span className={`size-1.5 rounded-full bg-gradient-to-br ${activeProject?.color} shrink-0`} />
+                {activeProject?.name} Tasks
               </div>
-              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Task Registry</h1>
+              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Project Tasks & Epic Explorer</h1>
               <p className="text-sm text-slate-400 mt-1">
-                {stats.total} tasks across all sprints · {stats.done} deployed · {stats.active} active · {stats.urgent} urgent
+                {stats.total} total items (including nested subtasks) · {stats.done} completed
               </p>
             </div>
             <button
-              onClick={() => setIsNewTaskOpen(true)}
+              onClick={() => { setNewParentId(null); setIsNewTaskOpen(true); }}
               className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center gap-2 transition"
             >
-              <Plus className="size-4" /> New Task
+              <Plus className="size-4" /> Create Task
             </button>
           </div>
 
-          {/* ── Stat chips ── */}
+          {/* Stat chips */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Total", value: stats.total, color: "text-slate-200", bg: "bg-slate-800/50" },
-              { label: "Deployed", value: stats.done, color: "text-emerald-300", bg: "bg-emerald-500/10 ring-1 ring-emerald-500/20" },
-              { label: "Active", value: stats.active, color: "text-sky-300", bg: "bg-sky-500/10 ring-1 ring-sky-500/20" },
-              { label: "Urgent", value: stats.urgent, color: "text-rose-300", bg: "bg-rose-500/10 ring-1 ring-rose-500/20" },
+              { label: "Total Project Tasks", value: stats.total, color: "text-slate-200", bg: "bg-slate-805/50" },
+              { label: "Completed", value: stats.done, color: "text-emerald-300", bg: "bg-emerald-500/10 ring-1 ring-emerald-500/20" },
+              { label: "Active Execution", value: stats.active, color: "text-sky-300", bg: "bg-sky-500/10 ring-1 ring-sky-500/20" },
+              { label: "Urgent Incidents", value: stats.urgent, color: "text-rose-300", bg: "bg-rose-500/10 ring-1 ring-rose-500/20" },
             ].map((s) => (
-              <div key={s.label} className={`rounded-xl px-4 py-3 flex items-center gap-3 ${s.bg}`}>
+              <div key={s.label} className={`rounded-xl px-4 py-3 flex items-center gap-3 bg-slate-900/40 border border-slate-900`}>
                 <span className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</span>
                 <span className="text-xs text-slate-500 font-medium">{s.label}</span>
               </div>
             ))}
           </div>
 
-          {/* ── Filters & Controls ── */}
+          {/* Filters & Controls */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Search */}
-            <div className="flex items-center gap-2 px-3 h-8 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 w-56">
+            <div className="flex items-center gap-2 px-3 h-8 rounded-lg bg-slate-905/60 border border-slate-800/80 text-xs text-slate-300 w-56">
               <Search className="size-3.5 text-slate-500 shrink-0" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search tasks…"
+                placeholder="Filter tasks or subtasks…"
                 className="bg-transparent outline-none flex-1 placeholder:text-slate-600"
               />
               {query && (
-                <button onClick={() => setQuery("")}><X className="size-3 text-slate-500 hover:text-slate-300" /></button>
+                <button onClick={() => setQuery("")}><X className="size-3 text-slate-500 hover:text-slate-350" /></button>
               )}
             </div>
 
@@ -214,12 +266,12 @@ function TasksPage() {
               ))}
             </select>
 
-            <div className="h-5 w-px bg-slate-800 mx-1" />
+            <div className="h-5 w-px bg-slate-850 mx-1" />
 
             {/* Group by */}
             <div className="flex items-center gap-1.5 text-xs text-slate-500">
               <ArrowUpDown className="size-3" /> Group:
-              {(["sprint", "status", "priority"] as GroupBy[]).map((g) => (
+              {(["none", "sprint", "status", "priority"] as GroupBy[]).map((g) => (
                 <button
                   key={g}
                   onClick={() => setGroupBy(g)}
@@ -227,12 +279,12 @@ function TasksPage() {
                     groupBy === g ? "bg-slate-800 text-slate-100" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
                   }`}
                 >
-                  {g}
+                  {g === "none" ? "flat list" : g}
                 </button>
               ))}
             </div>
 
-            <div className="h-5 w-px bg-slate-800 mx-1" />
+            <div className="h-5 w-px bg-slate-850 mx-1" />
 
             {/* Sort */}
             <select
@@ -245,62 +297,72 @@ function TasksPage() {
               <option value="title">Sort: Title</option>
             </select>
 
-            <span className="ml-auto text-xs text-slate-600 tabular-nums">{filtered.length} shown</span>
+            <span className="ml-auto text-xs text-slate-600 tabular-nums">{filteredRoots.length} root tasks</span>
           </div>
 
-          {/* ── Task Groups ── */}
+          {/* Task Groups */}
           <div className="space-y-4">
-            {grouped.length === 0 && (
-              <div className="rounded-xl border border-slate-800/60 bg-slate-900/20 py-16 text-center">
+            {grouped.length === 0 || (grouped.length === 1 && grouped[0].items.length === 0) ? (
+              <div className="rounded-xl border border-slate-900 bg-slate-950/20 py-16 text-center">
                 <ListTodo className="size-8 text-slate-700 mx-auto mb-3" />
-                <p className="text-sm text-slate-500">No tasks match your filters.</p>
+                <p className="text-sm text-slate-500">No tasks in this project yet.</p>
               </div>
-            )}
-
-            {grouped.map((group) => {
-              const isCollapsed = collapsedGroups.has(group.id);
-              return (
-                <div key={group.id} className="rounded-xl border border-slate-800/60 bg-slate-900/20 overflow-hidden">
-                  {/* Group header */}
-                  <button
-                    onClick={() => toggleGroup(group.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-900/40 transition border-b border-slate-800/40"
-                  >
-                    <ChevronDown className={`size-3.5 text-slate-500 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
-                    <span className="text-xs font-semibold text-slate-200">{group.label}</span>
-                    {group.badge && (
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${group.badgeColor}`}>
-                        {group.badge}
-                      </span>
+            ) : (
+              grouped.map((group) => {
+                const isCollapsed = collapsedGroups.has(group.id);
+                return (
+                  <div key={group.id} className="rounded-xl border border-slate-900 bg-slate-950/20 overflow-hidden">
+                    {/* Group Header (if grouped) */}
+                    {groupBy !== "none" && (
+                      <button
+                        onClick={() => toggleGroup(group.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-900/40 transition border-b border-slate-900"
+                      >
+                        <ChevronDown className={`size-3.5 text-slate-500 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
+                        <span className="text-xs font-semibold text-slate-200">{group.label}</span>
+                        {group.badge && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${group.badgeColor}`}>
+                            {group.badge}
+                          </span>
+                        )}
+                        <span className="ml-auto text-xs text-slate-600 tabular-nums">{group.items.length} tasks</span>
+                      </button>
                     )}
-                    <span className="ml-auto text-xs text-slate-600 tabular-nums">{group.items.length} tasks</span>
-                  </button>
 
-                  {/* Task rows */}
-                  {!isCollapsed && (
-                    <div className="divide-y divide-slate-800/30">
-                      {group.items.map((task) => (
-                        <TaskRow key={task.id} task={task} users={users} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    {/* Task list */}
+                    {!isCollapsed && (
+                      <div className="divide-y divide-slate-900">
+                        {group.items.map((task) => (
+                          <TaskHierarchicalRow
+                            key={task.id}
+                            task={task}
+                            subtasks={subtasksByParent[task.id] || []}
+                            users={users}
+                            onAddSubtask={() => openSubtaskModal(task.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── New Task Modal ── */}
+      {/* New Task / Subtask Modal */}
       {isNewTaskOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 shadow-2xl p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Plus className="size-4 text-fuchsia-400" />
-                <h3 className="text-sm font-semibold text-slate-100">New Task</h3>
+                <h3 className="text-sm font-semibold text-slate-100">
+                  {newParentId ? "Add Subtask" : "New Task"}
+                </h3>
               </div>
-              <button onClick={() => setIsNewTaskOpen(false)} className="size-7 grid place-items-center rounded hover:bg-slate-800 text-slate-500">
+              <button onClick={() => setIsNewTaskOpen(false)} className="size-7 grid place-items-center rounded hover:bg-slate-800 text-slate-505">
                 <X className="size-4" />
               </button>
             </div>
@@ -310,10 +372,11 @@ function TasksPage() {
                 <input
                   autoFocus required value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Describe the task…"
+                  placeholder={newParentId ? "Subtask description..." : "Task description..."}
                   className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500 transition"
                 />
               </div>
+              
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-300">Priority</label>
@@ -334,6 +397,13 @@ function TasksPage() {
                   </select>
                 </div>
               </div>
+
+              {newParentId && (
+                <div className="text-[10px] text-slate-550 italic">
+                  * Creating nested subtask under parent task #{newParentId}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setIsNewTaskOpen(false)}
                   className="h-9 px-4 rounded-md text-xs font-medium text-slate-400 hover:bg-slate-800 transition">
@@ -341,7 +411,7 @@ function TasksPage() {
                 </button>
                 <button type="submit"
                   className="h-9 px-4 rounded-md text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition">
-                  Create Task
+                  {newParentId ? "Add Subtask" : "Create Task"}
                 </button>
               </div>
             </form>
@@ -352,72 +422,206 @@ function TasksPage() {
   );
 }
 
-function TaskRow({ task, users }: { task: Task; users: ReturnType<typeof useStore>["users"] }) {
+interface RowProps {
+  task: Task;
+  subtasks: Task[];
+  users: any[];
+  onAddSubtask: () => void;
+}
+
+function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) {
+  const [expanded, setExpanded] = useState(true);
+  const [quickTitle, setQuickTitle] = useState("");
+  const [isQuickOpen, setIsQuickOpen] = useState(false);
+  
+  const { addTask, activeProjectId } = useStore();
   const assignee = userById(task.assigneeId, users);
   const colMeta = COLUMN_META[task.column];
   const CreatedIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
   const createdMeta = CREATED_BY_META[task.createdBy];
 
-  const daysSince = Math.round((Date.now() - task.createdAt) / 86400000);
+  const handleQuickAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTitle.trim()) return;
+    addTask({
+      id: `t_${Date.now()}`,
+      title: quickTitle.trim(),
+      priority: "medium",
+      column: "new",
+      createdBy: "ui",
+      assigneeId: null,
+      originMessageId: null,
+      originChannelId: null,
+      createdAt: Date.now(),
+      projectId: activeProjectId,
+      parentId: task.id,
+    });
+    setQuickTitle("");
+    setIsQuickOpen(false);
+  };
 
   return (
-    <div className="group flex items-center gap-3 px-4 py-2.5 hover:bg-slate-900/40 transition text-xs">
-      {/* Status icon */}
-      <div className="shrink-0">
-        {task.column === "deployed" ? (
-          <CheckCircle2 className="size-4 text-emerald-400" />
-        ) : task.column === "active" ? (
-          <AlertCircle className="size-4 text-sky-400" />
-        ) : (
-          <Circle className="size-4 text-slate-600" />
-        )}
-      </div>
+    <div className="bg-slate-950/10">
+      
+      {/* Parent Task Row */}
+      <div className="group flex items-center gap-3 px-4 py-2.5 hover:bg-slate-900/40 transition text-xs border-b border-slate-900/40">
+        
+        {/* Subtask expand toggle */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          disabled={subtasks.length === 0}
+          className={`size-5 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 disabled:opacity-20 transition`}
+        >
+          {subtasks.length > 0 ? (
+            expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />
+          ) : (
+            <span className="w-3.5 h-3.5 block" />
+          )}
+        </button>
 
-      {/* Title */}
-      <div className="flex-1 min-w-0">
-        <span className={`font-medium truncate block ${task.column === "deployed" ? "line-through text-slate-500" : "text-slate-200"}`}>
-          {task.title}
+        {/* Status circle */}
+        <div className="shrink-0">
+          {task.column === "deployed" ? (
+            <CheckCircle2 className="size-4 text-emerald-400" />
+          ) : task.column === "active" ? (
+            <AlertCircle className="size-4 text-sky-400" />
+          ) : (
+            <Circle className="size-4 text-slate-600" />
+          )}
+        </div>
+
+        {/* Title */}
+        <div className="flex-1 min-w-0">
+          <span className={`font-medium truncate block ${task.column === "deployed" ? "line-through text-slate-500" : "text-slate-205"}`}>
+            {task.title}
+          </span>
+          {task.description && (
+            <span className="text-[10px] text-slate-500 truncate block">{task.description}</span>
+          )}
+        </div>
+
+        {/* Priority */}
+        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[task.priority]}`}>
+          {task.priority}
         </span>
-        {task.description && (
-          <span className="text-[11px] text-slate-600 truncate block">{task.description}</span>
-        )}
-      </div>
 
-      {/* Priority */}
-      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[task.priority]}`}>
-        {task.priority}
-      </span>
+        {/* Status badge */}
+        <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${colMeta.accent}`}>
+          <span className={`size-1 rounded-full ${colMeta.dot}`} />
+          {colMeta.label}
+        </span>
 
-      {/* Status */}
-      <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 ${colMeta.accent}`}>
-        <span className={`size-1 rounded-full ${colMeta.dot}`} />
-        {colMeta.label}
-      </span>
+        {/* Created By badge */}
+        <span className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold shrink-0 ${createdMeta.className}`}>
+          <CreatedIcon className="size-2.5" />
+          {task.createdBy === "ai" ? "AI" : task.createdBy === "slash" ? "Slash" : "Manual"}
+        </span>
 
-      {/* Source */}
-      <span className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${createdMeta.className}`}>
-        <CreatedIcon className="size-2.5" />
-        {task.createdBy === "ai" ? "AI" : task.createdBy === "slash" ? "Slash" : "Manual"}
-      </span>
+        {/* Assignee */}
+        <div className="shrink-0 w-16 flex justify-end">
+          {assignee ? (
+            <div
+              title={assignee.name}
+              className={`size-5 rounded-full ${assignee.color} grid place-items-center text-[9px] font-bold text-white ring-1 ring-slate-900`}
+            >
+              {assignee.isAi ? <Crown className="size-2.5" /> : assignee.name[0]}
+            </div>
+          ) : (
+            <span className="text-[10px] text-slate-600">—</span>
+          )}
+        </div>
 
-      {/* Assignee */}
-      <div className="shrink-0 w-16 flex justify-end">
-        {assignee ? (
-          <div
-            title={assignee.name}
-            className={`size-5 rounded-full ${assignee.color} grid place-items-center text-[9px] font-bold text-white ring-1 ring-slate-900`}
+        {/* Add Subtask actions */}
+        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+          <button
+            onClick={() => setIsQuickOpen(!isQuickOpen)}
+            className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
           >
-            {assignee.isAi ? <Crown className="size-2.5" /> : assignee.name[0]}
-          </div>
-        ) : (
-          <span className="text-[10px] text-slate-600">—</span>
-        )}
+            + Subtask
+          </button>
+        </div>
+
       </div>
 
-      {/* Age */}
-      <span className="hidden lg:block text-[10px] text-slate-600 shrink-0 tabular-nums w-12 text-right">
-        {daysSince === 0 ? "Today" : `${daysSince}d ago`}
-      </span>
+      {/* Quick Add Subtask Input Line */}
+      {isQuickOpen && (
+        <form onSubmit={handleQuickAdd} className="pl-14 pr-4 py-1.5 bg-slate-900/20 border-b border-slate-900/50 flex items-center gap-2">
+          <CornerDownRight className="size-3 text-slate-600 shrink-0" />
+          <input
+            autoFocus
+            required
+            value={quickTitle}
+            onChange={(e) => setQuickTitle(e.target.value)}
+            placeholder="Type subtask name and press Enter..."
+            className="flex-1 bg-transparent outline-none text-[11px] text-slate-200 placeholder:text-slate-650"
+          />
+          <button type="submit" className="text-[10px] text-fuchsia-450 hover:text-fuchsia-300 font-semibold px-2">
+            Add
+          </button>
+          <button type="button" onClick={() => setIsQuickOpen(false)} className="text-[10px] text-slate-500 hover:text-slate-300">
+            Cancel
+          </button>
+        </form>
+      )}
+
+      {/* Subtasks List */}
+      {expanded && subtasks.length > 0 && (
+        <div className="pl-9 divide-y divide-slate-900/20 bg-slate-900/5">
+          {subtasks.map((sub) => {
+            const subAssignee = userById(sub.assigneeId, users);
+            const subCol = COLUMN_META[sub.column];
+            return (
+              <div key={sub.id} className="group flex items-center gap-2 px-4 py-2 hover:bg-slate-900/30 transition text-xs">
+                <CornerDownRight className="size-3 text-slate-600 shrink-0" />
+                
+                {/* Status circle */}
+                <div className="shrink-0 pl-1">
+                  {sub.column === "deployed" ? (
+                    <CheckCircle2 className="size-3.5 text-emerald-450" />
+                  ) : sub.column === "active" ? (
+                    <AlertCircle className="size-3.5 text-sky-405" />
+                  ) : (
+                    <Circle className="size-3.5 text-slate-700" />
+                  )}
+                </div>
+
+                {/* Subtask Title */}
+                <div className="flex-1 min-w-0">
+                  <span className={`text-[11px] ${sub.column === "deployed" ? "line-through text-slate-600" : "text-slate-300"}`}>
+                    {sub.title}
+                  </span>
+                </div>
+
+                {/* Priority */}
+                <span className={`px-1 py-0.2 rounded text-[8px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[sub.priority]}`}>
+                  {sub.priority}
+                </span>
+
+                {/* Status */}
+                <span className={`flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-semibold uppercase tracking-wide shrink-0 ${subCol.accent}`}>
+                  <span className={`size-1 rounded-full ${subCol.dot}`} />
+                  {subCol.label}
+                </span>
+
+                {/* Assignee */}
+                <div className="shrink-0 w-12 flex justify-end">
+                  {subAssignee ? (
+                    <div
+                      title={subAssignee.name}
+                      className={`size-4.5 rounded-full ${subAssignee.color} grid place-items-center text-[8px] font-bold text-white ring-1 ring-slate-950`}
+                    >
+                      {subAssignee.isAi ? <Crown className="size-2" /> : subAssignee.name[0]}
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-650">—</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
     </div>
   );
 }

@@ -32,6 +32,8 @@ export interface Task {
   completedAt?: number | null;
   deadline?: string | null;
   estimateDays?: number | null;
+  projectId?: string | null;
+  parentId?: string | null;
 }
 
 export interface Message {
@@ -67,18 +69,20 @@ const now = Date.now();
 const DAY = 86400000;
 
 const INITIAL_TASKS: Task[] = [
-  { id: "t1", title: "Fix race condition in checkout webhook", description: "Reproduced under concurrent load — needs idempotency key.", assigneeId: "u2", priority: "urgent", column: "active", createdBy: "ai", originMessageId: "m3", originChannelId: "c2", createdAt: now - 4 * DAY },
-  { id: "t2", title: "Refactor auth middleware for edge runtime", assigneeId: "u4", priority: "high", column: "new", createdBy: "ai", originMessageId: "m5", originChannelId: "c2", createdAt: now - 3 * DAY },
-  { id: "t3", title: "Design system: token migration to OKLCH", assigneeId: "u3", priority: "medium", column: "staging", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 6 * DAY },
-  { id: "t4", title: "Q3 launch: payments overhaul", assigneeId: "u1", priority: "high", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 9 * DAY },
-  { id: "t5", title: "Add Sentry breadcrumbs to ingest pipeline", assigneeId: null, priority: "low", column: "new", createdBy: "slash", originMessageId: "m7", originChannelId: "c2", createdAt: now - 1 * DAY },
-  { id: "t6", title: "Onboarding revamp epic", assigneeId: "u3", priority: "medium", column: "new", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 2 * DAY },
-  { id: "t7", title: "Ship rate limiter to prod", assigneeId: "u2", priority: "high", column: "deployed", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 14 * DAY, completedAt: now - 2 * DAY },
-  { id: "t8", title: "Audit log retention policy", assigneeId: "u4", priority: "medium", column: "deployed", createdBy: "ai", originMessageId: null, originChannelId: null, createdAt: now - 11 * DAY, completedAt: now - 4 * DAY },
-  { id: "t9", title: "Postgres pooler upgrade", assigneeId: "u2", priority: "high", column: "staging", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 5 * DAY },
-  { id: "t10", title: "Triage AI-flagged 500s on /v2/orders", assigneeId: null, priority: "urgent", column: "new", createdBy: "ai", originMessageId: "m2", originChannelId: "c2", createdAt: now - 6 * 3600000 },
-  { id: "t11", title: "Migrate billing webhook to v2", assigneeId: "u1", priority: "high", column: "deployed", createdBy: "ai", originMessageId: null, originChannelId: null, createdAt: now - 18 * DAY, completedAt: now - 7 * DAY },
-  { id: "t12", title: "Customer SSO: Okta integration", assigneeId: "u4", priority: "high", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 8 * DAY },
+  { id: "t1", title: "Fix race condition in checkout webhook", description: "Reproduced under concurrent load — needs idempotency key.", assigneeId: "u2", priority: "urgent", column: "active", createdBy: "ai", originMessageId: "m3", originChannelId: "c2", createdAt: now - 4 * DAY, projectId: "p-x" },
+  { id: "t1_sub1", title: "Verify webhook signature validation", assigneeId: "u2", priority: "high", column: "deployed", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 3.5 * DAY, projectId: "p-x", parentId: "t1" },
+  { id: "t1_sub2", title: "Add unit tests for deduplication cache", assigneeId: "me", priority: "medium", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 3 * DAY, projectId: "p-x", parentId: "t1" },
+  { id: "t2", title: "Refactor auth middleware for edge runtime", assigneeId: "u4", priority: "high", column: "new", createdBy: "ai", originMessageId: "m5", originChannelId: "c2", createdAt: now - 3 * DAY, projectId: "p-x" },
+  { id: "t3", title: "Design system: token migration to OKLCH", assigneeId: "u3", priority: "medium", column: "staging", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 6 * DAY, projectId: "p-x" },
+  { id: "t4", title: "Q3 launch: payments overhaul", assigneeId: "u1", priority: "high", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 9 * DAY, projectId: "p-x" },
+  { id: "t5", title: "Add Sentry breadcrumbs to ingest pipeline", assigneeId: null, priority: "low", column: "new", createdBy: "slash", originMessageId: "m7", originChannelId: "c2", createdAt: now - 1 * DAY, projectId: "p-x" },
+  { id: "t6", title: "Onboarding revamp epic", assigneeId: "u3", priority: "medium", column: "new", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 2 * DAY, projectId: "p-x" },
+  { id: "t7", title: "Ship rate limiter to prod", assigneeId: "u2", priority: "high", column: "deployed", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 14 * DAY, completedAt: now - 2 * DAY, projectId: "p-x" },
+  { id: "t8", title: "Audit log retention policy", assigneeId: "u4", priority: "medium", column: "deployed", createdBy: "ai", originMessageId: null, originChannelId: null, createdAt: now - 11 * DAY, completedAt: now - 4 * DAY, projectId: "p-x" },
+  { id: "t9", title: "Postgres pooler upgrade", assigneeId: "u2", priority: "high", column: "staging", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 5 * DAY, projectId: "p-x" },
+  { id: "t10", title: "Triage AI-flagged 500s on /v2/orders", assigneeId: null, priority: "urgent", column: "new", createdBy: "ai", originMessageId: "m2", originChannelId: "c2", createdAt: now - 6 * 3600000, projectId: "p-x" },
+  { id: "t11", title: "Migrate billing webhook to v2", assigneeId: "u1", priority: "high", column: "deployed", createdBy: "ai", originMessageId: null, originChannelId: null, createdAt: now - 18 * DAY, completedAt: now - 7 * DAY, projectId: "p-x" },
+  { id: "t12", title: "Customer SSO: Okta integration", assigneeId: "u4", priority: "high", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 8 * DAY, projectId: "p-x" },
 ];
 
 const INITIAL_MESSAGES: Message[] = [
