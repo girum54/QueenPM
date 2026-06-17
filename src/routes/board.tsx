@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, X, Calendar, Clock, ArrowRight,
+  Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, X, Calendar, Clock, ArrowRight, ListTodo,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
@@ -75,9 +75,9 @@ function BoardPage() {
             <button className="h-8 px-2.5 rounded-md text-xs text-slate-300 border border-slate-800 hover:bg-slate-800/60 inline-flex items-center gap-1.5">
               <Filter className="size-3.5" /> Filter
             </button>
-            <button className="h-8 px-2.5 rounded-md text-xs font-medium bg-fuchsia-500/15 ring-1 ring-fuchsia-500/30 text-fuchsia-200 hover:bg-fuchsia-500/25 inline-flex items-center gap-1.5">
-              <Plus className="size-3.5" /> New task
-            </button>
+            <Link to="/tasks" className="h-8 px-2.5 rounded-md text-xs font-medium bg-slate-800 border border-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100 inline-flex items-center gap-1.5 transition">
+              <ListTodo className="size-3.5" /> Manage Tasks
+            </Link>
           </div>
         </div>
 
@@ -107,7 +107,6 @@ function BoardPage() {
                       {meta.label}
                     </span>
                     <span className="text-[11px] text-slate-500 tabular-nums">{items.length}</span>
-                    <Plus className="ml-auto size-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-2">
                     {items.length === 0 && (

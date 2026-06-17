@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
-  ExternalLink, PanelLeftClose, PanelLeftOpen,
+  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo,
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
@@ -22,12 +22,13 @@ function SprintIcon({ className }: { className?: string }) {
 
 // ── Nav definition (Channels handled separately as accordion) ──
 const TOP_NAV: {
-  to: "/" | "/sprint" | "/board";
+  to: "/" | "/sprint" | "/board" | "/tasks";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/tasks", label: "Tasks", icon: ListTodo },
   { to: "/sprint", label: "Sprint", icon: SprintIcon },
   { to: "/board", label: "Board", icon: KanbanSquare },
 ];
@@ -103,18 +104,39 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* ═══════════ LEFT SIDEBAR ═══════════ */}
       <aside
+        onClick={collapsed ? () => setSidebarCollapsed(false) : undefined}
         className={`shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-30 transition-all duration-200 ${
-          collapsed ? "w-[64px]" : "w-[220px]"
+          collapsed ? "w-[64px] cursor-pointer hover:bg-slate-900/10" : "w-[220px]"
         }`}
       >
         {/* ── Brand + Collapse Toggle ── */}
-        <div className={`flex items-center h-14 border-b border-slate-900 shrink-0 ${collapsed ? "justify-center px-0" : "px-3 gap-2"}`}>
+        <div
+          onClick={(e) => {
+            if (!collapsed) {
+              e.stopPropagation();
+              setSidebarCollapsed(true);
+            }
+          }}
+          className={`flex items-center h-14 border-b border-slate-900 shrink-0 cursor-pointer hover:bg-slate-900/20 transition ${
+            collapsed ? "justify-center px-0" : "px-3 gap-2"
+          }`}
+        >
           {!collapsed && (
             <>
               <div className="size-7 rounded-md bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/20 shrink-0">
                 <Crown className="size-3.5 text-white" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-slate-100 flex-1">Queen PM</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSidebarCollapsed(true);
+                }}
+                title="Collapse sidebar"
+                className="size-7 rounded-md grid place-items-center text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0"
+              >
+                <PanelLeftClose className="size-3.5" />
+              </button>
             </>
           )}
           {collapsed && (
@@ -122,25 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Crown className="size-3.5 text-white" />
             </div>
           )}
-          <button
-            onClick={() => setSidebarCollapsed(!collapsed)}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`size-7 rounded-md grid place-items-center text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0 ${collapsed ? "hidden" : ""}`}
-          >
-            <PanelLeftClose className="size-3.5" />
-          </button>
         </div>
-
-        {/* Expand button when collapsed */}
-        {collapsed && (
-          <button
-            onClick={() => setSidebarCollapsed(false)}
-            title="Expand sidebar"
-            className="mx-auto mt-1 size-7 rounded-md grid place-items-center text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 transition"
-          >
-            <PanelLeftOpen className="size-3.5" />
-          </button>
-        )}
 
         {/* ── Project Switcher ── */}
         {!collapsed && (
@@ -269,7 +273,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               {!collapsed && (
                 <>
                   <span className="flex-1 text-left">Channels</span>
-                  <ChevronDown className={`size-3 text-slate-600 transition-transform ${isChannelsOpen ? "rotate-180" : ""}`} />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate({ to: "/channels-config" });
+                      }}
+                      title="Manage Channels"
+                      className="size-5 rounded hover:bg-slate-800/60 text-slate-550 hover:text-slate-200 flex items-center justify-center transition"
+                    >
+                      <Settings className="size-3" />
+                    </button>
+                    <ChevronDown className={`size-3 text-slate-600 transition-transform ${isChannelsOpen ? "rotate-180" : ""}`} />
+                  </div>
                 </>
               )}
             </button>

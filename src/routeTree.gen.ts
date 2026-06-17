@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
+import { Route as ChannelsConfigRouteImport } from './routes/channels-config'
 import { Route as ChannelsRouteImport } from './routes/channels'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
@@ -29,6 +30,11 @@ const SprintConfigRoute = SprintConfigRouteImport.update({
 const SprintRoute = SprintRouteImport.update({
   id: '/sprint',
   path: '/sprint',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelsConfigRoute = ChannelsConfigRouteImport.update({
+  id: '/channels-config',
+  path: '/channels-config',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsRoute = ChannelsRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
+  '/channels-config': typeof ChannelsConfigRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
   '/tasks': typeof TasksRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
+  '/channels-config': typeof ChannelsConfigRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
   '/tasks': typeof TasksRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
+  '/channels-config': typeof ChannelsConfigRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
   '/tasks': typeof TasksRoute
@@ -78,16 +87,25 @@ export interface FileRouteTypes {
     | '/'
     | '/board'
     | '/channels'
+    | '/channels-config'
     | '/sprint'
     | '/sprint-config'
     | '/tasks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/board' | '/channels' | '/sprint' | '/sprint-config' | '/tasks'
+  to:
+    | '/'
+    | '/board'
+    | '/channels'
+    | '/channels-config'
+    | '/sprint'
+    | '/sprint-config'
+    | '/tasks'
   id:
     | '__root__'
     | '/'
     | '/board'
     | '/channels'
+    | '/channels-config'
     | '/sprint'
     | '/sprint-config'
     | '/tasks'
@@ -97,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BoardRoute: typeof BoardRoute
   ChannelsRoute: typeof ChannelsRoute
+  ChannelsConfigRoute: typeof ChannelsConfigRoute
   SprintRoute: typeof SprintRoute
   SprintConfigRoute: typeof SprintConfigRoute
   TasksRoute: typeof TasksRoute
@@ -123,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/sprint'
       fullPath: '/sprint'
       preLoaderRoute: typeof SprintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channels-config': {
+      id: '/channels-config'
+      path: '/channels-config'
+      fullPath: '/channels-config'
+      preLoaderRoute: typeof ChannelsConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channels': {
@@ -153,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BoardRoute: BoardRoute,
   ChannelsRoute: ChannelsRoute,
+  ChannelsConfigRoute: ChannelsConfigRoute,
   SprintRoute: SprintRoute,
   SprintConfigRoute: SprintConfigRoute,
   TasksRoute: TasksRoute,

@@ -127,6 +127,10 @@ interface StoreShape {
   jumpRequest: JumpRequest | null;
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
+  // Dynamic Channels management
+  addChannel: (name: string, aiActive?: boolean) => void;
+  updateChannel: (id: string, patch: Partial<Channel>) => void;
+  deleteChannel: (id: string) => void;
   // Tabs & sidebar
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
@@ -142,6 +146,13 @@ const StoreCtx = createContext<StoreShape | null>(null);
 export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [channels, setChannels] = useState<Channel[]>(() => {
+    try {
+      const saved = localStorage.getItem("channels");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return CHANNELS;
+  });
   const [activeChannelId, setActiveChannelId] = useState("c2");
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const consumed = useRef(false);
@@ -209,11 +220,39 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addChannel = (name: string, aiActive = false) => {
+    const newChan = {
+      id: `c_${Date.now()}`,
+      name: name.toLowerCase().replace(/\s+/g, "-"),
+      aiActive,
+    };
+    const next = [...channels, newChan];
+    setChannels(next);
+    localStorage.setItem("channels", JSON.stringify(next));
+    setActiveChannelId(newChan.id);
+  };
+
+  const updateChannel = (id: string, patch: Partial<Channel>) => {
+    const next = channels.map((c) => (c.id === id ? { ...c, ...patch } : c));
+    setChannels(next);
+    localStorage.setItem("channels", JSON.stringify(next));
+  };
+
+  const deleteChannel = (id: string) => {
+    if (channels.length <= 1) return;
+    const next = channels.filter((c) => c.id !== id);
+    setChannels(next);
+    localStorage.setItem("channels", JSON.stringify(next));
+    if (activeChannelId === id) {
+      setActiveChannelId(next[0].id);
+    }
+  };
+
   const value = useMemo<StoreShape>(
     () => ({
       tasks,
       messages,
-      channels: CHANNELS,
+      channels,
       users: USERS,
       activeChannelId,
       setActiveChannelId,
@@ -238,6 +277,9 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
         consumed.current = true;
         return jumpRequest;
       },
+      addChannel,
+      updateChannel,
+      deleteChannel,
       activeProjectId,
       setActiveProjectId: handleSetActiveProjectId,
       projectTabs,
@@ -246,7 +288,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       sidebarCollapsed,
       setSidebarCollapsed: handleSetSidebarCollapsed,
     }),
-    [tasks, messages, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed]
+    [tasks, messages, channels, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Hash, Bot, ChevronDown, Pin, Search, Plus, Send, Crown, Sparkles, Zap, MessageSquare, Bell,
+  Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
@@ -22,7 +22,7 @@ function ChannelsPage() {
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
     addMessage, addTask, consumeJump,
-    activeProjectId, setActiveProjectId, projectTabs
+    activeProjectId, projectTabs
   } = useStore();
 
   const activeProject = useMemo(() => {
@@ -32,7 +32,7 @@ function ChannelsPage() {
   const [input, setInput] = useState("");
   const [showAuto, setShowAuto] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const streamRef = useRef<HTMLDivElement>(null);
 
   // Handle cross-page jump
@@ -145,119 +145,10 @@ function ChannelsPage() {
 
   return (
     <AppShell>
-      <div className="h-full grid grid-cols-[260px_1fr]">
-        {/* LEFT: Channels-specific panel */}
-        <aside className="border-r border-slate-800/80 bg-slate-900/40 flex flex-col min-h-0">
-          <div className="p-3 border-b border-slate-800/80 relative">
-            <button
-              onClick={() => setWorkspaceOpen((o) => !o)}
-              className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-800/60 transition"
-            >
-              <div className="size-8 rounded-md bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/20">
-                <Crown className="size-4 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className="text-sm font-semibold text-slate-100 leading-tight">{activeProject?.name}</div>
-                <div className="text-[11px] text-slate-500 leading-tight">12 members · Pro</div>
-              </div>
-              <ChevronDown className={`size-4 text-slate-500 transition ${workspaceOpen ? "rotate-180" : ""}`} />
-            </button>
-            {workspaceOpen && (
-              <div className="absolute left-3 right-3 top-full mt-1 z-30 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40 overflow-hidden">
-                {projectTabs.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      setActiveProjectId(p.id);
-                      setWorkspaceOpen(false);
-                    }}
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-slate-800/60 flex items-center gap-2"
-                  >
-                    <div className={`size-5 rounded bg-gradient-to-br ${p.color}`} />
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="px-3 pt-3">
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-slate-800/50 border border-slate-800 text-xs text-slate-500">
-              <Search className="size-3.5" />
-              <span>Search messages…</span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5 min-h-0">
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Channels</span>
-              <Plus className="size-3.5 text-slate-500 hover:text-slate-300 cursor-pointer" />
-            </div>
-            {channels.map((ch) => {
-              const active = ch.id === activeChannelId;
-              return (
-                <button
-                  key={ch.id}
-                  onClick={() => setActiveChannelId(ch.id)}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition group ${
-                    active ? "bg-slate-800 text-slate-100" : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                  }`}
-                >
-                  {ch.aiActive ? (
-                    <Bot className={`size-4 shrink-0 ${active ? "text-fuchsia-400" : "text-slate-500 group-hover:text-fuchsia-400"}`} />
-                  ) : (
-                    <Hash className="size-4 shrink-0 text-slate-500" />
-                  )}
-                  <span className="flex-1 text-left truncate">{ch.name}</span>
-                  {ch.aiActive && (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30">
-                      <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[9px] font-semibold text-emerald-300 tracking-wide">AI</span>
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-
-            <div className="flex items-center justify-between px-2 py-1.5 mt-4">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 flex items-center gap-1.5">
-                <Pin className="size-3" /> Pinned Threads
-              </span>
-            </div>
-            {pinnedMessages.map((m) => {
-              const ch = channels.find((c) => c.id === m.channelId);
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => jumpToPinned(m.id)}
-                  className="w-full text-left px-2 py-1.5 rounded-md text-xs text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                >
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-0.5">
-                    <Hash className="size-2.5" /> {ch?.name}
-                  </div>
-                  <div className="truncate">{m.text}</div>
-                </button>
-              );
-            })}
-
-            <div className="flex items-center justify-between px-2 py-1.5 mt-4">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Direct Messages</span>
-            </div>
-            {users.filter((u) => u.id !== "me").slice(0, 4).map((u) => (
-              <button key={u.id} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-slate-400 hover:bg-slate-800/50 hover:text-slate-200">
-                <div className={`size-5 rounded-full ${u.color} grid place-items-center text-[10px] font-bold text-white`}>
-                  {u.isAi ? <Crown className="size-3" /> : u.name[0]}
-                </div>
-                <span className="truncate">{u.name}</span>
-                {u.isAi && <Sparkles className="size-3 text-fuchsia-400 ml-auto" />}
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {/* CENTER: Chat */}
-        <section className="flex flex-col min-w-0 bg-slate-950 min-h-0">
-          <header className="h-12 border-b border-slate-800/80 px-5 flex items-center gap-3 shrink-0">
+      <div className="h-full flex overflow-hidden">
+        {/* CENTER: Chat container */}
+        <section className="flex-1 flex flex-col min-w-0 bg-slate-950 min-h-0">
+          <header className="h-12 border-b border-slate-900 px-5 flex items-center gap-3 shrink-0">
             {activeChannel?.aiActive ? (
               <Bot className="size-5 text-fuchsia-400" />
             ) : (
@@ -270,10 +161,21 @@ function ChannelsPage() {
                 QUEEN PM ACTIVE
               </span>
             )}
+            
+            {/* Header controls */}
             <div className="ml-auto flex items-center gap-3 text-slate-500">
-              <Pin className="size-4 hover:text-slate-300 cursor-pointer" />
-              <Bell className="size-4 hover:text-slate-300 cursor-pointer" />
-              <div className="flex -space-x-1.5">
+              <button
+                onClick={() => setRightPanelOpen(!rightPanelOpen)}
+                className={`size-8 rounded-lg grid place-items-center transition ${rightPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-300 hover:bg-slate-900/60"}`}
+                title="Toggle Channel Details"
+              >
+                <Info className="size-4.5" />
+              </button>
+              <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
+                <Bell className="size-4" />
+              </button>
+              
+              <div className="flex -space-x-1.5 pl-1.5 border-l border-slate-800">
                 {users.slice(0, 4).map((u) => (
                   <div key={u.id} className={`size-6 rounded-full ${u.color} grid place-items-center text-[10px] font-bold text-white ring-2 ring-slate-950`}>
                     {u.isAi ? <Crown className="size-3" /> : u.name[0]}
@@ -283,6 +185,7 @@ function ChannelsPage() {
             </div>
           </header>
 
+          {/* Messages Stream */}
           <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
             {channelMessages.map((m, idx) => {
               const author = userById(m.authorId, users)!;
@@ -334,8 +237,8 @@ function ChannelsPage() {
                         </span>
                         <span className="ml-auto text-[10px] text-slate-400">
                           {task.assigneeId
-                            ? `→ ${userById(task.assigneeId, users)?.handle}`
-                            : "→ unassigned"}
+                             ? `→ ${userById(task.assigneeId, users)?.handle}`
+                             : "→ unassigned"}
                         </span>
                       </div>
                     </div>
@@ -350,7 +253,7 @@ function ChannelsPage() {
           </div>
 
           {/* Composer */}
-          <div className="p-4 border-t border-slate-800/80 shrink-0 relative">
+          <div className="p-4 border-t border-slate-900 shrink-0 relative">
             {showAuto && (
               <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40 overflow-hidden">
                 <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-800">
@@ -398,6 +301,104 @@ function ChannelsPage() {
             </div>
           </div>
         </section>
+
+        {/* RIGHT SIDE PANEL: Details, Pins & Members */}
+        {rightPanelOpen && (
+          <aside className="w-72 border-l border-slate-900 bg-slate-950/40 flex flex-col min-h-0 z-10">
+            {/* Header */}
+            <div className="h-12 border-b border-slate-900 px-4 flex items-center justify-between shrink-0">
+              <span className="text-xs font-semibold text-slate-200 tracking-wide uppercase">Channel Details</span>
+              <button
+                onClick={() => setRightPanelOpen(false)}
+                className="size-6 rounded hover:bg-slate-900 text-slate-500 hover:text-slate-300 grid place-items-center transition"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-5 min-h-0">
+              
+              {/* Channel Info */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">About</div>
+                <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-900 text-xs text-slate-300 space-y-1.5">
+                  <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Hash className="size-3.5 text-slate-500" /> {activeChannel?.name}
+                  </div>
+                  <p className="text-slate-400 leading-relaxed">
+                    Welcome to the project feed for {activeProject?.name}. AI and team notifications post directly here.
+                  </p>
+                </div>
+              </div>
+
+              {/* Pinned Messages */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                  <span>Pinned Threads</span>
+                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 font-mono">
+                    {pinnedMessages.length}
+                  </span>
+                </div>
+                
+                <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
+                  {pinnedMessages.length === 0 ? (
+                    <div className="text-center py-4 border border-dashed border-slate-900 rounded-lg text-slate-600 text-xs">
+                      No pinned threads
+                    </div>
+                  ) : (
+                    pinnedMessages.map((m) => {
+                      const ch = channels.find((c) => c.id === m.channelId);
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => jumpToPinned(m.id)}
+                          className="w-full text-left p-2.5 rounded-lg border border-slate-900 bg-slate-900/20 hover:bg-slate-900/60 text-xs text-slate-400 hover:text-slate-200 transition space-y-1"
+                        >
+                          <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-semibold uppercase">
+                            <Hash className="size-2.5" /> {ch?.name}
+                          </div>
+                          <div className="truncate text-slate-300 font-medium">{m.text}</div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Members */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                  <span>Members</span>
+                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 font-mono">
+                    {users.length}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  {users.map((u) => (
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-2.5 p-1.5 rounded hover:bg-slate-900/30 text-xs text-slate-300 transition"
+                    >
+                      <div className={`size-6 rounded-full ${u.color} grid place-items-center text-[10px] font-bold text-white shrink-0`}>
+                        {u.isAi ? <Crown className="size-3" /> : u.name[0]}
+                      </div>
+                      <span className="truncate flex-1">{u.name}</span>
+                      {u.isAi ? (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-300 font-bold tracking-wide">
+                          AI Agent
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-slate-500">{u.handle}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </aside>
+        )}
       </div>
     </AppShell>
   );
