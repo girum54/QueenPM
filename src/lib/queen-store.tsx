@@ -96,6 +96,18 @@ const INITIAL_MESSAGES: Message[] = [
   { id: "m12", authorId: "u3", channelId: "c1", ts: "11:00", text: "lunch order goes in at 12:30 sharp" },
 ];
 
+export interface ProjectTab {
+  id: string;
+  name: string;
+  color: string;
+}
+
+const DEFAULT_PROJECT_TABS: ProjectTab[] = [
+  { id: "p-x", name: "Project X", color: "from-fuchsia-500 to-violet-600" },
+  { id: "p-alpha", name: "Project Alpha", color: "from-sky-500 to-cyan-600" },
+  { id: "p-delta", name: "Project Delta", color: "from-emerald-500 to-teal-600" },
+];
+
 interface JumpRequest {
   messageId: string;
   channelId: string;
@@ -115,6 +127,14 @@ interface StoreShape {
   jumpRequest: JumpRequest | null;
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
+  // Tabs & sidebar
+  activeProjectId: string;
+  setActiveProjectId: (id: string) => void;
+  projectTabs: ProjectTab[];
+  addProjectTab: (name: string, color?: string) => void;
+  closeProjectTab: (id: string) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 const StoreCtx = createContext<StoreShape | null>(null);
@@ -125,6 +145,69 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [activeChannelId, setActiveChannelId] = useState("c2");
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const consumed = useRef(false);
+
+  const [projectTabs, setProjectTabs] = useState<ProjectTab[]>(() => {
+    try {
+      const saved = localStorage.getItem("project_tabs");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_PROJECT_TABS;
+  });
+
+  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem("active_project_id");
+      if (saved && projectTabs.some((p) => p.id === saved)) return saved;
+    } catch (e) {}
+    return "p-x";
+  });
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_collapsed");
+      return saved === "true";
+    } catch (e) {}
+    return false;
+  });
+
+  const handleSetActiveProjectId = (id: string) => {
+    setActiveProjectId(id);
+    localStorage.setItem("active_project_id", id);
+  };
+
+  const handleSetSidebarCollapsed = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    localStorage.setItem("sidebar_collapsed", String(collapsed));
+  };
+
+  const addProjectTab = (name: string, color?: string) => {
+    const id = `p-${Date.now()}`;
+    const colors = [
+      "from-fuchsia-500 to-violet-600",
+      "from-sky-500 to-cyan-600",
+      "from-emerald-500 to-teal-600",
+      "from-amber-500 to-orange-600",
+      "from-rose-500 to-pink-600",
+    ];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const newTab = { id, name, color: color || randomColor };
+    const nextTabs = [...projectTabs, newTab];
+    setProjectTabs(nextTabs);
+    localStorage.setItem("project_tabs", JSON.stringify(nextTabs));
+    handleSetActiveProjectId(id);
+  };
+
+  const closeProjectTab = (id: string) => {
+    if (projectTabs.length <= 1) return;
+    const nextTabs = projectTabs.filter((p) => p.id !== id);
+    setProjectTabs(nextTabs);
+    localStorage.setItem("project_tabs", JSON.stringify(nextTabs));
+    if (activeProjectId === id) {
+      const remainingIndex = projectTabs.findIndex((p) => p.id === id);
+      const nextActive = nextTabs[Math.max(0, remainingIndex - 1)].id;
+      handleSetActiveProjectId(nextActive);
+    }
+  };
 
   const value = useMemo<StoreShape>(
     () => ({
@@ -155,8 +238,15 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
         consumed.current = true;
         return jumpRequest;
       },
+      activeProjectId,
+      setActiveProjectId: handleSetActiveProjectId,
+      projectTabs,
+      addProjectTab,
+      closeProjectTab,
+      sidebarCollapsed,
+      setSidebarCollapsed: handleSetSidebarCollapsed,
     }),
-    [tasks, messages, activeChannelId, jumpRequest]
+    [tasks, messages, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

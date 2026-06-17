@@ -18,7 +18,11 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { tasks, users } = useStore();
+  const { tasks, users, activeProjectId, projectTabs } = useStore();
+
+  const activeProject = useMemo(() => {
+    return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
+  }, [projectTabs, activeProjectId]);
 
   const metrics = useMemo(() => {
     const total = tasks.length;
@@ -60,16 +64,22 @@ function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="h-full overflow-y-auto">
+      <div className="h-full overflow-y-auto font-sans">
         <div className="max-w-[1400px] mx-auto px-8 py-8 space-y-6">
           {/* Hero */}
           <div className="flex items-end justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-                <Sparkles className="size-3.5 text-fuchsia-400" /> Command center
+              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
+                <span className="inline-flex items-center gap-1.5">
+                  📁 Project: <span className="text-slate-300 font-semibold">{activeProject?.name}</span>
+                </span>
+                <span className="text-slate-700">/</span>
+                <span className="inline-flex items-center gap-1">
+                  <Sparkles className="size-3.5 text-fuchsia-400" /> Command center
+                </span>
               </div>
               <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
-                Good morning. Sprint Q3 is on track.
+                Good morning. The current project sprint is on track.
               </h1>
               <p className="text-sm text-slate-400 mt-1">
                 {metrics.byCol.active} tasks active · {metrics.byCol.staging} in staging · {metrics.byCol.deployed} deployed this cycle

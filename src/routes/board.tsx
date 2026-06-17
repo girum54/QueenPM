@@ -22,12 +22,16 @@ export const Route = createFileRoute("/board")({
 const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 
 function BoardPage() {
-  const { tasks, updateTask, users, requestJump } = useStore();
+  const { tasks, updateTask, users, requestJump, activeProjectId, projectTabs } = useStore();
   const navigate = useNavigate();
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverCol, setHoverCol] = useState<ColumnId | null>(null);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [query, setQuery] = useState("");
+
+  const activeProject = useMemo(() => {
+    return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
+  }, [projectTabs, activeProjectId]);
 
   const filtered = useMemo(
     () => tasks.filter((t) => (query ? t.title.toLowerCase().includes(query.toLowerCase()) : true)),
@@ -53,10 +57,10 @@ function BoardPage() {
 
   return (
     <AppShell>
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col font-sans">
         {/* Toolbar */}
         <div className="h-12 shrink-0 border-b border-slate-800/80 bg-slate-900/30 px-5 flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-slate-100">Aurora Labs · Board</h1>
+          <h1 className="text-sm font-semibold text-slate-100">{activeProject?.name} · Board</h1>
           <span className="text-xs text-slate-500">{filtered.length} tasks</span>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-slate-800/50 border border-slate-800 text-xs text-slate-300 w-64">

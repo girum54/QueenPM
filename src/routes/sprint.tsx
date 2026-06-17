@@ -1,0 +1,304 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Zap, Calendar, Clock, Target, ArrowRight, KanbanSquare,
+  AlertCircle, CheckCircle2, TrendingUp, ShieldCheck, Settings,
+  Sparkles, Activity, ArrowUpRight
+} from "lucide-react";
+import { AppShell } from "@/components/AppShell";
+import { useStore, COLUMN_META } from "@/lib/queen-store";
+
+export const Route = createFileRoute("/sprint")({
+  head: () => ({
+    meta: [
+      { title: "Active Sprint — Queen PM" },
+      { name: "description", content: "Active sprint dashboard tracking target deliverables, velocity and health." },
+    ],
+  }),
+  component: SprintPage,
+});
+
+function SprintPage() {
+  const { tasks } = useStore();
+  const [methodology] = useState<"agile" | "waterfall" | "kanban" | "hybrid">("agile");
+
+  // Simulated active sprint config data
+  const sprintName = "Sprint Q3 - Iteration 4";
+  const daysRemaining = 4;
+  const targetDeliverable = "Payments v2 live in production with full Stripe migration, documented API, and zero P0 regressions.";
+  const deliverableStatus: "on_track" | "at_risk" | "slipped" = "on_track";
+
+  // Filter tasks that are actively linked to this sprint
+  const sprintTasks = tasks.slice(0, 6);
+
+  // Stats calculation
+  const completedTasks = sprintTasks.filter(t => t.column === "deployed").length;
+  const totalTasks = sprintTasks.length;
+  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Velocity trailing average mock
+  const velocityValues = [32, 45, 38, 48, 52, 49];
+  const maxVelocity = Math.max(...velocityValues);
+
+  return (
+    <AppShell>
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-[1400px] mx-auto px-8 py-8 space-y-6">
+          
+          {/* Header & Meta */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
+                <Activity className="size-3.5 text-fuchsia-400" /> Project: Project X / Active Cycle
+              </div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
+                  {sprintName}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30">
+                  [Agile/Scrum Cycle]
+                </span>
+              </div>
+              <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="size-4 text-fuchsia-400" />
+                  <span className="text-slate-200 font-medium">Days Remaining:</span> {daysRemaining} days left (Ends June 21)
+                </span>
+                <span className="text-slate-600">•</span>
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="size-4 text-slate-500" />
+                  <span>Timeline:</span> June 7 – June 21
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                to="/sprint-config"
+                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition"
+              >
+                <Settings className="size-3.5" /> Configure Model
+              </Link>
+              <Link
+                to="/board"
+                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition"
+              >
+                <KanbanSquare className="size-3.5" /> Go to Sprint Board <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Top Section: Board Integration & Deliverable Widget */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            
+            {/* Deliverable Widget */}
+            <div className="lg:col-span-2 rounded-xl border-2 border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/5 via-slate-900/60 to-violet-500/5 p-6 flex flex-col justify-between relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-9 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-md">
+                      <Target className="size-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-100">Target Deliverable</h3>
+                      <p className="text-[10px] text-slate-500">Core commitment for this sprint cycle</p>
+                    </div>
+                  </div>
+
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                    deliverableStatus === "on_track"
+                      ? "bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30"
+                      : "bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30"
+                  }`}>
+                    <span className={`size-1.5 rounded-full ${deliverableStatus === "on_track" ? "bg-emerald-400" : "bg-amber-400"}`} />
+                    On Track to Ship
+                  </span>
+                </div>
+
+                <p className="text-slate-200 text-sm leading-relaxed font-medium pl-1 bg-slate-950/20 p-3 rounded-lg border border-slate-800/40">
+                  "{targetDeliverable}"
+                </p>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="size-3.5 text-fuchsia-400" />
+                  Verified by Queen PM Autonomous Quality Assurance
+                </span>
+                <span className="font-mono text-[10px] bg-slate-800/40 px-2 py-0.5 rounded text-slate-400">
+                  RE-Q3-04
+                </span>
+              </div>
+            </div>
+
+            {/* Linked Board Integration Panel */}
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                    <KanbanSquare className="size-4 text-fuchsia-400" /> Board Integration
+                  </h3>
+                  <span className="text-[10px] font-mono text-slate-500">Linked scope</span>
+                </div>
+                <p className="text-xs text-slate-400 mb-3">
+                  This sprint tracks {totalTasks} tasks on the main Board. Changes to statuses sync in real-time.
+                </p>
+
+                <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                  {sprintTasks.map((t) => {
+                    const colMeta = COLUMN_META[t.column];
+                    return (
+                      <div key={t.id} className="flex items-center justify-between p-2 rounded bg-slate-950/40 border border-slate-800/40 text-xs">
+                        <span className="text-slate-300 truncate font-medium max-w-[170px]" title={t.title}>
+                          {t.title}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex items-center gap-1 ${colMeta.accent}`}>
+                          <span className={`size-1 rounded-full ${colMeta.dot}`} />
+                          {colMeta.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Link
+                to="/board"
+                className="mt-4 w-full h-8 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 inline-flex items-center justify-center gap-1.5 transition border border-slate-800"
+              >
+                Go to Sprint Board <ArrowUpRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Sprint Analytics Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Progress Percentage & Velocity */}
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="size-8 rounded-md bg-fuchsia-500/10 ring-1 ring-fuchsia-500/30 grid place-items-center">
+                    <TrendingUp className="size-4 text-fuchsia-300" />
+                  </div>
+                  <span className="text-2xl font-bold text-slate-100 tabular-nums">{progressPercent}%</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Sprint Velocity / Progress</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {completedTasks} of {totalTasks} tasks deployed to production environment.
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-500">
+                  <span>Start (June 7)</span>
+                  <span>Target (June 21)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Task Burn-down / Completion Estimate */}
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="size-8 rounded-md bg-sky-500/10 ring-1 ring-sky-500/30 grid place-items-center">
+                    <Clock className="size-4 text-sky-300" />
+                  </div>
+                  <span className="text-2xl font-bold text-slate-100 tabular-nums">2.4 days</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Burn-down Estimate</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Estimated time to complete remaining {totalTasks - completedTasks} scope items at current team pace.
+                </p>
+              </div>
+
+              {/* Sparkline-like burn-down mock */}
+              <div className="mt-4 flex items-end gap-1.5 h-12">
+                {velocityValues.map((v, idx) => (
+                  <div
+                    key={idx}
+                    className="flex-1 rounded-sm bg-sky-500/30 transition-colors"
+                    style={{ height: `${(v / maxVelocity) * 100}%` }}
+                    title={`Day ${idx + 1}: ${v} remaining`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Deliverable Health Status */}
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="size-8 rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/30 grid place-items-center">
+                    <CheckCircle2 className="size-4 text-emerald-300" />
+                  </div>
+                  <span className="text-sm font-semibold text-emerald-400">Excellent (94%)</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Deliverable Health Status</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  AI Risk assessment reports low likelihood of delays. Pipeline automation is at peak ratio.
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col gap-1.5 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Quality Gate approval:</span>
+                  <span className="text-emerald-400 font-medium">Passed</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Blocking Incidents:</span>
+                  <span className="text-slate-300 font-medium">0 active</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Under the hood QA and logs panel */}
+          <div className="rounded-xl border border-slate-800/80 bg-slate-900/20 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                  <Sparkles className="size-4 text-fuchsia-400" /> Queen PM Cycle Diagnostics
+                </h3>
+                <p className="text-xs text-slate-500">Predictive timeline simulations and continuous optimization insights</p>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400">
+                Live Analysis
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80 space-y-2">
+                <div className="text-xs font-semibold text-fuchsia-300 flex items-center gap-1.5">
+                  <Zap className="size-3.5" /> Optimal Resource Allocation
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Queen PM advises shifting <span className="text-slate-200">Daniel Park</span> to "Fix race condition in checkout webhook" to maximize the completion probability of the Payments v2 deliverable.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80 space-y-2">
+                <div className="text-xs font-semibold text-sky-300 flex items-center gap-1.5">
+                  <AlertCircle className="size-3.5" /> Automated Branch Health
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  No merge conflicts detected across 4 active pull requests tied to this sprint. Continuous deployment test suites passing.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </AppShell>
+  );
+}

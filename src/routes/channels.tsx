@@ -22,7 +22,12 @@ function ChannelsPage() {
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
     addMessage, addTask, consumeJump,
+    activeProjectId, setActiveProjectId, projectTabs
   } = useStore();
+
+  const activeProject = useMemo(() => {
+    return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
+  }, [projectTabs, activeProjectId]);
 
   const [input, setInput] = useState("");
   const [showAuto, setShowAuto] = useState(false);
@@ -152,17 +157,24 @@ function ChannelsPage() {
                 <Crown className="size-4 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <div className="text-sm font-semibold text-slate-100 leading-tight">Aurora Labs</div>
+                <div className="text-sm font-semibold text-slate-100 leading-tight">{activeProject?.name}</div>
                 <div className="text-[11px] text-slate-500 leading-tight">12 members · Pro</div>
               </div>
               <ChevronDown className={`size-4 text-slate-500 transition ${workspaceOpen ? "rotate-180" : ""}`} />
             </button>
             {workspaceOpen && (
               <div className="absolute left-3 right-3 top-full mt-1 z-30 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40 overflow-hidden">
-                {["Aurora Labs", "Side Project", "Personal"].map((w, i) => (
-                  <button key={w} className="w-full px-3 py-2 text-left text-sm hover:bg-slate-800/60 flex items-center gap-2">
-                    <div className={`size-5 rounded ${i === 0 ? "bg-gradient-to-br from-fuchsia-500 to-violet-600" : "bg-slate-700"}`} />
-                    {w}
+                {projectTabs.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setActiveProjectId(p.id);
+                      setWorkspaceOpen(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-slate-800/60 flex items-center gap-2"
+                  >
+                    <div className={`size-5 rounded bg-gradient-to-br ${p.color}`} />
+                    {p.name}
                   </button>
                 ))}
               </div>
