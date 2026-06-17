@@ -304,7 +304,12 @@ function ChannelsPage() {
 
         {/* RIGHT SIDE PANEL: Details, Pins & Members */}
         {rightPanelOpen && (
-          <aside className="w-72 border-l border-slate-900 bg-slate-950/40 flex flex-col min-h-0 z-10">
+          <>
+            <div
+              onClick={() => setRightPanelOpen(false)}
+              className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            />
+            <aside className="fixed inset-y-0 right-0 lg:relative w-72 border-l border-slate-900 bg-slate-950/95 lg:bg-slate-950/40 flex flex-col min-h-0 z-40">
             {/* Header */}
             <div className="h-12 border-b border-slate-900 px-4 flex items-center justify-between shrink-0">
               <span className="text-xs font-semibold text-slate-200 tracking-wide uppercase">Channel Details</span>
@@ -398,6 +403,7 @@ function ChannelsPage() {
 
             </div>
           </aside>
+          </>
         )}
       </div>
     </AppShell>

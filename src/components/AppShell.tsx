@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
-  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo,
+  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu,
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
@@ -51,6 +51,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [openInNewTab, setOpenInNewTab] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,7 +103,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/channels" });
   };
 
-  const collapsed = sidebarCollapsed;
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    setIsMobile(media.matches);
+    const listener = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
+  const collapsed = isMobile ? false : sidebarCollapsed;
 
   return (
     <div className="h-screen w-screen overflow-hidden flex bg-slate-950 text-slate-200 font-sans antialiased selection:bg-fuchsia-500/30">
@@ -105,9 +120,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ═══════════ LEFT SIDEBAR ═══════════ */}
       <aside
         onClick={collapsed ? () => setSidebarCollapsed(false) : undefined}
-        className={`shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-30 transition-all duration-200 ${
-          collapsed ? "w-[64px] cursor-pointer hover:bg-slate-900/10" : "w-[220px]"
-        }`}
+        className={`fixed inset-y-0 left-0 md:relative md:translate-x-0 shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-50 transition-all duration-200 transform ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        } ${
+          collapsed ? "md:w-[64px] cursor-pointer hover:bg-slate-900/10" : "md:w-[220px]"
+        } w-[240px]`}
       >
         {/* ── Brand + Collapse Toggle ── */}
         <div
@@ -342,15 +359,30 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
+      {/* Mobile Sidebar Overlay Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden"
+        />
+      )}
+
       {/* ═══════════ RIGHT SIDE ═══════════ */}
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
 
         {/* ── Top Bar ── */}
         <header className="h-12 shrink-0 border-b border-slate-900 bg-slate-950 flex items-center px-4 gap-2 z-20">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900/60 border border-slate-900 text-[11px] text-slate-500 w-64 hover:border-slate-800 transition cursor-text">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden size-8 grid place-items-center text-slate-400 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition shrink-0"
+          >
+            <Menu className="size-4" />
+          </button>
+
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900/60 border border-slate-900 text-[11px] text-slate-500 w-40 sm:w-64 hover:border-slate-800 transition cursor-text min-w-0">
             <Search className="size-3.5 text-slate-600 shrink-0" />
-            <span>Jump to…</span>
-            <span className="ml-auto px-1.5 py-0.5 rounded bg-slate-950 text-[9px] font-mono text-slate-600">⌘K</span>
+            <span className="truncate">Jump to…</span>
+            <span className="hidden sm:inline ml-auto px-1.5 py-0.5 rounded bg-slate-950 text-[9px] font-mono text-slate-605">⌘K</span>
           </div>
           <div className="ml-auto flex items-center gap-1">
             <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
