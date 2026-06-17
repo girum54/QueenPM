@@ -75,20 +75,22 @@ function BoardPage() {
     <AppShell>
       <div className="h-full flex flex-col font-sans">
         {/* Toolbar */}
-        <div className="h-12 shrink-0 border-b border-slate-800/80 bg-slate-900/30 px-5 flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-slate-100">{activeProject?.name} · Board</h1>
-          <span className="text-xs text-slate-500">{filtered.length} tasks</span>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-slate-800/50 border border-slate-800 text-xs text-slate-300 w-64">
-              <Search className="size-3.5 text-slate-500" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-b border-slate-800/80 bg-slate-900/30 px-5 py-3 sm:py-0 sm:h-12 shrink-0">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-sm font-semibold text-slate-100">{activeProject?.name} · Board</h1>
+            <span className="text-xs text-slate-500">{filtered.length} tasks</span>
+          </div>
+          <div className="sm:ml-auto flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-slate-800/50 border border-slate-800 text-xs text-slate-300 flex-1 sm:flex-initial sm:w-48">
+              <Search className="size-3.5 text-slate-505" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Filter tasks…"
-                className="bg-transparent outline-none flex-1 placeholder:text-slate-500"
+                className="bg-transparent outline-none flex-1 placeholder:text-slate-505 min-w-0"
               />
             </div>
-            <button className="h-8 px-2.5 rounded-md text-xs text-slate-300 border border-slate-800 hover:bg-slate-800/60 inline-flex items-center gap-1.5">
+            <button className="h-8 px-2.5 rounded-md text-xs text-slate-300 border border-slate-800 hover:bg-slate-800/60 inline-flex items-center gap-1.5 transition">
               <Filter className="size-3.5" /> Filter
             </button>
             <Link to="/tasks" className="h-8 px-2.5 rounded-md text-xs font-medium bg-slate-800 border border-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100 inline-flex items-center gap-1.5 transition">
