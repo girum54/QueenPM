@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import {
   Sparkles, Calendar, Clock, CheckCircle2, AlertCircle, Plus, Trash2,
-  Workflow, Zap, Shield, ChevronRight, BarChart3, Users, Play, Check
+  Workflow, ChevronRight, BarChart3, Users, Play, Check
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore } from "@/lib/queen-store";
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/sprint-config")({
 
 interface Sprint {
   name: string;
-  style: "scrum" | "kanban" | "scrumban";
+  style: string;          // free-text — user defines their own methodology label
   durationWeeks: number;
   startDate: string;
   goal: string;
@@ -40,7 +40,7 @@ export function SprintConfigPage() {
 
   // Setup Form State
   const [formName, setFormName] = useState("Sprint Q3 - Payments Overhaul");
-  const [formStyle, setFormStyle] = useState<"scrum" | "kanban" | "scrumban">("scrum");
+  const [formStyle, setFormStyle] = useState("Agile Scrum");  // free-text methodology label
   const [formDuration, setFormDuration] = useState(2);
   const [formStartDate, setFormStartDate] = useState(() => {
     const d = new Date();
@@ -198,61 +198,18 @@ export function SprintConfigPage() {
                 {/* Project Management Style */}
                 <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                    <Zap className="size-4 text-fuchsia-400" /> Delivery Methodology
+                    <Workflow className="size-4 text-fuchsia-400" /> Delivery Methodology
                   </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Scrum */}
-                    <button
-                      type="button"
-                      onClick={() => setFormStyle("scrum")}
-                      className={`text-left p-4 rounded-xl border transition flex flex-col justify-between h-32 ${
-                        formStyle === "scrum"
-                          ? "border-fuchsia-500/60 bg-fuchsia-500/5"
-                          : "border-slate-800 bg-slate-950/40 hover:border-slate-700"
-                      }`}
-                    >
-                      <Workflow className={`size-5 ${formStyle === "scrum" ? "text-fuchsia-400" : "text-slate-400"}`} />
-                      <div>
-                        <div className="text-xs font-bold text-slate-200">Scrum Model</div>
-                        <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">Time-boxed iterations, explicit scope, burndown analytics.</div>
-                      </div>
-                    </button>
-
-                    {/* Kanban */}
-                    <button
-                      type="button"
-                      onClick={() => setFormStyle("kanban")}
-                      className={`text-left p-4 rounded-xl border transition flex flex-col justify-between h-32 ${
-                        formStyle === "kanban"
-                          ? "border-fuchsia-500/60 bg-fuchsia-500/5"
-                          : "border-slate-800 bg-slate-950/40 hover:border-slate-700"
-                      }`}
-                    >
-                      <Zap className={`size-5 ${formStyle === "kanban" ? "text-fuchsia-400" : "text-slate-400"}`} />
-                      <div>
-                        <div className="text-xs font-bold text-slate-200">Kanban Flow</div>
-                        <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">Continuous throughput, WIP limits, task-based cycle time.</div>
-                      </div>
-                    </button>
-
-                    {/* Scrumban */}
-                    <button
-                      type="button"
-                      onClick={() => setFormStyle("scrumban")}
-                      className={`text-left p-4 rounded-xl border transition flex flex-col justify-between h-32 ${
-                        formStyle === "scrumban"
-                          ? "border-fuchsia-500/60 bg-fuchsia-500/5"
-                          : "border-slate-800 bg-slate-950/40 hover:border-slate-700"
-                      }`}
-                    >
-                      <Shield className={`size-5 ${formStyle === "scrumban" ? "text-fuchsia-400" : "text-slate-400"}`} />
-                      <div>
-                        <div className="text-xs font-bold text-slate-200">Scrumban Hybrid</div>
-                        <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">Time-boxed sprint goals combined with kanban pull limits.</div>
-                      </div>
-                    </button>
-                  </div>
+                  <p className="text-xs text-slate-500">
+                    Name your methodology however you like — Scrum, Kanban, Weekly Pulse, Chaos Mode, anything.
+                  </p>
+                  <input
+                    type="text"
+                    value={formStyle}
+                    onChange={(e) => setFormStyle(e.target.value)}
+                    placeholder="e.g. Agile Scrum, Weekly Pulse, Chaos Mode…"
+                    className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                  />
                 </div>
 
                 {/* Timeline & Parameters */}
@@ -520,8 +477,8 @@ export function SprintConfigPage() {
 
                   <div className="space-y-3.5 pt-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Methodology Style</span>
-                      <span className="font-semibold text-slate-200 capitalize">{sprint.style}</span>
+                      <span className="text-slate-400">Methodology</span>
+                      <span className="font-semibold text-slate-200">{sprint.style || "—"}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
