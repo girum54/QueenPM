@@ -184,3 +184,44 @@ export const messagesApi = {
     request<Message>(`/messages/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id: string) => request<{ deleted: string }>(`/messages/${id}`, { method: "DELETE" }),
 };
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface DashboardStats {
+  total: number;
+  byCol: { new: number; active: number; staging: number; deployed: number };
+  avgCompletionDays: number;
+  aiCount: number;
+  slashCount: number;
+  uiCount: number;
+  autoRatio: number;
+  velocity: number[];
+  movingAvg: number;
+  perUser: {
+    userId: string;
+    name: string;
+    color: string;
+    isAi: boolean;
+    total: number;
+    done: number;
+    avgDays: number | null;
+  }[];
+  recentTasks: {
+    id: string;
+    title: string;
+    column: string;
+    priority: string;
+    assigneeId: string | null;
+    assigneeName: string | null;
+    assigneeColor: string | null;
+    createdBy: string;
+    createdAt: string;
+  }[];
+}
+
+export const dashboardApi = {
+  getStats: (projectId?: string) => {
+    const params = projectId ? `?projectId=${projectId}` : "";
+    return request<DashboardStats>(`/dashboard/stats${params}`);
+  },
+};
