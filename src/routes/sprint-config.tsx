@@ -7,6 +7,9 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { useStore } from "@/lib/queen-store";
 
+import { sprintsApi } from "@/lib/api/queen.api";
+import { useEffect } from "react";
+
 export const Route = createFileRoute("/sprint-config")({
   head: () => ({
     meta: [
@@ -18,6 +21,7 @@ export const Route = createFileRoute("/sprint-config")({
 });
 
 interface Sprint {
+  id: string;
   name: string;
   style: string;          // free-text — user defines their own methodology label
   durationWeeks: number;
@@ -28,15 +32,9 @@ interface Sprint {
 }
 
 export function SprintConfigPage() {
-  const { tasks } = useStore();
-  const [sprint, setSprint] = useState<Sprint | null>(() => {
-    // Attempt to load active sprint from localStorage if available
-    try {
-      const saved = localStorage.getItem("active_sprint");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return null;
-  });
+  const { tasks, activeProjectId } = useStore();
+  const [sprint, setSprint] = useState<Sprint | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Setup Form State
   const [formName, setFormName] = useState("Sprint Q3 - Payments Overhaul");
@@ -55,6 +53,37 @@ export function SprintConfigPage() {
   ]);
   const [newDeliverableText, setNewDeliverableText] = useState("");
 
+  useEffect(() => {
+    if (!activeProjectId) return;
+    async function fetchActiveSprint() {
+      try {
+        setLoading(true);
+        const activeSprint = await sprintsApi.getActive(activeProjectId);
+        if (activeSprint) {
+          const deliverables = await sprintsApi.getDeliverables(activeSprint.id);
+          setSprint({
+            id: activeSprint.id,
+            name: activeSprint.name,
+            style: activeSprint.style || "",
+            durationWeeks: activeSprint.durationWeeks,
+            startDate: activeSprint.startDate,
+            goal: activeSprint.goal || "",
+            deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
+            isActive: activeSprint.isActive
+          });
+        } else {
+          setSprint(null);
+        }
+      } catch (e) {
+        console.error("Failed to load active sprint:", e);
+        setSprint(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchActiveSprint();
+  }, [activeProjectId]);
+
   const handleAddDeliverable = () => {
     if (newDeliverableText.trim()) {
       setFormDeliverables([...formDeliverables, newDeliverableText.trim()]);
@@ -66,33 +95,65 @@ export function SprintConfigPage() {
     setFormDeliverables(formDeliverables.filter((_, i) => i !== index));
   };
 
-  const handleStartSprint = () => {
-    const newSprint: Sprint = {
-      name: formName || "Unnamed Sprint",
-      style: formStyle,
-      durationWeeks: formDuration,
-      startDate: formStartDate,
-      goal: formGoal,
-      deliverables: formDeliverables.map((text, i) => ({ id: `del-${i}-${Date.now()}`, text, done: false })),
-      isActive: true
-    };
-    setSprint(newSprint);
-    localStorage.setItem("active_sprint", JSON.stringify(newSprint));
+  const handleStartSprint = async () => {
+    if (!activeProjectId) return;
+    try {
+      // 1. Create Sprint
+      const created = await sprintsApi.create({
+        projectId: activeProjectId,
+        name: formName || "Unnamed Sprint",
+        style: formStyle,
+        durationWeeks: formDuration,
+        startDate: formStartDate,
+        goal: formGoal,
+      });
+
+      // 2. Add deliverables
+      const dbDels = await sprintsApi.replaceDeliverables(created.id, formDeliverables);
+
+      // 3. Activate Sprint
+      const activated = await sprintsApi.activate(created.id);
+
+      setSprint({
+        id: activated.id,
+        name: activated.name,
+        style: activated.style || "",
+        durationWeeks: activated.durationWeeks,
+        startDate: activated.startDate,
+        goal: activated.goal || "",
+        deliverables: dbDels.map(d => ({ id: d.id, text: d.text, done: d.done })),
+        isActive: activated.isActive
+      });
+    } catch (e) {
+      console.error("Failed to start sprint:", e);
+    }
   };
 
-  const handleToggleDeliverable = (id: string) => {
+  const handleToggleDeliverable = async (id: string) => {
     if (!sprint) return;
-    const updated = {
-      ...sprint,
-      deliverables: sprint.deliverables.map(d => d.id === id ? { ...d, done: !d.done } : d)
-    };
-    setSprint(updated);
-    localStorage.setItem("active_sprint", JSON.stringify(updated));
+    const item = sprint.deliverables.find(d => d.id === id);
+    if (!item) return;
+    try {
+      const updatedDel = await sprintsApi.updateDeliverable(sprint.id, id, {
+        done: !item.done
+      });
+      setSprint({
+        ...sprint,
+        deliverables: sprint.deliverables.map(d => d.id === id ? { ...d, done: updatedDel.done } : d)
+      });
+    } catch (e) {
+      console.error("Failed to toggle deliverable:", e);
+    }
   };
 
-  const handleCompleteSprint = () => {
-    setSprint(null);
-    localStorage.removeItem("active_sprint");
+  const handleCompleteSprint = async () => {
+    if (!sprint) return;
+    try {
+      await sprintsApi.complete(sprint.id);
+      setSprint(null);
+    } catch (e) {
+      console.error("Failed to complete sprint:", e);
+    }
   };
 
   // Metrics calculations for Active Sprint
@@ -125,6 +186,16 @@ export function SprintConfigPage() {
       daysRemaining
     };
   }, [sprint, tasks]);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex h-full items-center justify-center bg-slate-950">
+          <div className="text-slate-400 text-sm animate-pulse">Retrieving sprint specification...</div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

@@ -147,47 +147,232 @@ interface StoreShape {
 
 const StoreCtx = createContext<StoreShape | null>(null);
 
+import { projectsApi, channelsApi, tasksApi, messagesApi } from "./api/queen.api";
+import { useEffect } from "react";
+
+// Mappings from old hardcoded mock IDs to new real DB UUIDs so old state references keep working
+const idMap = {
+  projects: {} as Record<string, string>,
+  channels: {} as Record<string, string>,
+  tasks: {} as Record<string, string>,
+  messages: {} as Record<string, string>,
+};
+
 export function QueenStoreProvider({ children }: { children: ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [channels, setChannels] = useState<Channel[]>(() => {
-    try {
-      const saved = localStorage.getItem("channels");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return CHANNELS;
-  });
-  const [activeChannelId, setActiveChannelId] = useState("c2");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [activeChannelId, setActiveChannelId] = useState("");
+  const [projectTabs, setProjectTabs] = useState<ProjectTab[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string>("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const consumed = useRef(false);
 
-  const [projectTabs, setProjectTabs] = useState<ProjectTab[]>(() => {
-    try {
-      const saved = localStorage.getItem("project_tabs");
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return DEFAULT_PROJECT_TABS;
-  });
-
-  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem("active_project_id");
-      if (saved && projectTabs.some((p) => p.id === saved)) return saved;
-    } catch (e) {}
-    return "p-x";
-  });
-
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+  // Initialize collapsed state
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
-      return saved === "true";
+      setSidebarCollapsed(saved === "true");
     } catch (e) {}
-    return false;
-  });
+  }, []);
+
+  // 1. Fetch/Seed Projects
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        let dbProjects = await projectsApi.getAll();
+        if (dbProjects.length === 0) {
+          // Seed default projects
+          dbProjects = [];
+          for (const defaultProj of DEFAULT_PROJECT_TABS) {
+            const created = await projectsApi.create({
+              name: defaultProj.name,
+              color: defaultProj.color,
+            });
+            dbProjects.push(created);
+            idMap.projects[defaultProj.id] = created.id;
+          }
+        } else {
+          // Map existing projects
+          dbProjects.forEach((p, idx) => {
+            const defaultId = DEFAULT_PROJECT_TABS[idx]?.id || `p-${p.id}`;
+            idMap.projects[defaultId] = p.id;
+          });
+        }
+
+        const mappedProjects = dbProjects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          color: p.color,
+        }));
+        setProjectTabs(mappedProjects);
+
+        // Resolve active project ID
+        const savedProjId = localStorage.getItem("active_project_id");
+        if (savedProjId && mappedProjects.some((p) => p.id === savedProjId)) {
+          setActiveProjectId(savedProjId);
+        } else {
+          const defaultActive = mappedProjects[0]?.id || "";
+          setActiveProjectId(defaultActive);
+          localStorage.setItem("active_project_id", defaultActive);
+        }
+      } catch (e) {
+        console.error("Failed to load projects:", e);
+      }
+    }
+    loadProjects();
+  }, []);
+
+  // 2. Fetch/Seed Channels & Tasks when activeProjectId changes
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    async function loadChannelsAndTasks() {
+      try {
+        // Channels
+        let dbChannels = await channelsApi.getByProject(activeProjectId);
+        if (dbChannels.length === 0) {
+          dbChannels = [];
+          for (const defaultChan of CHANNELS) {
+            const created = await channelsApi.create({
+              name: defaultChan.name,
+              projectId: activeProjectId,
+              aiActive: defaultChan.aiActive,
+            });
+            dbChannels.push(created);
+            idMap.channels[defaultChan.id] = created.id;
+          }
+        } else {
+          dbChannels.forEach((c, idx) => {
+            const defaultId = CHANNELS[idx]?.id || `c-${c.id}`;
+            idMap.channels[defaultId] = c.id;
+          });
+        }
+
+        const mappedChannels = dbChannels.map((c) => ({
+          id: c.id,
+          name: c.name,
+          aiActive: c.aiActive,
+        }));
+        setChannels(mappedChannels);
+
+        // Resolve active channel
+        const savedChanId = localStorage.getItem(`active_channel_id_${activeProjectId}`);
+        if (savedChanId && mappedChannels.some((c) => c.id === savedChanId)) {
+          setActiveChannelId(savedChanId);
+        } else {
+          // Default to eng-platform or general if found, otherwise first channel
+          const preferred = mappedChannels.find((c) => c.name === "eng-platform") || mappedChannels[0];
+          const defaultActive = preferred?.id || "";
+          setActiveChannelId(defaultActive);
+          localStorage.setItem(`active_channel_id_${activeProjectId}`, defaultActive);
+        }
+
+        // Tasks
+        let dbTasks = await tasksApi.getAll(activeProjectId);
+        if (dbTasks.length === 0) {
+          dbTasks = [];
+          for (const defaultTask of INITIAL_TASKS) {
+            const created = await tasksApi.create({
+              title: defaultTask.title,
+              description: defaultTask.description,
+              assigneeId: defaultTask.assigneeId,
+              priority: defaultTask.priority,
+              column: defaultTask.column,
+              createdBy: defaultTask.createdBy,
+              originMessageId: null,
+              originChannelId: defaultTask.originChannelId ? (idMap.channels[defaultTask.originChannelId] || null) : null,
+              projectId: activeProjectId,
+              parentId: defaultTask.parentId ? (idMap.tasks[defaultTask.parentId] || null) : null,
+              deadline: defaultTask.deadline || undefined,
+              estimateDays: defaultTask.estimateDays || undefined,
+            });
+            dbTasks.push(created);
+            idMap.tasks[defaultTask.id] = created.id;
+          }
+        }
+
+        const mappedTasks = dbTasks.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description ?? undefined,
+          assigneeId: t.assigneeId,
+          priority: t.priority as Priority,
+          column: t.column as ColumnId,
+          createdBy: t.createdBy as CreatedBy,
+          originMessageId: t.originMessageId,
+          originChannelId: t.originChannelId,
+          createdAt: t.createdAt ? Date.parse(t.createdAt) : Date.now(),
+          completedAt: t.completedAt ? Date.parse(t.completedAt) : null,
+          deadline: t.deadline,
+          estimateDays: t.estimateDays,
+          projectId: t.projectId,
+          parentId: t.parentId,
+        }));
+        setTasks(mappedTasks);
+      } catch (e) {
+        console.error("Failed to load channels/tasks:", e);
+      }
+    }
+    loadChannelsAndTasks();
+  }, [activeProjectId]);
+
+  // 3. Fetch/Seed Messages when activeChannelId changes
+  useEffect(() => {
+    if (!activeChannelId) return;
+
+    async function loadMessages() {
+      try {
+        let dbMessages = await messagesApi.getByChannel(activeChannelId);
+        if (dbMessages.length === 0) {
+          dbMessages = [];
+          for (const defaultMsg of INITIAL_MESSAGES) {
+            // Find mapped task ref if any
+            const taskRef = defaultMsg.taskRef ? (idMap.tasks[defaultMsg.taskRef] || null) : null;
+            const parentId = defaultMsg.parentId ? (idMap.messages[defaultMsg.parentId] || null) : null;
+            
+            const created = await messagesApi.create({
+              authorId: defaultMsg.authorId,
+              channelId: activeChannelId,
+              text: defaultMsg.text,
+              pinned: defaultMsg.pinned,
+              parentId: parentId || undefined,
+              taskRef: taskRef || undefined,
+            });
+            dbMessages.push(created);
+            idMap.messages[defaultMsg.id] = created.id;
+          }
+        }
+
+        const mappedMessages = dbMessages.map((m: any) => ({
+          id: m.id,
+          authorId: m.authorId,
+          channelId: m.channelId,
+          text: m.text ?? undefined,
+          ts: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "12:00",
+          pinned: m.pinned,
+          parentId: m.parentId ?? undefined,
+          taskRef: m.taskRef ?? undefined,
+        }));
+        setMessages(mappedMessages);
+      } catch (e) {
+        console.error("Failed to load messages:", e);
+      }
+    }
+    loadMessages();
+  }, [activeChannelId]);
 
   const handleSetActiveProjectId = (id: string) => {
     setActiveProjectId(id);
     localStorage.setItem("active_project_id", id);
+  };
+
+  const handleSetActiveChannelId = (id: string) => {
+    setActiveChannelId(id);
+    if (activeProjectId) {
+      localStorage.setItem(`active_channel_id_${activeProjectId}`, id);
+    }
   };
 
   const handleSetSidebarCollapsed = (collapsed: boolean) => {
@@ -195,8 +380,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("sidebar_collapsed", String(collapsed));
   };
 
-  const addProjectTab = (name: string, color?: string) => {
-    const id = `p-${Date.now()}`;
+  const addProjectTab = async (name: string, color?: string) => {
     const colors = [
       "from-fuchsia-500 to-violet-600",
       "from-sky-500 to-cyan-600",
@@ -205,50 +389,81 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       "from-rose-500 to-pink-600",
     ];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const newTab = { id, name, color: color || randomColor };
-    const nextTabs = [...projectTabs, newTab];
-    setProjectTabs(nextTabs);
-    localStorage.setItem("project_tabs", JSON.stringify(nextTabs));
-    handleSetActiveProjectId(id);
-  };
-
-  const closeProjectTab = (id: string) => {
-    if (projectTabs.length <= 1) return;
-    const nextTabs = projectTabs.filter((p) => p.id !== id);
-    setProjectTabs(nextTabs);
-    localStorage.setItem("project_tabs", JSON.stringify(nextTabs));
-    if (activeProjectId === id) {
-      const remainingIndex = projectTabs.findIndex((p) => p.id === id);
-      const nextActive = nextTabs[Math.max(0, remainingIndex - 1)].id;
-      handleSetActiveProjectId(nextActive);
+    try {
+      const created = await projectsApi.create({
+        name,
+        color: color || randomColor,
+      });
+      const newTab: ProjectTab = {
+        id: created.id,
+        name: created.name,
+        color: created.color,
+      };
+      setProjectTabs((prev) => [...prev, newTab]);
+      handleSetActiveProjectId(created.id);
+    } catch (e) {
+      console.error("Failed to create project:", e);
     }
   };
 
-  const addChannel = (name: string, aiActive = false) => {
-    const newChan = {
-      id: `c_${Date.now()}`,
-      name: name.toLowerCase().replace(/\s+/g, "-"),
-      aiActive,
-    };
-    const next = [...channels, newChan];
-    setChannels(next);
-    localStorage.setItem("channels", JSON.stringify(next));
-    setActiveChannelId(newChan.id);
+  const closeProjectTab = async (id: string) => {
+    if (projectTabs.length <= 1) return;
+    try {
+      await projectsApi.delete(id);
+      const nextTabs = projectTabs.filter((p) => p.id !== id);
+      setProjectTabs(nextTabs);
+      if (activeProjectId === id) {
+        const remainingIndex = projectTabs.findIndex((p) => p.id === id);
+        const nextActive = nextTabs[Math.max(0, remainingIndex - 1)].id;
+        handleSetActiveProjectId(nextActive);
+      }
+    } catch (e) {
+      console.error("Failed to delete project:", e);
+    }
   };
 
-  const updateChannel = (id: string, patch: Partial<Channel>) => {
-    const next = channels.map((c) => (c.id === id ? { ...c, ...patch } : c));
-    setChannels(next);
-    localStorage.setItem("channels", JSON.stringify(next));
+  const addChannel = async (name: string, aiActive = false) => {
+    if (!activeProjectId) return;
+    try {
+      const created = await channelsApi.create({
+        name: name.toLowerCase().replace(/\s+/g, "-"),
+        projectId: activeProjectId,
+        aiActive,
+      });
+      const newChan: Channel = {
+        id: created.id,
+        name: created.name,
+        aiActive: created.aiActive,
+      };
+      setChannels((prev) => [...prev, newChan]);
+      handleSetActiveChannelId(created.id);
+    } catch (e) {
+      console.error("Failed to create channel:", e);
+    }
   };
 
-  const deleteChannel = (id: string) => {
+  const updateChannel = async (id: string, patch: Partial<Channel>) => {
+    try {
+      const updated = await channelsApi.update(id, patch);
+      setChannels((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, name: updated.name, aiActive: updated.aiActive } : c))
+      );
+    } catch (e) {
+      console.error("Failed to update channel:", e);
+    }
+  };
+
+  const deleteChannel = async (id: string) => {
     if (channels.length <= 1) return;
-    const next = channels.filter((c) => c.id !== id);
-    setChannels(next);
-    localStorage.setItem("channels", JSON.stringify(next));
-    if (activeChannelId === id) {
-      setActiveChannelId(next[0].id);
+    try {
+      await channelsApi.delete(id);
+      const next = channels.filter((c) => c.id !== id);
+      setChannels(next);
+      if (activeChannelId === id) {
+        handleSetActiveChannelId(next[0].id);
+      }
+    } catch (e) {
+      console.error("Failed to delete channel:", e);
     }
   };
 
@@ -259,18 +474,89 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       channels,
       users: USERS,
       activeChannelId,
-      setActiveChannelId,
-      updateTask: (id, patch) =>
-        setTasks((ts) =>
-          ts.map((t) => {
-            if (t.id !== id) return t;
-            const next = { ...t, ...patch };
-            if (patch.column === "deployed" && !t.completedAt) next.completedAt = Date.now();
-            return next;
-          })
-        ),
-      addTask: (t) => setTasks((ts) => [t, ...ts]),
-      addMessage: (m) => setMessages((ms) => [...ms, m]),
+      setActiveChannelId: handleSetActiveChannelId,
+      updateTask: async (id, patch) => {
+        try {
+          const updated = await tasksApi.update(id, patch as any) as any;
+          setTasks((ts) =>
+            ts.map((t) => {
+              if (t.id !== id) return t;
+              const completedAt =
+                patch.column === "deployed"
+                  ? Date.now()
+                  : updated.completedAt
+                  ? Date.parse(updated.completedAt)
+                  : t.completedAt ?? null;
+              return { ...t, ...patch, completedAt };
+            })
+          );
+        } catch (e) {
+          console.error("Failed to update task:", e);
+        }
+      },
+      addTask: async (t) => {
+        try {
+          const created = await tasksApi.create({
+            title: t.title,
+            description: t.description,
+            assigneeId: t.assigneeId,
+            priority: t.priority,
+            column: t.column,
+            createdBy: t.createdBy,
+            originMessageId: t.originMessageId,
+            originChannelId: t.originChannelId,
+            projectId: activeProjectId || null,
+            parentId: t.parentId,
+            deadline: t.deadline || undefined,
+            estimateDays: t.estimateDays || undefined,
+          } as any) as any;
+          const mapped: Task = {
+            id: created.id,
+            title: created.title,
+            description: created.description ?? undefined,
+            assigneeId: created.assigneeId,
+            priority: created.priority as Priority,
+            column: created.column as ColumnId,
+            createdBy: created.createdBy as CreatedBy,
+            originMessageId: created.originMessageId,
+            originChannelId: created.originChannelId,
+            createdAt: created.createdAt ? Date.parse(created.createdAt) : Date.now(),
+            completedAt: created.completedAt ? Date.parse(created.completedAt) : null,
+            deadline: created.deadline,
+            estimateDays: created.estimateDays,
+            projectId: created.projectId,
+            parentId: created.parentId,
+          };
+          setTasks((ts) => [mapped, ...ts]);
+        } catch (e) {
+          console.error("Failed to add task:", e);
+        }
+      },
+      addMessage: async (m) => {
+        try {
+          const created = await messagesApi.create({
+            authorId: m.authorId,
+            channelId: m.channelId,
+            text: m.text,
+            pinned: m.pinned,
+            parentId: m.parentId,
+            taskRef: m.taskRef,
+          }) as any;
+          const mapped: Message = {
+            id: created.id,
+            authorId: created.authorId,
+            channelId: created.channelId,
+            text: created.text ?? undefined,
+            ts: created.createdAt ? new Date(created.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "12:00",
+            pinned: created.pinned,
+            parentId: created.parentId ?? undefined,
+            taskRef: created.taskRef ?? undefined,
+          };
+          setMessages((ms) => [...ms, mapped]);
+        } catch (e) {
+          console.error("Failed to add message:", e);
+        }
+      },
       jumpRequest,
       requestJump: (messageId, channelId) => {
         consumed.current = false;

@@ -18,19 +18,58 @@ export const Route = createFileRoute("/sprint")({
   component: SprintPage,
 });
 
+import { useEffect } from "react";
+import { sprintsApi } from "@/lib/api/queen.api";
+
+interface Sprint {
+  id: string;
+  name: string;
+  style: string;
+  durationWeeks: number;
+  startDate: string;
+  goal: string;
+  deliverables: { id: string; text: string; done: boolean }[];
+  isActive: boolean;
+}
+
 function SprintPage() {
-  const { tasks } = useStore();
-  const [methodology] = useState<"agile" | "waterfall" | "kanban" | "hybrid">("agile");
+  const { tasks, activeProjectId } = useStore();
+  const [sprint, setSprint] = useState<Sprint | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Simulated active sprint config data
-  const sprintName = "Sprint Q3 - Iteration 4";
-  const daysRemaining = 4;
-  const sprintStyle = "Agile Scrum";  // in production: pulled from the active sprint record
-  const targetDeliverable = "Payments v2 live in production with full Stripe migration, documented API, and zero P0 regressions.";
-  const deliverableStatus: "on_track" | "at_risk" | "slipped" = "on_track";
+  useEffect(() => {
+    if (!activeProjectId) return;
+    async function fetchActiveSprint() {
+      try {
+        setLoading(true);
+        const activeSprint = await sprintsApi.getActive(activeProjectId);
+        if (activeSprint) {
+          const deliverables = await sprintsApi.getDeliverables(activeSprint.id);
+          setSprint({
+            id: activeSprint.id,
+            name: activeSprint.name,
+            style: activeSprint.style || "",
+            durationWeeks: activeSprint.durationWeeks,
+            startDate: activeSprint.startDate,
+            goal: activeSprint.goal || "",
+            deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
+            isActive: activeSprint.isActive
+          });
+        } else {
+          setSprint(null);
+        }
+      } catch (e) {
+        console.error("Failed to load active sprint:", e);
+        setSprint(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchActiveSprint();
+  }, [activeProjectId]);
 
-  // Filter tasks that are actively linked to this sprint
-  const sprintTasks = tasks.slice(0, 6);
+  // Filter tasks that are actively linked to this project
+  const sprintTasks = tasks;
 
   // Stats calculation
   const completedTasks = sprintTasks.filter(t => t.column === "deployed").length;
@@ -41,6 +80,46 @@ function SprintPage() {
   const velocityValues = [32, 45, 38, 48, 52, 49];
   const maxVelocity = Math.max(...velocityValues);
 
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex h-full items-center justify-center bg-slate-950">
+          <div className="text-slate-400 text-sm animate-pulse">Analyzing active sprint metrics...</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!sprint) {
+    return (
+      <AppShell>
+        <div className="flex h-full flex-col items-center justify-center bg-slate-950 p-6 text-center">
+          <div className="size-16 rounded-2xl bg-fuchsia-500/10 ring-1 ring-fuchsia-500/30 flex items-center justify-center mb-6">
+            <Target className="size-8 text-fuchsia-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-100">No Active Sprint</h2>
+          <p className="text-slate-400 max-w-sm mt-2 text-sm leading-relaxed">
+            There is no active sprint initialized for this project. Start by configuring specifications and deliverables.
+          </p>
+          <Link
+            to="/sprint-config"
+            className="mt-6 inline-flex items-center gap-2 h-10 px-5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white transition shadow-lg shadow-fuchsia-500/20"
+          >
+            Configure & Start Sprint <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Calculate days remaining
+  const start = new Date(sprint.startDate).getTime();
+  const end = start + sprint.durationWeeks * 7 * 24 * 60 * 60 * 1000;
+  const remainingMs = end - Date.now();
+  const daysRemaining = Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
+  const endDateStr = new Date(end).toLocaleDateString([], { month: "short", day: "numeric" });
+  const startDateStr = new Date(start).toLocaleDateString([], { month: "short", day: "numeric" });
+
   return (
     <AppShell>
       <div className="h-full overflow-y-auto">
@@ -50,25 +129,25 @@ function SprintPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                <Activity className="size-3.5 text-fuchsia-400" /> Project: Project X / {sprintStyle} Cycle
+                <Activity className="size-3.5 text-fuchsia-400" /> Project Style Cycle
               </div>
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
-                  {sprintName}
+                  {sprint.name}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                  {sprintStyle}
+                  {sprint.style || "Agile"}
                 </span>
               </div>
               <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
                 <span className="flex items-center gap-1.5">
                   <Clock className="size-4 text-fuchsia-400" />
-                  <span className="text-slate-200 font-medium">Days Remaining:</span> {daysRemaining} days left (Ends June 21)
+                  <span className="text-slate-200 font-medium">Time Remaining:</span> {daysRemaining} days left (Ends {endDateStr})
                 </span>
                 <span className="text-slate-600">•</span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="size-4 text-slate-500" />
-                  <span>Timeline:</span> June 7 – June 21
+                  <span>Timeline:</span> {startDateStr} – {endDateStr}
                 </span>
               </div>
             </div>
@@ -108,18 +187,14 @@ function SprintPage() {
                     </div>
                   </div>
 
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                    deliverableStatus === "on_track"
-                      ? "bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30"
-                      : "bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30"
-                  }`}>
-                    <span className={`size-1.5 rounded-full ${deliverableStatus === "on_track" ? "bg-emerald-400" : "bg-amber-400"}`} />
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30`}>
+                    <span className="size-1.5 rounded-full bg-emerald-400" />
                     On Track to Ship
                   </span>
                 </div>
 
                 <p className="text-slate-200 text-sm leading-relaxed font-medium pl-1 bg-slate-950/20 p-3 rounded-lg border border-slate-800/40">
-                  "{targetDeliverable}"
+                  "{sprint.goal || "No goals defined."}"
                 </p>
               </div>
 
