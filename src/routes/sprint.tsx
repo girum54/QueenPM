@@ -25,6 +25,7 @@ function SprintPage() {
   // Simulated active sprint config data
   const sprintName = "Sprint Q3 - Iteration 4";
   const daysRemaining = 4;
+  const sprintStyle = "Agile Scrum";  // in production: pulled from the active sprint record
   const targetDeliverable = "Payments v2 live in production with full Stripe migration, documented API, and zero P0 regressions.";
   const deliverableStatus: "on_track" | "at_risk" | "slipped" = "on_track";
 
@@ -49,14 +50,14 @@ function SprintPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                <Activity className="size-3.5 text-fuchsia-400" /> Project: Project X / Active Cycle
+                <Activity className="size-3.5 text-fuchsia-400" /> Project: Project X / {sprintStyle} Cycle
               </div>
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
                   {sprintName}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                  [Agile/Scrum Cycle]
+                  {sprintStyle}
                 </span>
               </div>
               <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
