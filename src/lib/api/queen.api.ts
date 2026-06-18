@@ -1,8 +1,8 @@
 import { Priority, ColumnId, CreatedBy, User, Channel, Task, Message, ProjectTab } from "../queen-store";
 
 const API_BASE_URL = typeof window !== "undefined"
-  ? (import.meta.env.VITE_API_URL || "http://localhost:3000")
-  : (process.env.VITE_API_URL || "http://localhost:3000");
+  ? (import.meta.env.VITE_API_URL || "http://localhost:3001")
+  : (process.env.VITE_API_URL || "http://localhost:3001");
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   // Guard for server-side SSR execution to avoid fetching localhost during SSR compile, or safely fall back
