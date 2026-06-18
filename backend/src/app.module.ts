@@ -9,11 +9,13 @@ import { ChannelsModule } from './channels/channels.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MessagesModule } from './messages/messages.module';
 import { DatabaseModule } from './database/database.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
+    DashboardModule,
 
     SprintsModule,
     BoardsModule,
