@@ -244,13 +244,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                     );
                   })}
                 </div>
-                <div className="border-t border-slate-800/60 p-1">
+                <div className="border-t border-slate-800/60 p-1 flex items-center gap-1">
                   <button
                     onClick={() => { setIsProjectDropdownOpen(false); setIsModalOpen(true); }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-200 transition"
+                    className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-200 transition"
                   >
                     <FolderGit2 className="size-3.5 shrink-0" />
                     <span>New Project…</span>
+                  </button>
+                  <button
+                    title="Project settings"
+                    onClick={() => { setIsProjectDropdownOpen(false); navigate({ to: "/projects" }); }}
+                    className="size-8 shrink-0 rounded-md grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition"
+                  >
+                    <Settings className="size-3.5" />
                   </button>
                 </div>
               </div>

@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import {
   Plus, Pencil, Trash2, Check, X, Folder, KanbanSquare,
-  MessageSquare, Sparkles, Crown, Loader2, AlertCircle,
+  MessageSquare, Sparkles, Crown, Loader2, AlertCircle, Users,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore } from "@/lib/queen-store";
-import { projectsApi, type ApiProject } from "@/lib/api/queen.api";
+import { projectsApi, type ApiProject, type ApiUser } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/projects")({
   head: () => ({
@@ -56,12 +56,15 @@ function ColorPicker({
 }
 
 function ProjectsPage() {
-  const { projectTabs, activeProjectId, setActiveProjectId, addProjectTab, closeProjectTab } = useStore();
+  const { projectTabs, activeProjectId, setActiveProjectId, addProjectTab, closeProjectTab, users } = useStore();
 
   // Remote-fetched full project list (richer than store's ProjectTab)
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Member management
+  const [manageMembersProjectId, setManageMembersProjectId] = useState<string | null>(null);
 
   // Create form
   const [showCreate, setShowCreate] = useState(false);
@@ -161,6 +164,16 @@ function ProjectsPage() {
       setError(e.message || "Failed to delete project");
     }
   }
+
+  function updateProjectMembers(projectId: string, members: ApiUser[]) {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, members } : p)),
+    );
+  }
+
+  const manageMembersProject = manageMembersProjectId
+    ? projects.find((p) => p.id === manageMembersProjectId)
+    : null;
 
   return (
     <AppShell>
@@ -351,11 +364,38 @@ function ProjectsPage() {
                             <div className="text-[10px] text-slate-600 mt-0.5">
                               Created {new Date(p.createdAt).toLocaleDateString()}
                             </div>
+                            {/* Member avatars */}
+                            {(p.members?.length ?? 0) > 0 && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <div className="flex -space-x-1.5">
+                                  {p.members!.slice(0, 4).map((m) => (
+                                    <div
+                                      key={m.id}
+                                      title={m.name}
+                                      className={`size-5 rounded-full ring-2 ring-slate-900 ${m.color || "bg-slate-600"} grid place-items-center text-[8px] font-bold text-white`}
+                                    >
+                                      {m.isAi ? "Q" : m.name[0]}
+                                    </div>
+                                  ))}
+                                </div>
+                                <span className="text-[10px] text-slate-500">
+                                  {p.members!.length} member{p.members!.length !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
                         {/* Actions */}
                         <div className="flex items-center gap-2 mt-auto">
+                          <button
+                            id={`manage-members-${p.id}`}
+                            onClick={() => setManageMembersProjectId(p.id)}
+                            className="size-8 rounded-md bg-slate-800 hover:bg-slate-700 grid place-items-center text-slate-400 hover:text-slate-200 transition"
+                            title="Manage members"
+                          >
+                            <Users className="size-3.5" />
+                          </button>
                           {!isActive && (
                             <button
                               id={`switch-project-${p.id}`}
@@ -408,6 +448,131 @@ function ProjectsPage() {
           )}
         </div>
       </div>
+
+      {manageMembersProject && (
+        <ManageMembersModal
+          project={manageMembersProject}
+          onClose={() => setManageMembersProjectId(null)}
+          systemUsers={users}
+          onMembersChanged={(members) => updateProjectMembers(manageMembersProject.id, members)}
+        />
+      )}
     </AppShell>
+  );
+}
+
+function ManageMembersModal({
+  project,
+  onClose,
+  systemUsers,
+  onMembersChanged,
+}: {
+  project: ApiProject;
+  onClose: () => void;
+  systemUsers: ReturnType<typeof useStore>["users"];
+  onMembersChanged: (members: ApiUser[]) => void;
+}) {
+  const [projectMembers, setProjectMembers] = useState<ApiUser[]>(project.members ?? []);
+  const [busyUserIds, setBusyUserIds] = useState<Record<string, boolean>>({});
+
+  const handleToggleMember = async (user: typeof systemUsers[0]) => {
+    const isMember = projectMembers.some((m) => m.id === user.id);
+    setBusyUserIds((prev) => ({ ...prev, [user.id]: true }));
+    try {
+      if (isMember) {
+        await projectsApi.removeMember(project.id, user.id);
+        const updated = projectMembers.filter((m) => m.id !== user.id);
+        setProjectMembers(updated);
+        onMembersChanged(updated);
+      } else {
+        await projectsApi.addMember(project.id, user.id);
+        const apiUser: ApiUser = {
+          id: user.id,
+          name: user.name,
+          email: "",
+          emailVerified: false,
+          image: null,
+          createdAt: "",
+          updatedAt: "",
+          username: user.handle,
+          color: user.color,
+          isAi: user.isAi,
+        };
+        const updated = [...projectMembers, apiUser];
+        setProjectMembers(updated);
+        onMembersChanged(updated);
+      }
+    } catch (e) {
+      console.error("Failed to toggle project member:", e);
+    } finally {
+      setBusyUserIds((prev) => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-50 flex items-center gap-1.5">
+              <Users className="size-4 text-fuchsia-400" /> Project Members
+            </h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              Manage who has access to <span className="text-slate-300">{project.name}</span>
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+          {systemUsers.map((u) => {
+            const isMember = projectMembers.some((m) => m.id === u.id);
+            const isOwner = project.ownerId === u.id;
+            const isBusy = busyUserIds[u.id];
+            return (
+              <div
+                key={u.id}
+                className="flex items-center justify-between p-2 rounded-lg border border-slate-800/40 bg-slate-900/50 hover:bg-slate-950/30 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`size-8 rounded-full ${u.color} grid place-items-center text-xs font-bold text-white shrink-0`}>
+                    {u.isAi ? <Crown className="size-4" /> : u.name[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-slate-200 truncate flex items-center gap-1.5">
+                      {u.name}
+                      {isOwner && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 ring-1 ring-amber-500/30 rounded-full px-1.5 py-0.5">
+                          Owner
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">{u.handle}</div>
+                  </div>
+                </div>
+
+                <button
+                  disabled={isBusy || isOwner}
+                  onClick={() => handleToggleMember(u)}
+                  title={isOwner ? "Project owner cannot be removed" : undefined}
+                  className={`px-3 py-1 rounded text-[10px] font-bold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
+                    isMember
+                      ? "bg-rose-500/10 hover:bg-rose-500/20 text-rose-400"
+                      : "bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400"
+                  }`}
+                >
+                  {isBusy ? "..." : isMember ? "Remove" : "Add"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
