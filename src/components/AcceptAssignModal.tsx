@@ -42,6 +42,10 @@ export function AcceptAssignModal({
   }, [task.assigneeId, currentUser?.id, activeProject]);
 
   const [assigneeId, setAssigneeId] = useState<string>(initialAssignee);
+
+  useEffect(() => {
+    setAssigneeId(initialAssignee);
+  }, [task.id, initialAssignee]);
   const [mode, setMode] = useState<"deadline" | "days">(
     task.estimateDays && !task.deadline ? "days" : "deadline",
   );

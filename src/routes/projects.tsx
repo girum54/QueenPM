@@ -548,7 +548,7 @@ function ManageMembersModal({
                       {u.name}
                       {isOwner && (
                         <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 ring-1 ring-amber-500/30 rounded-full px-1.5 py-0.5">
-                          Owner
+                          PM
                         </span>
                       )}
                     </div>
