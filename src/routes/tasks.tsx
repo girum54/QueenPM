@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ListTodo, Plus, Search, X, Calendar, Clock, Crown, Bot, Zap, MousePointerClick,
   CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight,
@@ -9,6 +9,7 @@ import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
   type Task, type ColumnId, type Priority, userById,
 } from "@/lib/queen-store";
+import { sprintsApi } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -58,6 +59,26 @@ function TasksPage() {
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newColumn, setNewColumn] = useState<ColumnId>("new");
   const [newParentId, setNewParentId] = useState<string | null>(null);
+  const [newSprintId, setNewSprintId] = useState<string | null>(null);
+  const [sprints, setSprints] = useState<any[]>([]);
+  const [activeSprint, setActiveSprint] = useState<any | null>(null);
+
+  // Fetch sprints for current project
+  useEffect(() => {
+    if (!activeProjectId) return;
+    async function loadSprints() {
+      try {
+        const projectSprints = await sprintsApi.getByProject(activeProjectId);
+        setSprints(projectSprints);
+        const active = projectSprints.find((s: any) => s.isActive);
+        setActiveSprint(active || null);
+        setNewSprintId(active?.id || null);
+      } catch (e) {
+        console.error("Failed to load sprints:", e);
+      }
+    }
+    loadSprints();
+  }, [activeProjectId]);
 
   // Active Project Tasks (including subtasks)
   const projectTasks = useMemo(() => {
@@ -150,6 +171,10 @@ function TasksPage() {
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+    if (!newSprintId) {
+      alert("Please select a sprint");
+      return;
+    }
     const task: Task = {
       id: `t_${Date.now()}`,
       title: newTitle.trim(),
@@ -159,7 +184,7 @@ function TasksPage() {
       assigneeId: null,
       originMessageId: null,
       originChannelId: null,
-      sprintId: null, // Tasks created via UI start without sprint, can be added later
+      sprintId: newSprintId,
       createdAt: Date.now(),
       projectId: activeProjectId,
       parentId: newParentId || undefined,
@@ -167,6 +192,7 @@ function TasksPage() {
     addTask(task);
     setNewTitle("");
     setNewParentId(null);
+    setNewSprintId(activeSprint ? activeSprint.id : null);
     setIsNewTaskOpen(false);
   };
 
@@ -174,6 +200,7 @@ function TasksPage() {
     setNewParentId(parentId);
     setNewPriority("medium");
     setNewColumn("new");
+    setNewSprintId(activeSprint ? activeSprint.id : null);
     setIsNewTaskOpen(true);
   };
 
@@ -399,6 +426,21 @@ function TasksPage() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Sprint *</label>
+                <select value={newSprintId || ""} onChange={(e) => setNewSprintId(e.target.value || null)}
+                  className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500">
+                  <option value="">-- Select a sprint --</option>
+                  {sprints
+                    .filter((s) => s.projectId === activeProjectId)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.isActive ? "(Active)" : ""}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
               {newParentId && (
                 <div className="text-[10px] text-slate-550 italic">
                   * Creating nested subtask under parent task #{newParentId}
@@ -444,6 +486,11 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
   const handleQuickAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickTitle.trim()) return;
+    const currentTaskSprint = task.sprintId;
+    if (!currentTaskSprint) {
+      alert("Parent task must be in a sprint to create subtasks");
+      return;
+    }
     addTask({
       id: `t_${Date.now()}`,
       title: quickTitle.trim(),
@@ -453,7 +500,7 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
       assigneeId: null,
       originMessageId: null,
       originChannelId: null,
-      sprintId: null,
+      sprintId: currentTaskSprint,
       createdAt: Date.now(),
       projectId: activeProjectId,
       parentId: task.id,
