@@ -23,10 +23,16 @@ async function seed() {
   await db.delete(schema.sprints);
   await db.delete(schema.channels);
   await db.delete(schema.projects);
+  
+  // Clear auth-related data
+  await db.delete(schema.session);
+  await db.delete(schema.verification);
+  await db.delete(schema.account);
+  await db.delete(schema.user);
 
   // ── 2. Users (upsert — preserve auth sessions) ──────────────────────────────
   console.log('👤 Seeding users...');
-  const testPassword = 'password123';
+  const testPassword = process.env.SEED_PASSWORD;
   const hashedPassword = await argon2.hash(testPassword);
   
   await db
@@ -39,20 +45,25 @@ async function seed() {
     ])
     .onConflictDoUpdate({ target: schema.user.id, set: { updatedAt: new Date() } });
 
-  // Seed password accounts
-  const userIds = ['u1', 'u2', 'u3'];
-  await db.delete(schema.account).where(eq(schema.account.providerId, 'credential'));
-  await db.insert(schema.account).values(
-    userIds.map((userId) => ({
-      id: `credential-${userId}`,
-      accountId: userId,
+  // Seed password accounts - create accounts for Better Auth
+  const users = [
+    { id: 'u1', name: 'Girum Tilahun', email: 'girum@queenpm.dev', username: '@girum', color: 'bg-rose-500' },
+    { id: 'u2', name: 'Abenezer Hailu', email: 'abenezer@queenpm.dev', username: '@abenezer', color: 'bg-amber-500' },
+    { id: 'u3', name: 'Samrawit Amare', email: 'samrawit@queenpm.dev', username: '@samrawit', color: 'bg-emerald-500' },
+  ];
+
+  // Create password accounts - Better Auth expects accountId to be email for credential provider
+  for (const user of users) {
+    await db.insert(schema.account).values({
+      id: `${user.id}-credential`,
+      accountId: user.email,
       providerId: 'credential',
-      userId,
+      userId: user.id,
       password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
-    }))
-  );
+    });
+  }
 
   // ── 3. Projects ─────────────────────────────────────────────────────────────
   console.log('📁 Seeding projects...');
