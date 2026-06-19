@@ -1,14 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users,
+  Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users, ListTodo,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AcceptAssignModal } from "@/components/AcceptAssignModal";
 import {
-  useStore, PRIORITY_STYLES, userById, CREATED_BY_META, type Priority,
+  useStore, PRIORITY_STYLES, userById, CREATED_BY_META, type Priority, type Task, type CreatedBy,
 } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
 import { channelsApi } from "@/lib/api/queen.api";
+import {
+  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand,
+  titleFromMessage,
+} from "@/lib/chat-commands";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -24,8 +29,8 @@ function ChannelsPage() {
   const { user: currentUser } = useAuth();
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
-    addMessage, addTask, consumeJump,
-    activeProjectId, projectTabs
+    addMessage, addTask, updateTask, consumeJump,
+    activeProjectId, projectTabs, activeSprintId,
   } = useStore();
 
   const activeProject = useMemo(() => {
@@ -38,7 +43,12 @@ function ChannelsPage() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [channelMembers, setChannelMembers] = useState<typeof users>([]);
   const [manageMembersOpen, setManageMembersOpen] = useState(false);
+  const [assignModalTask, setAssignModalTask] = useState<Task | null>(null);
+  const [assignModalSubtitle, setAssignModalSubtitle] = useState<string | undefined>();
+  const [spawningTask, setSpawningTask] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
+
+  const queenUser = users.find((u) => u.isAi);
 
   // Fetch channel members when active channel changes
   useEffect(() => {
@@ -97,58 +107,120 @@ function ChannelsPage() {
   const handleInputChange = (v: string) => {
     setInput(v);
     const trim = v.trim();
-    setShowAuto(trim.startsWith("/") || trim.toLowerCase().startsWith("@queen"));
+    setShowAuto(
+      trim.startsWith("/") ||
+      trim.toLowerCase().startsWith("@queen") ||
+      trim.toLowerCase().startsWith("@")
+    );
   };
 
-  const spawnTask = (title: string, byAi: boolean, assigneeHandle?: string) => {
-    const assignee = users.find((u) => u.handle === assigneeHandle) ?? null;
-    const priorities: Priority[] = ["low", "medium", "high", "urgent"];
-    const priority = priorities[Math.floor(Math.random() * 4)];
-    const newMsgId = `m${Date.now()}`;
-    const cardMsgId = `m${Date.now() + 1}`;
-    const taskId = `t${Date.now()}`;
-    addTask({
-      id: taskId,
-      title,
-      assigneeId: assignee?.id ?? null,
-      priority,
-      column: "new",
-      createdBy: byAi ? "ai" : "slash",
-      originMessageId: newMsgId,
-      originChannelId: activeChannelId,
-      sprintId: null,
-      createdAt: Date.now(),
-    });
-    const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    addMessage({
-      id: newMsgId, authorId: currentUser?.id || "me", channelId: activeChannelId, ts,
-      text: byAi ? `@queen ${title}` : `/todo ${title}${assigneeHandle ? ` ${assigneeHandle}` : ""}`,
-    });
-    addMessage({ id: cardMsgId, authorId: "uq", channelId: activeChannelId, ts, taskRef: taskId });
+  const scrollToBottom = () => {
     setTimeout(() => {
       streamRef.current?.scrollTo({ top: streamRef.current.scrollHeight, behavior: "smooth" });
     }, 60);
   };
 
-  const handleSend = () => {
+  async function createTaskFromChat(opts: {
+    title: string;
+    createdBy: CreatedBy;
+    assigneeHandle?: string;
+    priority?: Priority;
+    originMessageId?: string | null;
+    sourceText?: string;
+    openAssignModal?: boolean;
+    modalSubtitle?: string;
+  }) {
+    if (!activeChannelId || !currentUser?.id) return null;
+    setSpawningTask(true);
+    try {
+      const assignee = opts.assigneeHandle
+        ? users.find((u) => u.handle.toLowerCase() === opts.assigneeHandle!.toLowerCase())
+        : null;
+
+      let originMsgId = opts.originMessageId ?? null;
+      if (opts.sourceText) {
+        const sourceMsg = await addMessage({
+          authorId: currentUser.id,
+          channelId: activeChannelId,
+          text: opts.sourceText,
+        });
+        originMsgId = sourceMsg?.id ?? originMsgId;
+      }
+
+      const task = await addTask({
+        title: opts.title,
+        assigneeId: assignee?.id ?? null,
+        priority: opts.priority ?? "medium",
+        column: "new",
+        createdBy: opts.createdBy,
+        originMessageId: originMsgId,
+        originChannelId: activeChannelId,
+        sprintId: activeSprintId,
+        projectId: activeProjectId,
+        createdAt: Date.now(),
+      });
+
+      if (!task) return null;
+
+      await addMessage({
+        authorId: queenUser?.id ?? currentUser.id,
+        channelId: activeChannelId,
+        taskRef: task.id,
+      });
+
+      scrollToBottom();
+
+      if (opts.openAssignModal !== false) {
+        setAssignModalSubtitle(opts.modalSubtitle);
+        setAssignModalTask(task);
+      }
+
+      return task;
+    } finally {
+      setSpawningTask(false);
+    }
+  }
+
+  async function convertMessageToTask(messageId: string, text: string) {
+    await createTaskFromChat({
+      title: titleFromMessage(text),
+      createdBy: "slash",
+      originMessageId: messageId,
+      openAssignModal: true,
+      modalSubtitle: "Created from chat message",
+    });
+  }
+
+  const handleSend = async () => {
     const v = input.trim();
-    if (!v) return;
-    if (v.toLowerCase().startsWith("/todo")) {
-      const rest = v.slice(5).trim();
-      const mention = rest.match(/@\w+/)?.[0];
-      const title = rest.replace(/@\w+/, "").trim() || "Untitled task";
-      spawnTask(title, false, mention);
-    } else if (v.toLowerCase().startsWith("@queen")) {
-      spawnTask(v.slice(6).trim() || "Investigate and scope", true);
+    if (!v || spawningTask) return;
+
+    const createCmd = parseCreateTaskCommand(v);
+    const queenCmd = parseQueenCommand(v);
+
+    if (createCmd) {
+      await createTaskFromChat({
+        title: createCmd.title,
+        createdBy: createCmd.createdBy,
+        assigneeHandle: createCmd.assigneeHandle,
+        priority: createCmd.priority,
+        sourceText: v,
+        modalSubtitle: "Created via slash command",
+      });
+    } else if (queenCmd) {
+      await createTaskFromChat({
+        title: queenCmd.title,
+        createdBy: "ai",
+        sourceText: v,
+        modalSubtitle: "Queued for Queen PM — assign an owner for now",
+      });
     } else {
-      addMessage({
-        id: `m${Date.now()}`, authorId: currentUser?.id || "me", channelId: activeChannelId,
-        ts: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      await addMessage({
+        authorId: currentUser?.id || "me",
+        channelId: activeChannelId,
         text: v,
       });
-      setTimeout(() => {
-        streamRef.current?.scrollTo({ top: streamRef.current.scrollHeight, behavior: "smooth" });
-      }, 60);
+      scrollToBottom();
     }
     setInput("");
     setShowAuto(false);
@@ -220,6 +292,10 @@ function ChannelsPage() {
               const grouped = prev && prev.authorId === m.authorId && !m.taskRef && !prev.taskRef;
               const flashing = flashId === m.id;
               const task = m.taskRef ? tasks.find((t) => t.id === m.taskRef) : null;
+              const linkedTask = !m.taskRef
+                ? tasks.find((t) => t.originMessageId === m.id)
+                : null;
+              const canConvert = !!m.text && !m.taskRef && !linkedTask;
               return (
                 <div
                   key={m.id}
@@ -250,7 +326,21 @@ function ChannelsPage() {
                     </div>
                   )}
                   {task ? (
-                    <div className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/5 to-violet-500/5 p-3 max-w-md`}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setAssignModalSubtitle(undefined);
+                        setAssignModalTask(task);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setAssignModalSubtitle(undefined);
+                          setAssignModalTask(task);
+                        }
+                      }}
+                      className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/5 to-violet-500/5 p-3 max-w-md cursor-pointer hover:border-fuchsia-500/40 hover:from-fuchsia-500/10 transition`}
+                    >
                       <div className="flex items-center gap-1.5 text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider mb-1.5">
                         <Sparkles className="size-3" /> Queen PM created a task
                       </div>
@@ -262,16 +352,31 @@ function ChannelsPage() {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${CREATED_BY_META[task.createdBy].className}`}>
                           {CREATED_BY_META[task.createdBy].label}
                         </span>
-                        <span className="ml-auto text-[10px] text-slate-400">
+                        <span className="ml-auto text-[10px] text-fuchsia-300/80">
                           {task.assigneeId
-                             ? `→ ${userById(task.assigneeId, users)?.handle}`
-                             : "→ unassigned"}
+                            ? `→ ${userById(task.assigneeId, users)?.handle}`
+                            : "Click to assign →"}
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <div className={`${grouped ? "ml-9" : "ml-9"} text-sm text-slate-300 leading-relaxed`}>
-                      {m.text}
+                    <div className={`${grouped ? "ml-9" : "ml-9"} relative`}>
+                      <div className="text-sm text-slate-300 leading-relaxed pr-16">{m.text}</div>
+                      {linkedTask && (
+                        <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400/90 bg-emerald-500/10 ring-1 ring-emerald-500/25 rounded-full px-2 py-0.5">
+                          <ListTodo className="size-3" /> Task created
+                        </div>
+                      )}
+                      {canConvert && (
+                        <button
+                          onClick={() => convertMessageToTask(m.id, m.text!)}
+                          disabled={spawningTask}
+                          title="Convert message to task"
+                          className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 ring-1 ring-fuchsia-500/30 transition disabled:opacity-40"
+                        >
+                          <ListTodo className="size-3" /> Create task
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -286,17 +391,23 @@ function ChannelsPage() {
                 <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-800">
                   Quick actions
                 </div>
-                {[
-                  { cmd: "/todo [Task] @user", desc: "Bypass AI — create instantly", icon: <Zap className="size-4 text-violet-400" /> },
-                  { cmd: "@Queen PM [natural language]", desc: "Let Queen PM scope and spawn the task", icon: <Crown className="size-4 text-fuchsia-400" /> },
-                ].map((o) => (
-                  <div key={o.cmd} className="px-3 py-2.5 hover:bg-slate-800/60 cursor-pointer flex items-center gap-3">
-                    {o.icon}
+                {CHAT_QUICK_ACTIONS.map((o) => (
+                  <button
+                    key={o.cmd}
+                    type="button"
+                    onClick={() => setInput(o.example)}
+                    className="w-full px-3 py-2.5 hover:bg-slate-800/60 cursor-pointer flex items-center gap-3 text-left transition"
+                  >
+                    {o.icon === "zap" ? (
+                      <Zap className="size-4 text-violet-400 shrink-0" />
+                    ) : (
+                      <Crown className="size-4 text-fuchsia-400 shrink-0" />
+                    )}
                     <div>
-                      <div className="text-sm font-mono text-slate-200">{o.cmd}</div>
+                      <div className="text-sm font-mono text-slate-200">{o.example}</div>
                       <div className="text-[11px] text-slate-500">{o.desc}</div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -311,20 +422,22 @@ function ChannelsPage() {
                     handleSend();
                   }
                 }}
-                placeholder={`Message #${activeChannel?.name}  ·  try /todo or @queen`}
+                placeholder={`Message #${activeChannel?.name}  ·  /createtask, /todo, or @queen`}
                 className="flex-1 bg-transparent resize-none outline-none text-sm text-slate-200 placeholder:text-slate-500 max-h-40 py-1"
               />
               <button
                 onClick={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() || spawningTask}
                 className="size-8 grid place-items-center rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 disabled:bg-slate-800 disabled:text-slate-600 text-white transition"
               >
                 <Send className="size-3.5" />
               </button>
             </div>
-            <div className="mt-1.5 text-[10px] text-slate-600 flex items-center gap-3 px-1">
+            <div className="mt-1.5 text-[10px] text-slate-600 flex items-center gap-3 px-1 flex-wrap">
               <span><MessageSquare className="size-3 inline mr-1" /> Enter to send</span>
               <span>Shift+Enter for newline</span>
+              <span className="text-slate-700">·</span>
+              <span>Hover a message → Create task</span>
             </div>
           </div>
         </section>
@@ -449,6 +562,23 @@ function ChannelsPage() {
           systemUsers={users}
           channelMembers={channelMembers}
           onMembersChanged={setChannelMembers}
+        />
+      )}
+
+      {assignModalTask && (
+        <AcceptAssignModal
+          task={assignModalTask}
+          subtitle={assignModalSubtitle}
+          onClose={() => {
+            setAssignModalTask(null);
+            setAssignModalSubtitle(undefined);
+          }}
+          onSubmit={(patch) => {
+            updateTask(assignModalTask.id, patch);
+            setAssignModalTask(null);
+            setAssignModalSubtitle(undefined);
+          }}
+          users={users}
         />
       )}
     </AppShell>
