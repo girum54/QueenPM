@@ -1,11 +1,59 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 
 const isWindows = process.platform === 'win32';
 
+const FRONTEND_PORT = 5173;
+const BACKEND_PORT = 3000;
+
+// Kill processes running on specific ports
+function killPortProcesses(port) {
+  try {
+    if (isWindows) {
+      execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf-8', stdio: 'pipe' })
+        .split('\n')
+        .forEach((line) => {
+          const match = line.match(/LISTENING\s+(\d+)/);
+          if (match) {
+            const pid = match[1];
+            try {
+              execSync(`taskkill /PID ${pid} /F`, { stdio: 'pipe' });
+              console.log(`✓ Killed process on port ${port} (PID: ${pid})`);
+            } catch (e) {
+              // Process might not exist
+            }
+          }
+        });
+    } else {
+      // Unix-like systems
+      const output = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      if (output) {
+        output.split('\n').forEach((pid) => {
+          if (pid) {
+            try {
+              execSync(`kill -9 ${pid}`, { stdio: 'pipe' });
+              console.log(`✓ Killed process on port ${port} (PID: ${pid})`);
+            } catch (e) {
+              // Process might not exist
+            }
+          }
+        });
+      }
+    }
+  } catch (err) {
+    // No processes found on this port, that's fine
+  }
+}
+
 console.log('🚀 Starting QueenPM - Backend & Frontend\n');
+console.log('🔪 Cleaning up old processes...');
+
+killPortProcesses(FRONTEND_PORT);
+killPortProcesses(BACKEND_PORT);
+
+console.log('');
 
 // Frontend process
 const frontendProcess = spawn(isWindows ? 'npm.cmd' : 'npm', ['run', 'dev'], {
