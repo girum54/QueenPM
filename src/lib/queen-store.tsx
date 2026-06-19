@@ -127,8 +127,8 @@ interface StoreShape {
   activeChannelId: string;
   setActiveChannelId: (id: string) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
-  addTask: (t: Task) => void;
-  addMessage: (m: Message) => void;
+  addTask: (t: Omit<Task, "id"> & { id?: string }) => Promise<Task | null>;
+  addMessage: (m: Omit<Message, "id" | "ts"> & { id?: string; ts?: string }) => Promise<Message | null>;
   jumpRequest: JumpRequest | null;
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
@@ -450,8 +450,8 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             createdBy: t.createdBy,
             originMessageId: t.originMessageId,
             originChannelId: t.originChannelId,
-            projectId: activeProjectId || null,
-            sprintId: t.sprintId || null,
+            projectId: (t.projectId ?? activeProjectId) || null,
+            sprintId: t.sprintId ?? activeSprintId ?? null,
             parentId: t.parentId,
             deadline: t.deadline || undefined,
             estimateDays: t.estimateDays || undefined,
@@ -475,8 +475,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             parentId: created.parentId,
           };
           setTasks((ts) => [mapped, ...ts]);
+          return mapped;
         } catch (e) {
           console.error("Failed to add task:", e);
+          return null;
         }
       },
       addMessage: async (m) => {
@@ -500,8 +502,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             taskRef: created.taskRef ?? undefined,
           };
           setMessages((ms) => [...ms, mapped]);
+          return mapped;
         } catch (e) {
           console.error("Failed to add message:", e);
+          return null;
         }
       },
       jumpRequest,
