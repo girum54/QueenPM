@@ -1,8 +1,7 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import * as postgres from 'postgres';
-import * as schema from '../db/schema';
-import { count } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
+import { count } from 'drizzle-orm';
+import { db } from '../db/db';
+import * as schema from '../db/schema';
 
 export const DRIZZLE = 'DRIZZLE';
 
@@ -11,12 +10,6 @@ export const databaseProviders = [
     provide: DRIZZLE,
     inject: [ConfigService],
     useFactory: async (configService: ConfigService) => {
-      const databaseUrl = configService.get<string>('DATABASE_URL');
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL is not set');
-      }
-      const queryClient = postgres(databaseUrl);
-      const db = drizzle(queryClient, { schema });
 
       // Auto-seed default users if empty
       try {
