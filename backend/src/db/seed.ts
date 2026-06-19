@@ -17,6 +17,7 @@ async function seed() {
   // ── 1. Wipe (children first due to FK constraints) ──────────────────────────
   console.log('🗑️  Wiping existing data...');
   await db.delete(schema.channelMembers);
+  await db.delete(schema.projectMembers);
   await db.delete(schema.messages);
   await db.delete(schema.tasks);
   await db.delete(schema.sprintDeliverables);
@@ -76,6 +77,17 @@ async function seed() {
       { name: 'Project Delta', color: 'from-emerald-500 to-teal-600',   ownerId: 'u1' },
     ])
     .returning();
+
+  // ── 3b. Project Members ─────────────────────────────────────────────────────
+  console.log('👥 Seeding project members...');
+  const allProjects = [projX, projAlpha, projDelta];
+  const projectMemberValues = [];
+  for (const p of allProjects) {
+    for (const uid of ['u1', 'u2', 'u3']) {
+      projectMemberValues.push({ projectId: p.id, userId: uid });
+    }
+  }
+  await db.insert(schema.projectMembers).values(projectMemberValues);
 
   // ── 4. Channels (Project X) ─────────────────────────────────────────────────
   console.log('📢 Seeding channels...');

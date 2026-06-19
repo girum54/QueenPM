@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Param, Body, HttpCode, HttpStatus
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { ApiTags, ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @ApiTags('projects')
 @ApiCookieAuth()
@@ -26,8 +27,8 @@ export class ProjectsController {
   @Post()
   @ApiOperation({ summary: 'Create a new project' })
   @ApiResponse({ status: 201, description: 'Project created successfully' })
-  create(@Body() dto: CreateProjectDto) {
-    return this.projectsService.create(dto);
+  create(@Body() dto: CreateProjectDto, @CurrentUser() user: { id: string }) {
+    return this.projectsService.create(dto, user.id);
   }
 
   @Patch(':id')
@@ -44,5 +45,22 @@ export class ProjectsController {
   remove(@Param('id') id: string) {
     return this.projectsService.remove(id);
   }
-}
 
+  @Get(':id/members')
+  @ApiOperation({ summary: 'Get project members' })
+  findMembers(@Param('id') id: string) {
+    return this.projectsService.findMembers(id);
+  }
+
+  @Post(':id/members')
+  @ApiOperation({ summary: 'Add a member to a project' })
+  addMember(@Param('id') id: string, @Body('userId') userId: string) {
+    return this.projectsService.addMember(id, userId);
+  }
+
+  @Delete(':id/members/:userId')
+  @ApiOperation({ summary: 'Remove a member from a project' })
+  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.projectsService.removeMember(id, userId);
+  }
+}

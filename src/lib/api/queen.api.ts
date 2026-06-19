@@ -36,6 +36,7 @@ export interface ApiProject {
   color: string;
   ownerId: string | null;
   createdAt: string;
+  members?: ApiUser[];
 }
 
 export const projectsApi = {
@@ -46,6 +47,11 @@ export const projectsApi = {
   update: (id: string, data: Partial<CreateProjectDto>) =>
     request<ApiProject>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id: string) => request<{ deleted: string }>(`/projects/${id}`, { method: "DELETE" }),
+  getMembers: (projectId: string) => request<ApiUser[]>(`/projects/${projectId}/members`),
+  addMember: (projectId: string, userId: string) =>
+    request<any>(`/projects/${projectId}/members`, { method: "POST", body: JSON.stringify({ userId }) }),
+  removeMember: (projectId: string, userId: string) =>
+    request<any>(`/projects/${projectId}/members/${userId}`, { method: "DELETE" }),
 };
 
 type CreateProjectDto = Omit<ApiProject, "id" | "createdAt">;
