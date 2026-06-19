@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { eq } from 'drizzle-orm';
 import * as postgres from 'postgres';
 import * as schema from './schema';
+import * as argon2 from 'argon2';
 
 async function seed() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -24,26 +26,42 @@ async function seed() {
 
   // ── 2. Users (upsert — preserve auth sessions) ──────────────────────────────
   console.log('👤 Seeding users...');
+  const testPassword = 'password123';
+  const hashedPassword = await argon2.hash(testPassword);
+  
   await db
     .insert(schema.user)
     .values([
-      { id: 'u1', name: 'Mira Chen',    email: 'mira@queenpm.dev',  emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@mira',  color: 'bg-rose-500',    isAi: false },
-      { id: 'u2', name: 'Daniel Park',  email: 'dan@queenpm.dev',   emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@dan',   color: 'bg-amber-500',   isAi: false },
-      { id: 'u3', name: 'Sofia Reyes',  email: 'sofia@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@sofia', color: 'bg-emerald-500', isAi: false },
-      { id: 'u4', name: 'Kai Tanaka',   email: 'kai@queenpm.dev',   emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@kai',   color: 'bg-sky-500',     isAi: false },
+      { id: 'u1', name: 'Girum Tilahun',    email: 'girum@queenpm.dev',  emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@girum',       color: 'bg-rose-500',    isAi: false },
+      { id: 'u2', name: 'Abenezer Hailu',   email: 'abenezer@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@abenezer',   color: 'bg-amber-500',   isAi: false },
+      { id: 'u3', name: 'Samrawit Amare',   email: 'samrawit@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@samrawit',   color: 'bg-emerald-500', isAi: false },
       { id: 'uq', name: 'Queen PM',     email: 'queen@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@queen', color: 'bg-gradient-to-br from-fuchsia-500 to-violet-600', isAi: true },
-      { id: 'me', name: 'You',          email: 'me@queenpm.dev',    emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@you',   color: 'bg-slate-500',   isAi: false },
     ])
     .onConflictDoUpdate({ target: schema.user.id, set: { updatedAt: new Date() } });
+
+  // Seed password accounts
+  const userIds = ['u1', 'u2', 'u3'];
+  await db.delete(schema.account).where(eq(schema.account.providerId, 'credential'));
+  await db.insert(schema.account).values(
+    userIds.map((userId) => ({
+      id: `credential-${userId}`,
+      accountId: userId,
+      providerId: 'credential',
+      userId,
+      password: hashedPassword,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+  );
 
   // ── 3. Projects ─────────────────────────────────────────────────────────────
   console.log('📁 Seeding projects...');
   const [projX, projAlpha, projDelta] = await db
     .insert(schema.projects)
     .values([
-      { name: 'Project X',     color: 'from-fuchsia-500 to-violet-600', ownerId: 'me' },
-      { name: 'Project Alpha', color: 'from-sky-500 to-cyan-600',       ownerId: 'me' },
-      { name: 'Project Delta', color: 'from-emerald-500 to-teal-600',   ownerId: 'me' },
+      { name: 'Project X',     color: 'from-fuchsia-500 to-violet-600', ownerId: 'u1' },
+      { name: 'Project Alpha', color: 'from-sky-500 to-cyan-600',       ownerId: 'u1' },
+      { name: 'Project Delta', color: 'from-emerald-500 to-teal-600',   ownerId: 'u1' },
     ])
     .returning();
 
@@ -73,24 +91,24 @@ async function seed() {
     .insert(schema.tasks)
     .values([
       { title: 'Fix race condition in checkout webhook',    description: 'Reproduced under concurrent load — needs idempotency key.', assigneeId: 'u2', priority: 'urgent', column: 'active',   createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 4  * DAY) },
-      { title: 'Refactor auth middleware for edge runtime', assigneeId: 'u4', priority: 'high',   column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 3  * DAY) },
+      { title: 'Refactor auth middleware for edge runtime', assigneeId: 'u3', priority: 'high',   column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 3  * DAY) },
       { title: 'Design system: token migration to OKLCH',  assigneeId: 'u3', priority: 'medium', column: 'staging',  createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 6  * DAY) },
       { title: 'Q3 launch: payments overhaul',             assigneeId: 'u1', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 9  * DAY) },
       { title: 'Add Sentry breadcrumbs to ingest pipeline',               priority: 'low',    column: 'new',      createdBy: 'slash', originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 1  * DAY) },
       { title: 'Onboarding revamp epic',                   assigneeId: 'u3', priority: 'medium', column: 'new',      createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 2  * DAY) },
       { title: 'Ship rate limiter to prod',                assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 14 * DAY), completedAt: new Date(Date.now() - 2  * DAY) },
-      { title: 'Audit log retention policy',               assigneeId: 'u4', priority: 'medium', column: 'deployed', createdBy: 'ai',    projectId: projX.id, createdAt: new Date(Date.now() - 11 * DAY), completedAt: new Date(Date.now() - 4  * DAY) },
+      { title: 'Audit log retention policy',               assigneeId: 'u3', priority: 'medium', column: 'deployed', createdBy: 'ai',    projectId: projX.id, createdAt: new Date(Date.now() - 11 * DAY), completedAt: new Date(Date.now() - 4  * DAY) },
       { title: 'Postgres pooler upgrade',                  assigneeId: 'u2', priority: 'high',   column: 'staging',  createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 5  * DAY) },
       { title: 'Triage AI-flagged 500s on /v2/orders',                    priority: 'urgent', column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 6  * 3600000) },
       { title: 'Migrate billing webhook to v2',            assigneeId: 'u1', priority: 'high',   column: 'deployed', createdBy: 'ai',    projectId: projX.id, createdAt: new Date(Date.now() - 18 * DAY), completedAt: new Date(Date.now() - 7  * DAY) },
-      { title: 'Customer SSO: Okta integration',           assigneeId: 'u4', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 8  * DAY) },
+      { title: 'Customer SSO: Okta integration',           assigneeId: 'u3', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 8  * DAY) },
     ])
     .returning();
 
   // Subtasks (reference real parent IDs)
   await db.insert(schema.tasks).values([
     { title: 'Verify webhook signature validation',    assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui', projectId: projX.id, parentId: t1.id, createdAt: new Date(Date.now() - 3.5 * DAY) },
-    { title: 'Add unit tests for deduplication cache', assigneeId: 'me', priority: 'medium', column: 'active',   createdBy: 'ui', projectId: projX.id, parentId: t1.id, createdAt: new Date(Date.now() - 3   * DAY) },
+    { title: 'Add unit tests for deduplication cache', assigneeId: 'u1', priority: 'medium', column: 'active',   createdBy: 'ui', projectId: projX.id, parentId: t1.id, createdAt: new Date(Date.now() - 3   * DAY) },
   ]);
 
   // ── 6. Messages ─────────────────────────────────────────────────────────────
@@ -122,6 +140,10 @@ async function seed() {
   console.log(`   Channels : 8`);
   console.log(`   Tasks    : 14 (12 main + 2 subtasks)`);
   console.log(`   Messages : 12`);
+  console.log(`\n🔐 Test User Credentials:`);
+  console.log(`   Email: girum@queenpm.dev / Password: ${testPassword}`);
+  console.log(`   Email: abenezer@queenpm.dev / Password: ${testPassword}`);
+  console.log(`   Email: samrawit@queenpm.dev / Password: ${testPassword}`);
 
   await client.end();
 }
