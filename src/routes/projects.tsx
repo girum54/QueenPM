@@ -496,7 +496,7 @@ function ManageMembersModal({
           updatedAt: "",
           username: user.handle,
           color: user.color,
-          isAi: user.isAi,
+          isAi: user.isAi ?? false,
         };
         const updated = [...projectMembers, apiUser];
         setProjectMembers(updated);
