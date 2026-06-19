@@ -13,6 +13,7 @@ import { ChannelsModule } from './channels/channels.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MessagesModule } from './messages/messages.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ChannelsModule,
     TasksModule,
     MessagesModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
 import { DRIZZLE } from '../database/database.provider';
@@ -56,5 +56,46 @@ export class ChannelsService {
     await this.findOne(id);
     await this.db.delete(schema.channels).where(eq(schema.channels.id, id));
     return { deleted: id };
+  }
+
+  async findMembers(channelId: string) {
+    const members = await this.db.query.channelMembers.findMany({
+      where: eq(schema.channelMembers.channelId, channelId),
+      with: {
+        user: true,
+      },
+    });
+    return members.map((m) => m.user);
+  }
+
+  async addMember(channelId: string, userId: string) {
+    const existing = await this.db.query.channelMembers.findFirst({
+      where: and(
+        eq(schema.channelMembers.channelId, channelId),
+        eq(schema.channelMembers.userId, userId),
+      ),
+    });
+    if (existing) return existing;
+
+    const [inserted] = await this.db
+      .insert(schema.channelMembers)
+      .values({
+        channelId,
+        userId,
+      })
+      .returning();
+    return inserted;
+  }
+
+  async removeMember(channelId: string, userId: string) {
+    await this.db
+      .delete(schema.channelMembers)
+      .where(
+        and(
+          eq(schema.channelMembers.channelId, channelId),
+          eq(schema.channelMembers.userId, userId),
+        ),
+      );
+    return { deleted: true, channelId, userId };
   }
 }

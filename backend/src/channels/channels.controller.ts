@@ -31,4 +31,19 @@ export class ChannelsController {
   remove(@Param('id') id: string) {
     return this.channelsService.remove(id);
   }
+
+  @Get(':id/members')
+  findMembers(@Param('id') id: string) {
+    return this.channelsService.findMembers(id);
+  }
+
+  @Post(':id/members')
+  addMember(@Param('id') id: string, @Body('userId') userId: string) {
+    return this.channelsService.addMember(id, userId);
+  }
+
+  @Delete(':id/members/:userId')
+  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.channelsService.removeMember(id, userId);
+  }
 }

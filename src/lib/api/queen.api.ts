@@ -36,6 +36,7 @@ export interface ApiProject {
   color: string;
   ownerId: string | null;
   createdAt: string;
+  members?: ApiUser[];
 }
 
 export const projectsApi = {
@@ -46,6 +47,11 @@ export const projectsApi = {
   update: (id: string, data: Partial<CreateProjectDto>) =>
     request<ApiProject>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id: string) => request<{ deleted: string }>(`/projects/${id}`, { method: "DELETE" }),
+  getMembers: (projectId: string) => request<ApiUser[]>(`/projects/${projectId}/members`),
+  addMember: (projectId: string, userId: string) =>
+    request<any>(`/projects/${projectId}/members`, { method: "POST", body: JSON.stringify({ userId }) }),
+  removeMember: (projectId: string, userId: string) =>
+    request<any>(`/projects/${projectId}/members/${userId}`, { method: "DELETE" }),
 };
 
 type CreateProjectDto = Omit<ApiProject, "id" | "createdAt">;
@@ -68,6 +74,11 @@ export const channelsApi = {
   update: (id: string, data: Partial<Omit<ApiChannel, "id" | "createdAt">>) =>
     request<ApiChannel>(`/channels/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id: string) => request<{ deleted: string }>(`/channels/${id}`, { method: "DELETE" }),
+  getMembers: (channelId: string) => request<ApiUser[]>(`/channels/${channelId}/members`),
+  addMember: (channelId: string, userId: string) =>
+    request<any>(`/channels/${channelId}/members`, { method: "POST", body: JSON.stringify({ userId }) }),
+  removeMember: (channelId: string, userId: string) =>
+    request<any>(`/channels/${channelId}/members/${userId}`, { method: "DELETE" }),
 };
 
 // ─── Sprints ─────────────────────────────────────────────────────────────────
@@ -225,4 +236,21 @@ export const dashboardApi = {
     const params = projectId ? `?projectId=${projectId}` : "";
     return request<DashboardStats>(`/dashboard/stats${params}`);
   },
+};
+
+export interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image: string | null;
+  createdAt: string;
+  updatedAt: string;
+  username: string | null;
+  color: string | null;
+  isAi: boolean | null;
+}
+
+export const usersApi = {
+  getAll: () => request<ApiUser[]>("/users"),
 };
