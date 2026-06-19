@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Activity, TrendingUp, Bot, Users, ArrowRight, Sparkles, Crown,
   KanbanSquare, MessageSquare, Gauge, Timer, CheckCircle2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { useStore, COLUMN_META, type ColumnId, userById } from "@/lib/queen-store";
+import { useStore, COLUMN_META, type ColumnId } from "@/lib/queen-store";
+import { dashboardApi, type DashboardStats } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,43 +19,34 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { tasks, users, activeProjectId, projectTabs } = useStore();
+  const { activeProjectId, projectTabs } = useStore();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const activeProject = useMemo(() => {
-    return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
-  }, [projectTabs, activeProjectId]);
+  const activeProject = projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
 
-  const metrics = useMemo(() => {
-    const total = tasks.length;
-    const byCol: Record<ColumnId, number> = { new: 0, active: 0, staging: 0, deployed: 0 };
-    tasks.forEach((t) => (byCol[t.column] += 1));
-    const deployed = tasks.filter((t) => t.column === "deployed" && t.completedAt);
-    const avgCompletionDays =
-      deployed.length === 0
-        ? 0
-        : deployed.reduce((acc, t) => acc + (t.completedAt! - t.createdAt) / 86400000, 0) / deployed.length;
-    const aiCount = tasks.filter((t) => t.createdBy === "ai").length;
-    const slashCount = tasks.filter((t) => t.createdBy === "slash").length;
-    const uiCount = tasks.filter((t) => t.createdBy === "ui").length;
-    const autoRatio = total === 0 ? 0 : Math.round(((aiCount + slashCount) / total) * 100);
-    // velocity: simulated 8-week trailing
-    const velocity = [3, 4, 5, 4, 6, 7, 5, deployed.length];
-    const movingAvg = velocity.reduce((a, b) => a + b, 0) / velocity.length;
-    // per-user efficiency
-    const perUser = users
-      .filter((u) => u.id !== "me")
-      .map((u) => {
-        const mine = tasks.filter((t) => t.assigneeId === u.id);
-        const done = mine.filter((t) => t.column === "deployed" && t.completedAt);
-        const avg =
-          done.length === 0
-            ? null
-            : done.reduce((a, t) => a + (t.completedAt! - t.createdAt) / 86400000, 0) / done.length;
-        return { user: u, total: mine.length, done: done.length, avgDays: avg };
-      })
-      .filter((r) => r.total > 0);
-    return { total, byCol, avgCompletionDays, aiCount, slashCount, uiCount, autoRatio, velocity, movingAvg, perUser };
-  }, [tasks, users]);
+  useEffect(() => {
+    if (!activeProjectId) return;
+    setLoading(true);
+    dashboardApi
+      .getStats(activeProjectId)
+      .then(setStats)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [activeProjectId]);
+
+  // Fallback empty metrics while loading
+  const metrics: DashboardStats = stats ?? {
+    total: 0,
+    byCol: { new: 0, active: 0, staging: 0, deployed: 0 },
+    avgCompletionDays: 0,
+    aiCount: 0, slashCount: 0, uiCount: 0,
+    autoRatio: 0,
+    velocity: [0, 0, 0, 0, 0, 0, 0, 0],
+    movingAvg: 0,
+    perUser: [],
+    recentTasks: [],
+  };
 
   const gateways = [
     { name: "Aurora Labs", desc: "12 members · Pro", grad: "from-fuchsia-500 to-violet-600" },
@@ -169,12 +161,12 @@ function DashboardPage() {
               </h3>
               <div className="space-y-2.5">
                 {metrics.perUser.map((r) => (
-                  <div key={r.user.id} className="flex items-center gap-2.5">
-                    <div className={`size-7 rounded-md ${r.user.color} grid place-items-center text-[11px] font-bold text-white shrink-0`}>
-                      {r.user.isAi ? <Crown className="size-3.5" /> : r.user.name[0]}
+                  <div key={r.userId} className="flex items-center gap-2.5">
+                    <div className={`size-7 rounded-md ${r.color} grid place-items-center text-[11px] font-bold text-white shrink-0`}>
+                      {r.isAi ? <Crown className="size-3.5" /> : r.name[0]}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-medium text-slate-200 truncate">{r.user.name}</div>
+                      <div className="text-xs font-medium text-slate-200 truncate">{r.name}</div>
                       <div className="text-[10px] text-slate-500">
                         {r.done}/{r.total} done · {r.avgDays ? `${r.avgDays.toFixed(1)}d avg` : "—"}
                       </div>

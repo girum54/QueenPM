@@ -12,6 +12,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { ChannelsModule } from './channels/channels.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MessagesModule } from './messages/messages.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MessagesModule } from './messages/messages.module';
 
     // Auth must come before other modules
     AuthModule,
+    DashboardModule,
 
     SprintsModule,
     BoardsModule,
@@ -39,4 +41,4 @@ import { MessagesModule } from './messages/messages.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

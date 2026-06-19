@@ -150,13 +150,7 @@ const StoreCtx = createContext<StoreShape | null>(null);
 import { projectsApi, channelsApi, tasksApi, messagesApi } from "./api/queen.api";
 import { useEffect } from "react";
 
-// Mappings from old hardcoded mock IDs to new real DB UUIDs so old state references keep working
-const idMap = {
-  projects: {} as Record<string, string>,
-  channels: {} as Record<string, string>,
-  tasks: {} as Record<string, string>,
-  messages: {} as Record<string, string>,
-};
+
 
 export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -177,30 +171,11 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     } catch (e) {}
   }, []);
 
-  // 1. Fetch/Seed Projects
+  // 1. Fetch Projects
   useEffect(() => {
     async function loadProjects() {
       try {
-        let dbProjects = await projectsApi.getAll();
-        if (dbProjects.length === 0) {
-          // Seed default projects
-          dbProjects = [];
-          for (const defaultProj of DEFAULT_PROJECT_TABS) {
-            const created = await projectsApi.create({
-              name: defaultProj.name,
-              color: defaultProj.color,
-            });
-            dbProjects.push(created);
-            idMap.projects[defaultProj.id] = created.id;
-          }
-        } else {
-          // Map existing projects
-          dbProjects.forEach((p, idx) => {
-            const defaultId = DEFAULT_PROJECT_TABS[idx]?.id || `p-${p.id}`;
-            idMap.projects[defaultId] = p.id;
-          });
-        }
-
+        const dbProjects = await projectsApi.getAll();
         const mappedProjects = dbProjects.map((p) => ({
           id: p.id,
           name: p.name,
@@ -208,14 +183,13 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
         }));
         setProjectTabs(mappedProjects);
 
-        // Resolve active project ID
         const savedProjId = localStorage.getItem("active_project_id");
         if (savedProjId && mappedProjects.some((p) => p.id === savedProjId)) {
           setActiveProjectId(savedProjId);
         } else {
-          const defaultActive = mappedProjects[0]?.id || "";
-          setActiveProjectId(defaultActive);
-          localStorage.setItem("active_project_id", defaultActive);
+          const first = mappedProjects[0]?.id || "";
+          setActiveProjectId(first);
+          if (first) localStorage.setItem("active_project_id", first);
         }
       } catch (e) {
         console.error("Failed to load projects:", e);
@@ -224,32 +198,13 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     loadProjects();
   }, []);
 
-  // 2. Fetch/Seed Channels & Tasks when activeProjectId changes
+  // 2. Fetch Channels & Tasks when activeProjectId changes
   useEffect(() => {
     if (!activeProjectId) return;
 
     async function loadChannelsAndTasks() {
       try {
-        // Channels
-        let dbChannels = await channelsApi.getByProject(activeProjectId);
-        if (dbChannels.length === 0) {
-          dbChannels = [];
-          for (const defaultChan of CHANNELS) {
-            const created = await channelsApi.create({
-              name: defaultChan.name,
-              projectId: activeProjectId,
-              aiActive: defaultChan.aiActive,
-            });
-            dbChannels.push(created);
-            idMap.channels[defaultChan.id] = created.id;
-          }
-        } else {
-          dbChannels.forEach((c, idx) => {
-            const defaultId = CHANNELS[idx]?.id || `c-${c.id}`;
-            idMap.channels[defaultId] = c.id;
-          });
-        }
-
+        const dbChannels = await channelsApi.getByProject(activeProjectId);
         const mappedChannels = dbChannels.map((c) => ({
           id: c.id,
           name: c.name,
@@ -257,42 +212,17 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
         }));
         setChannels(mappedChannels);
 
-        // Resolve active channel
         const savedChanId = localStorage.getItem(`active_channel_id_${activeProjectId}`);
         if (savedChanId && mappedChannels.some((c) => c.id === savedChanId)) {
           setActiveChannelId(savedChanId);
         } else {
-          // Default to eng-platform or general if found, otherwise first channel
           const preferred = mappedChannels.find((c) => c.name === "eng-platform") || mappedChannels[0];
-          const defaultActive = preferred?.id || "";
-          setActiveChannelId(defaultActive);
-          localStorage.setItem(`active_channel_id_${activeProjectId}`, defaultActive);
+          const first = preferred?.id || "";
+          setActiveChannelId(first);
+          if (first) localStorage.setItem(`active_channel_id_${activeProjectId}`, first);
         }
 
-        // Tasks
-        let dbTasks = await tasksApi.getAll(activeProjectId);
-        if (dbTasks.length === 0) {
-          dbTasks = [];
-          for (const defaultTask of INITIAL_TASKS) {
-            const created = await tasksApi.create({
-              title: defaultTask.title,
-              description: defaultTask.description,
-              assigneeId: defaultTask.assigneeId,
-              priority: defaultTask.priority,
-              column: defaultTask.column,
-              createdBy: defaultTask.createdBy,
-              originMessageId: null,
-              originChannelId: defaultTask.originChannelId ? (idMap.channels[defaultTask.originChannelId] || null) : null,
-              projectId: activeProjectId,
-              parentId: defaultTask.parentId ? (idMap.tasks[defaultTask.parentId] || null) : null,
-              deadline: defaultTask.deadline || undefined,
-              estimateDays: defaultTask.estimateDays || undefined,
-            });
-            dbTasks.push(created);
-            idMap.tasks[defaultTask.id] = created.id;
-          }
-        }
-
+        const dbTasks = await tasksApi.getAll(activeProjectId);
         const mappedTasks = dbTasks.map((t: any) => ({
           id: t.id,
           title: t.title,
@@ -318,33 +248,13 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     loadChannelsAndTasks();
   }, [activeProjectId]);
 
-  // 3. Fetch/Seed Messages when activeChannelId changes
+  // 3. Fetch Messages when activeChannelId changes
   useEffect(() => {
     if (!activeChannelId) return;
 
     async function loadMessages() {
       try {
-        let dbMessages = await messagesApi.getByChannel(activeChannelId);
-        if (dbMessages.length === 0) {
-          dbMessages = [];
-          for (const defaultMsg of INITIAL_MESSAGES) {
-            // Find mapped task ref if any
-            const taskRef = defaultMsg.taskRef ? (idMap.tasks[defaultMsg.taskRef] || null) : null;
-            const parentId = defaultMsg.parentId ? (idMap.messages[defaultMsg.parentId] || null) : null;
-            
-            const created = await messagesApi.create({
-              authorId: defaultMsg.authorId,
-              channelId: activeChannelId,
-              text: defaultMsg.text,
-              pinned: defaultMsg.pinned,
-              parentId: parentId || undefined,
-              taskRef: taskRef || undefined,
-            });
-            dbMessages.push(created);
-            idMap.messages[defaultMsg.id] = created.id;
-          }
-        }
-
+        const dbMessages = await messagesApi.getByChannel(activeChannelId);
         const mappedMessages = dbMessages.map((m: any) => ({
           id: m.id,
           authorId: m.authorId,
