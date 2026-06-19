@@ -8,6 +8,7 @@ import {
   useStore, PRIORITY_STYLES, userById, CREATED_BY_META, type Priority,
 } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
+import { channelsApi } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -35,7 +36,30 @@ function ChannelsPage() {
   const [showAuto, setShowAuto] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [channelMembers, setChannelMembers] = useState<typeof users>([]);
+  const [manageMembersOpen, setManageMembersOpen] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
+
+  // Fetch channel members when active channel changes
+  useEffect(() => {
+    if (!activeChannelId) return;
+    async function loadMembers() {
+      try {
+        const dbMembers = await channelsApi.getMembers(activeChannelId);
+        const mapped = dbMembers.map((u) => ({
+          id: u.id,
+          name: u.name,
+          handle: u.username || `@${u.name.toLowerCase().replace(/\s+/g, '')}`,
+          color: u.color || 'bg-slate-500',
+          isAi: u.isAi ?? false,
+        }));
+        setChannelMembers(mapped);
+      } catch (e) {
+        console.error("Failed to load channel members:", e);
+      }
+    }
+    loadMembers();
+  }, [activeChannelId]);
 
   // Handle cross-page jump
   useEffect(() => {
@@ -377,13 +401,21 @@ function ChannelsPage() {
               <div className="space-y-2">
                 <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between">
                   <span>Members</span>
-                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 font-mono">
-                    {users.length}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setManageMembersOpen(true)}
+                      className="px-1.5 py-0.5 rounded bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-[9px] text-fuchsia-400 hover:text-fuchsia-300 font-bold transition"
+                    >
+                      Manage
+                    </button>
+                    <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 font-mono">
+                      {channelMembers.length}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
-                  {users.map((u) => (
+                  {channelMembers.map((u) => (
                     <div
                       key={u.id}
                       className="flex items-center gap-2.5 p-1.5 rounded hover:bg-slate-900/30 text-xs text-slate-300 transition"
@@ -409,6 +441,108 @@ function ChannelsPage() {
           </>
         )}
       </div>
+
+      {manageMembersOpen && activeChannelId && (
+        <ManageMembersModal
+          channelId={activeChannelId}
+          onClose={() => setManageMembersOpen(false)}
+          systemUsers={users}
+          channelMembers={channelMembers}
+          onMembersChanged={setChannelMembers}
+        />
+      )}
     </AppShell>
+  );
+}
+
+function ManageMembersModal({
+  channelId,
+  onClose,
+  systemUsers,
+  channelMembers,
+  onMembersChanged,
+}: {
+  channelId: string;
+  onClose: () => void;
+  systemUsers: ReturnType<typeof useStore>["users"];
+  channelMembers: ReturnType<typeof useStore>["users"];
+  onMembersChanged: (newMembers: ReturnType<typeof useStore>["users"]) => void;
+}) {
+  const [busyUserIds, setBusyUserIds] = useState<Record<string, boolean>>({});
+
+  const handleToggleMember = async (user: typeof systemUsers[0]) => {
+    const isMember = channelMembers.some((m) => m.id === user.id);
+    setBusyUserIds((prev) => ({ ...prev, [user.id]: true }));
+    try {
+      if (isMember) {
+        await channelsApi.removeMember(channelId, user.id);
+        onMembersChanged(channelMembers.filter((m) => m.id !== user.id));
+      } else {
+        await channelsApi.addMember(channelId, user.id);
+        onMembersChanged([...channelMembers, user]);
+      }
+    } catch (e) {
+      console.error("Failed to toggle channel member:", e);
+    } finally {
+      setBusyUserIds((prev) => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-50 flex items-center gap-1.5">
+              <Users className="size-4 text-fuchsia-400" /> Channel Members
+            </h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Manage who has access to this channel</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* User list */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+          {systemUsers.map((u) => {
+            const isMember = channelMembers.some((m) => m.id === u.id);
+            const isBusy = busyUserIds[u.id];
+            return (
+              <div
+                key={u.id}
+                className="flex items-center justify-between p-2 rounded-lg border border-slate-800/40 bg-slate-900/50 hover:bg-slate-950/30 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`size-8 rounded-full ${u.color} grid place-items-center text-xs font-bold text-white shrink-0`}>
+                    {u.isAi ? <Crown className="size-4" /> : u.name[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-slate-200 truncate">{u.name}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{u.handle}</div>
+                  </div>
+                </div>
+
+                <button
+                  disabled={isBusy}
+                  onClick={() => handleToggleMember(u)}
+                  className={`px-3 py-1 rounded text-[10px] font-bold transition shrink-0 ${
+                    isMember
+                      ? "bg-rose-500/10 hover:bg-rose-500/20 text-rose-400"
+                      : "bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400"
+                  }`}
+                >
+                  {isBusy ? "..." : isMember ? "Remove" : "Add"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }

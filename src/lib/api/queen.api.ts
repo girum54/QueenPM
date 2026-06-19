@@ -68,6 +68,11 @@ export const channelsApi = {
   update: (id: string, data: Partial<Omit<ApiChannel, "id" | "createdAt">>) =>
     request<ApiChannel>(`/channels/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   delete: (id: string) => request<{ deleted: string }>(`/channels/${id}`, { method: "DELETE" }),
+  getMembers: (channelId: string) => request<ApiUser[]>(`/channels/${channelId}/members`),
+  addMember: (channelId: string, userId: string) =>
+    request<any>(`/channels/${channelId}/members`, { method: "POST", body: JSON.stringify({ userId }) }),
+  removeMember: (channelId: string, userId: string) =>
+    request<any>(`/channels/${channelId}/members/${userId}`, { method: "DELETE" }),
 };
 
 // ─── Sprints ─────────────────────────────────────────────────────────────────
