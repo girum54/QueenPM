@@ -14,7 +14,7 @@ import {
   CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand,
   titleFromMessage,
 } from "@/lib/chat-commands";
-import { canAssignToUser } from "@/lib/project-permissions";
+import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -39,6 +39,26 @@ function ChannelsPage() {
   }, [projectTabs, activeProjectId]);
 
   const isPM = isProjectManager(activeProject, currentUser?.id);
+
+  const quickActions = useMemo(() => {
+    return CHAT_QUICK_ACTIONS.map((o) => {
+      if (o.cmd === "/createtask" && !isPM) {
+        return {
+          ...o,
+          example: "/createtask Fix webhook race p:high",
+          desc: "Create a task — assign yourself in the modal",
+        };
+      }
+      if (o.cmd === "/todo" && !isPM) {
+        return {
+          ...o,
+          example: "/todo Ship rate limiter",
+          desc: "Shortcut alias for /createtask",
+        };
+      }
+      return o;
+    });
+  }, [isPM]);
 
   const [input, setInput] = useState("");
   const [showAuto, setShowAuto] = useState(false);
@@ -402,7 +422,7 @@ function ChannelsPage() {
                 <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-800">
                   Quick actions
                 </div>
-                {CHAT_QUICK_ACTIONS.map((o) => (
+                {quickActions.map((o) => (
                   <button
                     key={o.cmd}
                     type="button"
