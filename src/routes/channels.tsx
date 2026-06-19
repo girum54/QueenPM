@@ -90,6 +90,7 @@ function ChannelsPage() {
       createdBy: byAi ? "ai" : "slash",
       originMessageId: newMsgId,
       originChannelId: activeChannelId,
+      sprintId: null,
       createdAt: Date.now(),
     });
     const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

@@ -159,6 +159,7 @@ function TasksPage() {
       assigneeId: null,
       originMessageId: null,
       originChannelId: null,
+      sprintId: null, // Tasks created via UI start without sprint, can be added later
       createdAt: Date.now(),
       projectId: activeProjectId,
       parentId: newParentId || undefined,
@@ -452,6 +453,7 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
       assigneeId: null,
       originMessageId: null,
       originChannelId: null,
+      sprintId: null,
       createdAt: Date.now(),
       projectId: activeProjectId,
       parentId: task.id,

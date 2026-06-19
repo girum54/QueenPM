@@ -28,6 +28,7 @@ export interface Task {
   createdBy: CreatedBy;
   originMessageId: string | null;
   originChannelId: string | null;
+  sprintId?: string | null;
   createdAt: number;
   completedAt?: number | null;
   deadline?: string | null;
@@ -143,11 +144,13 @@ interface StoreShape {
   closeProjectTab: (id: string) => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  activeSprintId: string | null;
+  setActiveSprintId: (id: string | null) => void;
 }
 
 const StoreCtx = createContext<StoreShape | null>(null);
 
-import { projectsApi, channelsApi, tasksApi, messagesApi } from "./api/queen.api";
+import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi } from "./api/queen.api";
 import { useEffect } from "react";
 
 
@@ -159,6 +162,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [activeChannelId, setActiveChannelId] = useState("");
   const [projectTabs, setProjectTabs] = useState<ProjectTab[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>("");
+  const [activeSprintId, setActiveSprintId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const consumed = useRef(false);
@@ -222,6 +226,15 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
           if (first) localStorage.setItem(`active_channel_id_${activeProjectId}`, first);
         }
 
+        // Fetch active sprint
+        try {
+          const activeSprint = await sprintsApi.getActive(activeProjectId);
+          setActiveSprintId(activeSprint.id);
+        } catch (e) {
+          console.warn("No active sprint found for project:", e);
+          setActiveSprintId(null);
+        }
+
         const dbTasks = await tasksApi.getAll(activeProjectId);
         const mappedTasks = dbTasks.map((t: any) => ({
           id: t.id,
@@ -233,6 +246,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
           createdBy: t.createdBy as CreatedBy,
           originMessageId: t.originMessageId,
           originChannelId: t.originChannelId,
+          sprintId: t.sprintId,
           createdAt: t.createdAt ? Date.parse(t.createdAt) : Date.now(),
           completedAt: t.completedAt ? Date.parse(t.completedAt) : null,
           deadline: t.deadline,
@@ -416,6 +430,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             originMessageId: t.originMessageId,
             originChannelId: t.originChannelId,
             projectId: activeProjectId || null,
+            sprintId: t.sprintId || null,
             parentId: t.parentId,
             deadline: t.deadline || undefined,
             estimateDays: t.estimateDays || undefined,
@@ -430,6 +445,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             createdBy: created.createdBy as CreatedBy,
             originMessageId: created.originMessageId,
             originChannelId: created.originChannelId,
+            sprintId: created.sprintId,
             createdAt: created.createdAt ? Date.parse(created.createdAt) : Date.now(),
             completedAt: created.completedAt ? Date.parse(created.completedAt) : null,
             deadline: created.deadline,
@@ -487,8 +503,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       closeProjectTab,
       sidebarCollapsed,
       setSidebarCollapsed: handleSetSidebarCollapsed,
+      activeSprintId,
+      setActiveSprintId,
     }),
-    [tasks, messages, channels, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed]
+    [tasks, messages, channels, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

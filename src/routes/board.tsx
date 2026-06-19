@@ -21,13 +21,8 @@ export const Route = createFileRoute("/board")({
 
 const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 
-const TASK_SPRINT_MAP: Record<string, string> = {
-  t1: "sprint-q3-4", t2: "sprint-q3-4", t4: "sprint-q3-4",
-  t5: "sprint-q3-4", t10: "sprint-q3-4", t12: "sprint-q3-4",
-  t3: "sprint-q3-3", t9: "sprint-q3-3",
-  t6: "sprint-q3-3", t7: "sprint-q3-2", t8: "sprint-q3-2",
-  t11: "sprint-q3-2",
-};
+// Hardcoded active sprint for now - in production this would come from store/API
+const ACTIVE_SPRINT_ID = "d5d16315-fe1f-4c09-ab7b-c1e3d3f9fb0e"; // From seed data
 
 function BoardPage() {
   const { tasks, updateTask, users, requestJump, activeProjectId, projectTabs } = useStore();
@@ -45,9 +40,8 @@ function BoardPage() {
     return tasks.filter((t) => {
       // Must match active project
       if (t.projectId && t.projectId !== activeProjectId) return false;
-      // Must be in active sprint (either the task or its parent task is mapped)
-      const sprintId = TASK_SPRINT_MAP[t.id] || TASK_SPRINT_MAP[t.parentId || ""] || "backlog";
-      if (sprintId !== "sprint-q3-4") return false;
+      // Must be in the active sprint using sprintId
+      if (!t.sprintId) return false; // Only show tasks that have a sprint assigned
       // Filter by search query
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
       return true;
