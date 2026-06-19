@@ -105,6 +105,7 @@ export interface ProjectTab {
   id: string;
   name: string;
   color: string;
+  ownerId?: string | null;
 }
 
 const DEFAULT_PROJECT_TABS: ProjectTab[] = [
@@ -205,6 +206,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
           id: p.id,
           name: p.name,
           color: p.color,
+          ownerId: p.ownerId,
         }));
         setProjectTabs(mappedProjects);
 
@@ -343,6 +345,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
         id: created.id,
         name: created.name,
         color: created.color,
+        ownerId: created.ownerId,
       };
       setProjectTabs((prev) => [...prev, newTab]);
       handleSetActiveProjectId(created.id);

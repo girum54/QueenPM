@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { Crown, X, Calendar, Clock, ArrowRight } from "lucide-react";
 import {
   COLUMN_META, PRIORITY_STYLES, useStore,
@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-store";
 import { DatePicker } from "@/components/DatePicker";
 import { sprintsApi } from "@/lib/api/queen.api";
 import { formatDisplayDate, getSprintEndDate } from "@/lib/sprint-dates";
+import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
 
 const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 
@@ -25,9 +26,22 @@ export function AcceptAssignModal({
   subtitle?: string;
 }) {
   const { user: currentUser } = useAuth();
-  const { activeProjectId } = useStore();
+  const { activeProjectId, projectTabs } = useStore();
 
-  const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId ?? "");
+  const activeProject = useMemo(
+    () => projectTabs.find((p) => p.id === activeProjectId),
+    [projectTabs, activeProjectId],
+  );
+  const isPM = isProjectManager(activeProject, currentUser?.id);
+
+  const initialAssignee = useMemo(() => {
+    const current = task.assigneeId ?? "";
+    if (!currentUser?.id) return current;
+    if (canAssignToUser(activeProject, currentUser.id, current || null)) return current;
+    return "";
+  }, [task.assigneeId, currentUser?.id, activeProject]);
+
+  const [assigneeId, setAssigneeId] = useState<string>(initialAssignee);
   const [mode, setMode] = useState<"deadline" | "days">(
     task.estimateDays && !task.deadline ? "days" : "deadline",
   );
@@ -64,14 +78,31 @@ export function AcceptAssignModal({
   }, [task.id, task.sprintId, task.deadline, activeProjectId]);
 
   const submit = () => {
+    let finalAssigneeId = assigneeId || null;
+    if (
+      finalAssigneeId &&
+      !canAssignToUser(activeProject, currentUser?.id, finalAssigneeId)
+    ) {
+      finalAssigneeId = currentUser?.id ?? null;
+    }
+
     onSubmit({
-      assigneeId: assigneeId || null,
+      assigneeId: finalAssigneeId,
       column,
       priority,
       deadline: mode === "deadline" ? deadline || null : null,
       estimateDays: mode === "days" ? days : null,
     });
   };
+
+  const assigneeOptions = useMemo(() => {
+    if (!currentUser) return [];
+    if (isPM) {
+      return users.filter((u) => !u.isAi);
+    }
+    const me = users.find((u) => u.id === currentUser.id);
+    return me ? [me] : [];
+  }, [users, currentUser, isPM]);
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm animate-fade-in p-4">
@@ -95,19 +126,32 @@ export function AcceptAssignModal({
         </div>
 
         <div className="p-5 space-y-5">
-          <Field label="Assignee" hint="Pick a team engineer or hand off to Queen PM">
+          <Field
+            label="Assignee"
+            hint={
+              isPM
+                ? "Project manager — assign to anyone on the team"
+                : "You can assign this task to yourself"
+            }
+          >
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
               className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500"
             >
               <option value="">— Unassigned —</option>
-              {users.filter((u) => u.id !== currentUser?.id).map((u) => (
+              {assigneeOptions.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name} {u.isAi ? "(AI)" : ""}
+                  {u.id === currentUser?.id ? `${u.name} (me)` : u.name}
+                  {u.isAi ? " (AI)" : ""}
                 </option>
               ))}
             </select>
+            {!isPM && (
+              <p className="text-[10px] text-slate-500 mt-1.5">
+                Only the project manager can assign tasks to other team members.
+              </p>
+            )}
           </Field>
 
           <Field

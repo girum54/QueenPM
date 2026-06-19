@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
@@ -41,7 +46,38 @@ export class TasksService {
     return task;
   }
 
-  async create(dto: CreateTaskDto) {
+  private async assertAssigneeAllowed(
+    actingUserId: string,
+    assigneeId: string | null | undefined,
+    projectId: string | null | undefined,
+  ) {
+    if (!assigneeId || assigneeId === actingUserId) return;
+
+    if (!projectId) {
+      throw new ForbiddenException(
+        'Only the project manager can assign tasks to other users',
+      );
+    }
+
+    const project = await this.db.query.projects.findFirst({
+      where: eq(schema.projects.id, projectId),
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    if (project.ownerId !== actingUserId) {
+      throw new ForbiddenException(
+        'Only the project manager can assign tasks to other users',
+      );
+    }
+  }
+
+  async create(dto: CreateTaskDto, actingUserId: string) {
+    await this.assertAssigneeAllowed(
+      actingUserId,
+      dto.assigneeId,
+      dto.projectId,
+    );
+
     const [task] = await this.db
       .insert(schema.tasks)
       .values({
@@ -63,8 +99,17 @@ export class TasksService {
     return task;
   }
 
-  async update(id: string, dto: UpdateTaskDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateTaskDto, actingUserId: string) {
+    const existing = await this.findOne(id);
+
+    if (dto.assigneeId !== undefined) {
+      await this.assertAssigneeAllowed(
+        actingUserId,
+        dto.assigneeId,
+        existing.projectId,
+      );
+    }
+
     const [updated] = await this.db
       .update(schema.tasks)
       .set({
@@ -75,8 +120,12 @@ export class TasksService {
         ...(dto.column !== undefined && { column: dto.column }),
         ...(dto.createdBy !== undefined && { createdBy: dto.createdBy }),
         ...(dto.sprintId !== undefined && { sprintId: dto.sprintId }),
-        ...(dto.completedAt !== undefined && { completedAt: dto.completedAt ? new Date(dto.completedAt) : null }),
-        ...(dto.deadline !== undefined && { deadline: dto.deadline ? new Date(dto.deadline) : null }),
+        ...(dto.completedAt !== undefined && {
+          completedAt: dto.completedAt ? new Date(dto.completedAt) : null,
+        }),
+        ...(dto.deadline !== undefined && {
+          deadline: dto.deadline ? new Date(dto.deadline) : null,
+        }),
         ...(dto.estimateDays !== undefined && { estimateDays: dto.estimateDays }),
       })
       .where(eq(schema.tasks.id, id))

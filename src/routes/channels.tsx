@@ -14,6 +14,7 @@ import {
   CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand,
   titleFromMessage,
 } from "@/lib/chat-commands";
+import { canAssignToUser } from "@/lib/project-permissions";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -36,6 +37,8 @@ function ChannelsPage() {
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
   }, [projectTabs, activeProjectId]);
+
+  const isPM = isProjectManager(activeProject, currentUser?.id);
 
   const [input, setInput] = useState("");
   const [showAuto, setShowAuto] = useState(false);
@@ -137,6 +140,14 @@ function ChannelsPage() {
         ? users.find((u) => u.handle.toLowerCase() === opts.assigneeHandle!.toLowerCase())
         : null;
 
+      let assigneeId: string | null = assignee?.id ?? null;
+      if (
+        assigneeId &&
+        !canAssignToUser(activeProject, currentUser?.id, assigneeId)
+      ) {
+        assigneeId = null;
+      }
+
       let originMsgId = opts.originMessageId ?? null;
       if (opts.sourceText) {
         const sourceMsg = await addMessage({
@@ -149,7 +160,7 @@ function ChannelsPage() {
 
       const task = await addTask({
         title: opts.title,
-        assigneeId: assignee?.id ?? null,
+        assigneeId,
         priority: opts.priority ?? "medium",
         column: "new",
         createdBy: opts.createdBy,
