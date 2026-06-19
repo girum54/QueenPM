@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import {
   ListTodo, Plus, Search, X, Calendar, Clock, Crown, Bot, Zap, MousePointerClick,
-  CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight,
+  CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight, Loader2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
@@ -62,6 +62,7 @@ function TasksPage() {
   const [newSprintId, setNewSprintId] = useState<string | null>(null);
   const [sprints, setSprints] = useState<any[]>([]);
   const [activeSprint, setActiveSprint] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch sprints for current project
   useEffect(() => {
@@ -168,32 +169,37 @@ function TasksPage() {
     });
   };
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim() || isSubmitting) return;
     if (!newSprintId) {
       alert("Please select a sprint");
       return;
     }
-    const task: Task = {
-      id: `t_${Date.now()}`,
-      title: newTitle.trim(),
-      priority: newPriority,
-      column: newColumn,
-      createdBy: "ui",
-      assigneeId: null,
-      originMessageId: null,
-      originChannelId: null,
-      sprintId: newSprintId,
-      createdAt: Date.now(),
-      projectId: activeProjectId,
-      parentId: newParentId || undefined,
-    };
-    addTask(task);
-    setNewTitle("");
-    setNewParentId(null);
-    setNewSprintId(activeSprint ? activeSprint.id : null);
-    setIsNewTaskOpen(false);
+    setIsSubmitting(true);
+    try {
+      const task: Task = {
+        id: `t_${Date.now()}`,
+        title: newTitle.trim(),
+        priority: newPriority,
+        column: newColumn,
+        createdBy: "ui",
+        assigneeId: null,
+        originMessageId: null,
+        originChannelId: null,
+        sprintId: newSprintId,
+        createdAt: Date.now(),
+        projectId: activeProjectId,
+        parentId: newParentId || undefined,
+      };
+      await addTask(task);
+      setNewTitle("");
+      setNewParentId(null);
+      setNewSprintId(activeSprint ? activeSprint.id : null);
+      setIsNewTaskOpen(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const openSubtaskModal = (parentId: string) => {
@@ -452,9 +458,9 @@ function TasksPage() {
                   className="h-9 px-4 rounded-md text-xs font-medium text-slate-400 hover:bg-slate-800 transition">
                   Cancel
                 </button>
-                <button type="submit"
-                  className="h-9 px-4 rounded-md text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition">
-                  {newParentId ? "Add Subtask" : "Create Task"}
+                <button type="submit" disabled={isSubmitting}
+                  className="h-9 px-4 rounded-md text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  {isSubmitting ? <><Loader2 className="size-3.5 animate-spin" /> {newParentId ? "Adding..." : "Creating..."}</> : (newParentId ? "Add Subtask" : "Create Task")}
                 </button>
               </div>
             </form>
@@ -476,6 +482,7 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
   const [expanded, setExpanded] = useState(true);
   const [quickTitle, setQuickTitle] = useState("");
   const [isQuickOpen, setIsQuickOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   
   const { addTask, activeProjectId } = useStore();
   const assignee = userById(task.assigneeId, users);
@@ -483,30 +490,35 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
   const CreatedIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
   const createdMeta = CREATED_BY_META[task.createdBy];
 
-  const handleQuickAdd = (e: React.FormEvent) => {
+  const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickTitle.trim()) return;
+    if (!quickTitle.trim() || isAdding) return;
     const currentTaskSprint = task.sprintId;
     if (!currentTaskSprint) {
       alert("Parent task must be in a sprint to create subtasks");
       return;
     }
-    addTask({
-      id: `t_${Date.now()}`,
-      title: quickTitle.trim(),
-      priority: "medium",
-      column: "new",
-      createdBy: "ui",
-      assigneeId: null,
-      originMessageId: null,
-      originChannelId: null,
-      sprintId: currentTaskSprint,
-      createdAt: Date.now(),
-      projectId: activeProjectId,
-      parentId: task.id,
-    });
-    setQuickTitle("");
-    setIsQuickOpen(false);
+    setIsAdding(true);
+    try {
+      await addTask({
+        id: `t_${Date.now()}`,
+        title: quickTitle.trim(),
+        priority: "medium",
+        column: "new",
+        createdBy: "ui",
+        assigneeId: null,
+        originMessageId: null,
+        originChannelId: null,
+        sprintId: currentTaskSprint,
+        createdAt: Date.now(),
+        projectId: activeProjectId,
+        parentId: task.id,
+      });
+      setQuickTitle("");
+      setIsQuickOpen(false);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -604,8 +616,8 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
             placeholder="Type subtask name and press Enter..."
             className="flex-1 bg-transparent outline-none text-[11px] text-slate-200 placeholder:text-slate-650"
           />
-          <button type="submit" className="text-[10px] text-fuchsia-450 hover:text-fuchsia-300 font-semibold px-2">
-            Add
+          <button type="submit" disabled={isAdding} className="text-[10px] text-fuchsia-450 hover:text-fuchsia-300 font-semibold px-2 disabled:opacity-50 flex items-center justify-center">
+            {isAdding ? <Loader2 className="size-3.5 animate-spin" /> : "Add"}
           </button>
           <button type="button" onClick={() => setIsQuickOpen(false)} className="text-[10px] text-slate-500 hover:text-slate-300">
             Cancel

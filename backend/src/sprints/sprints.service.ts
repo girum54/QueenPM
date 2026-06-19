@@ -36,7 +36,7 @@ export class SprintsService {
         eq(schema.sprints.projectId, projectId),
         eq(schema.sprints.isActive, true),
       ),
-      with: { deliverables: true, board: true, tasks: true },
+      with: { deliverables: true, board: true },
     });
     if (!sprint) throw new NotFoundException('No active sprint for this project');
     return sprint;
