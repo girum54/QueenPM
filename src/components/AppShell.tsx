@@ -67,6 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [newProjectName, setNewProjectName] = useState("");
   const [openInNewTab, setOpenInNewTab] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAddingProject, setIsAddingProject] = useState(false);
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -96,15 +97,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const activeProject = projectTabs.find((p) => p.id === activeProjectId) ?? projectTabs[0];
 
   // Handle project creation
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newProjectName.trim();
-    if (!trimmed) return;
-    addProjectTab(trimmed);
-    setNewProjectName("");
-    setIsModalOpen(false);
-    if (openInNewTab) {
-      window.open("/", "_blank");
+    if (!trimmed || isAddingProject) return;
+    setIsAddingProject(true);
+    try {
+      await addProjectTab(trimmed);
+      setNewProjectName("");
+      setIsModalOpen(false);
+      if (openInNewTab) {
+        window.open("/", "_blank");
+      }
+    } finally {
+      setIsAddingProject(false);
     }
   };
 
@@ -486,10 +492,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   type="text"
                   required
                   autoFocus
+                  disabled={isAddingProject}
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="e.g. Project Zeta"
-                  className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500 transition"
+                  className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500 transition disabled:opacity-50"
                 />
               </div>
 
@@ -514,9 +521,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="h-9 px-4 rounded-md text-xs font-medium text-slate-400 hover:bg-slate-800 transition">
                   Cancel
                 </button>
-                <button type="submit"
-                  className="h-9 px-4 rounded-md text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition">
-                  Create Project
+                <button type="submit" disabled={isAddingProject}
+                  className="h-9 px-4 rounded-md text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  {isAddingProject ? <><Loader2 className="size-3.5 animate-spin" /> Creating...</> : "Create Project"}
                 </button>
               </div>
             </form>

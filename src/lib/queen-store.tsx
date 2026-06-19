@@ -126,22 +126,22 @@ interface StoreShape {
   users: User[];
   activeChannelId: string;
   setActiveChannelId: (id: string) => void;
-  updateTask: (id: string, patch: Partial<Task>) => void;
-  addTask: (t: Task) => void;
-  addMessage: (m: Message) => void;
+  updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
+  addTask: (t: Task) => Promise<void>;
+  addMessage: (m: Message) => Promise<void>;
   jumpRequest: JumpRequest | null;
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
   // Dynamic Channels management
-  addChannel: (name: string, aiActive?: boolean) => void;
-  updateChannel: (id: string, patch: Partial<Channel>) => void;
-  deleteChannel: (id: string) => void;
+  addChannel: (name: string, aiActive?: boolean) => Promise<void>;
+  updateChannel: (id: string, patch: Partial<Channel>) => Promise<void>;
+  deleteChannel: (id: string) => Promise<void>;
   // Tabs & sidebar
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
   projectTabs: ProjectTab[];
-  addProjectTab: (name: string, color?: string) => void;
-  closeProjectTab: (id: string) => void;
+  addProjectTab: (name: string, color?: string) => Promise<void>;
+  closeProjectTab: (id: string) => Promise<void>;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   activeSprintId: string | null;
