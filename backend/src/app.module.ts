@@ -22,7 +22,6 @@ import { DashboardModule } from './dashboard/dashboard.module';
     // Auth must come before other modules
     AuthModule,
     DashboardModule,
-
     SprintsModule,
     BoardsModule,
     ProjectsModule,
