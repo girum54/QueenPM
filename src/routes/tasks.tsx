@@ -432,10 +432,10 @@ function TasksPage() {
                   className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500">
                   <option value="">-- Select a sprint --</option>
                   {sprints
-                    .filter((s) => s.projectId === activeProjectId)
+                    .filter((s) => !s.completedAt)
                     .map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} {s.isActive ? "(Active)" : ""}
+                        {s.name} {s.isActive ? "(Active)" : "(Upcoming)"}
                       </option>
                     ))}
                 </select>
