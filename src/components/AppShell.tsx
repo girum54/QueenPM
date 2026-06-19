@@ -2,10 +2,11 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
-  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu,
+  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2,
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 
 // ── Custom Sprint Icon ─────────────────────────────────────────
 function SprintIcon({ className }: { className?: string }) {
@@ -45,6 +46,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     sidebarCollapsed, setSidebarCollapsed,
   } = useStore();
 
+  const { user, loading, signOut } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate({ to: "/login" });
+    }
+  }, [user, loading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate({ to: "/login" });
+  };
+
   // UI state
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [isChannelsOpen, setIsChannelsOpen] = useState(pathname.startsWith("/channels"));
@@ -59,12 +74,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close project dropdown on outside click
   useEffect(() => {
     function onOut(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
         setIsProjectDropdownOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
+        setShowUserMenu(false);
     }
     document.addEventListener("mousedown", onOut);
     return () => document.removeEventListener("mousedown", onOut);
@@ -111,6 +129,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     media.addEventListener("change", listener);
     return () => media.removeEventListener("change", listener);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="size-6 text-fuchsia-400 animate-spin" />
+      </div>
+    );
+  }
 
   const collapsed = isMobile ? false : sidebarCollapsed;
 
@@ -336,24 +362,63 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         {/* ── Profile (bottom) ── */}
-        <div className={`border-t border-slate-900 ${collapsed ? "p-1.5" : "p-2.5"}`}>
+        <div className={`border-t border-slate-900 ${collapsed ? "p-1.5" : "p-2.5"} relative`}>
           {collapsed ? (
             <div
-              title="You"
-              className="size-9 mx-auto rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 grid place-items-center text-xs font-bold text-white ring-1 ring-slate-800 cursor-pointer hover:ring-fuchsia-500/40 transition"
+              title={user?.name ?? "You"}
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="size-9 mx-auto rounded-lg grid place-items-center text-xs font-bold text-white ring-1 ring-slate-800 cursor-pointer hover:ring-fuchsia-500/40 transition bg-slate-700"
+              style={user?.color ? {} : {}}
             >
-              Y
+              <span className={`size-full rounded-lg grid place-items-center ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"}`}>
+                {user ? user.name[0].toUpperCase() : "?"}
+              </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-900/60 cursor-pointer transition group">
-              <div className="size-7 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 grid place-items-center text-[11px] font-bold text-white shrink-0 ring-1 ring-slate-800">
-                Y
+            <div className="relative" ref={userMenuRef}>
+              <div
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-900/60 cursor-pointer transition group"
+              >
+                <div className={`size-7 rounded-lg grid place-items-center text-[11px] font-bold text-white shrink-0 ring-1 ring-slate-800 ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"}`}>
+                  {user ? user.name[0].toUpperCase() : "?"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-semibold text-slate-200 truncate">{user?.name ?? "Guest"}</div>
+                  <div className="text-[10px] text-slate-500 truncate">{user?.email ?? "Not signed in"}</div>
+                </div>
+                <Settings className="size-3.5 text-slate-600 group-hover:text-slate-400 transition shrink-0" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-slate-200 truncate">You</div>
-                <div className="text-[10px] text-slate-500 truncate">you@workspace.com</div>
-              </div>
-              <Settings className="size-3.5 text-slate-600 group-hover:text-slate-400 transition shrink-0" />
+
+              {/* User dropdown */}
+              {showUserMenu && (
+                <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-slate-800 bg-slate-900 shadow-xl overflow-hidden z-50">
+                  {user ? (
+                    <>
+                      <div className="px-3 py-2.5 border-b border-slate-800">
+                        <div className="text-[12px] font-semibold text-slate-200 truncate">{user.name}</div>
+                        <div className="text-[10px] text-slate-500 truncate">{user.username ?? user.email}</div>
+                      </div>
+                      <button
+                        id="btn-sign-out"
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-rose-400 hover:bg-rose-500/10 transition"
+                      >
+                        <LogOut className="size-3.5" />
+                        Sign out
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-[12px] text-fuchsia-400 hover:bg-fuchsia-500/10 transition"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Sign in
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

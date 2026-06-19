@@ -13,6 +13,7 @@ import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ChannelsConfigRouteImport } from './routes/channels-config'
 import { Route as ChannelsRouteImport } from './routes/channels'
 import { Route as BoardRouteImport } from './routes/board'
@@ -36,6 +37,11 @@ const SprintRoute = SprintRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsConfigRoute = ChannelsConfigRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/login'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/login'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/login'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRoute
   ChannelsRoute: typeof ChannelsRoute
   ChannelsConfigRoute: typeof ChannelsConfigRoute
+  LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   SprintRoute: typeof SprintRoute
   SprintConfigRoute: typeof SprintConfigRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channels-config': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRoute,
   ChannelsRoute: ChannelsRoute,
   ChannelsConfigRoute: ChannelsConfigRoute,
+  LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   SprintRoute: SprintRoute,
   SprintConfigRoute: SprintConfigRoute,
