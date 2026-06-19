@@ -182,41 +182,6 @@ function DashboardPage() {
               </div>
             </div>
           </div>
-
-          {/* Project gateways */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100 mb-3 flex items-center gap-2">
-              <Gauge className="size-4 text-fuchsia-400" /> Project Gateways
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {gateways.map((g) => (
-                <div
-                  key={g.name}
-                  className="group rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 hover:border-slate-700 transition"
-                >
-                  <div className={`size-9 rounded-lg bg-gradient-to-br ${g.grad} grid place-items-center mb-3`}>
-                    <Crown className="size-4 text-white" />
-                  </div>
-                  <div className="text-sm font-semibold text-slate-100">{g.name}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{g.desc}</div>
-                  <div className="mt-4 flex items-center gap-2">
-                    <Link
-                      to="/board"
-                      className="text-xs px-2.5 h-7 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 inline-flex items-center gap-1.5"
-                    >
-                      <KanbanSquare className="size-3" /> Board
-                    </Link>
-                    <Link
-                      to="/channels"
-                      className="text-xs px-2.5 h-7 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 inline-flex items-center gap-1.5"
-                    >
-                      <MessageSquare className="size-3" /> Channels
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </AppShell>

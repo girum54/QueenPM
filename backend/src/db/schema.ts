@@ -182,11 +182,35 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const channelMembers = pgTable("channel_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channelId: uuid("channel_id")
+    .notNull()
+    .references(() => channels.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const projectMembers = pgTable("project_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const userRelations = relations(user, ({ many }) => ({
   tasks: many(tasks),
   messages: many(messages),
+  channelMembers: many(channelMembers),
+  projectMembers: many(projectMembers),
 }));
 
 export const projectRelations = relations(projects, ({ many }) => ({
@@ -194,6 +218,7 @@ export const projectRelations = relations(projects, ({ many }) => ({
   tasks: many(tasks),
   sprints: many(sprints),
   boards: many(boards),
+  members: many(projectMembers),
 }));
 
 export const channelRelations = relations(channels, ({ one, many }) => ({
@@ -202,6 +227,7 @@ export const channelRelations = relations(channels, ({ one, many }) => ({
     references: [projects.id],
   }),
   messages: many(messages),
+  members: many(channelMembers),
 }));
 
 export const sprintRelations = relations(sprints, ({ one, many }) => ({
@@ -268,5 +294,27 @@ export const messageRelations = relations(messages, ({ one }) => ({
   task: one(tasks, {
     fields: [messages.taskRef],
     references: [tasks.id],
+  }),
+}));
+
+export const channelMemberRelations = relations(channelMembers, ({ one }) => ({
+  channel: one(channels, {
+    fields: [channelMembers.channelId],
+    references: [channels.id],
+  }),
+  user: one(user, {
+    fields: [channelMembers.userId],
+    references: [user.id],
+  }),
+}));
+
+export const projectMemberRelations = relations(projectMembers, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMembers.projectId],
+    references: [projects.id],
+  }),
+  user: one(user, {
+    fields: [projectMembers.userId],
+    references: [user.id],
   }),
 }));

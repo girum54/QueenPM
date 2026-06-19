@@ -126,9 +126,9 @@ interface StoreShape {
   users: User[];
   activeChannelId: string;
   setActiveChannelId: (id: string) => void;
-  updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
-  addTask: (t: Task) => Promise<void>;
-  addMessage: (m: Message) => Promise<void>;
+  updateTask: (id: string, patch: Partial<Task>) => void;
+  addTask: (t: Omit<Task, "id"> & { id?: string }) => Promise<Task | null>;
+  addMessage: (m: Omit<Message, "id" | "ts"> & { id?: string; ts?: string }) => Promise<Message | null>;
   jumpRequest: JumpRequest | null;
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
@@ -150,7 +150,7 @@ interface StoreShape {
 
 const StoreCtx = createContext<StoreShape | null>(null);
 
-import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi } from "./api/queen.api";
+import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi } from "./api/queen.api";
 import { useEffect } from "react";
 
 
@@ -159,6 +159,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [activeChannelId, setActiveChannelId] = useState("");
   const [projectTabs, setProjectTabs] = useState<ProjectTab[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>("");
@@ -167,12 +168,32 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const consumed = useRef(false);
 
+  // Fetch users on mount
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const dbUsers = await usersApi.getAll();
+        const mappedUsers = dbUsers.map((u) => ({
+          id: u.id,
+          name: u.name,
+          handle: u.username || `@${u.name.toLowerCase().replace(/\s+/g, '')}`,
+          color: u.color || 'bg-slate-500',
+          isAi: u.isAi ?? false,
+        }));
+        setUsers(mappedUsers);
+      } catch (e) {
+        console.error("Failed to load users:", e);
+      }
+    }
+    loadUsers();
+  }, []);
+
   // Initialize collapsed state
   useEffect(() => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
       setSidebarCollapsed(saved === "true");
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   // 1. Fetch Projects
@@ -396,7 +417,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       tasks,
       messages,
       channels,
-      users: USERS,
+      users,
       activeChannelId,
       setActiveChannelId: handleSetActiveChannelId,
       updateTask: async (id, patch) => {
@@ -409,8 +430,8 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
                 patch.column === "deployed"
                   ? Date.now()
                   : updated.completedAt
-                  ? Date.parse(updated.completedAt)
-                  : t.completedAt ?? null;
+                    ? Date.parse(updated.completedAt)
+                    : t.completedAt ?? null;
               return { ...t, ...patch, completedAt };
             })
           );
@@ -429,8 +450,8 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             createdBy: t.createdBy,
             originMessageId: t.originMessageId,
             originChannelId: t.originChannelId,
-            projectId: activeProjectId || null,
-            sprintId: t.sprintId || null,
+            projectId: (t.projectId ?? activeProjectId) || null,
+            sprintId: t.sprintId ?? activeSprintId ?? null,
             parentId: t.parentId,
             deadline: t.deadline || undefined,
             estimateDays: t.estimateDays || undefined,
@@ -454,8 +475,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             parentId: created.parentId,
           };
           setTasks((ts) => [mapped, ...ts]);
+          return mapped;
         } catch (e) {
           console.error("Failed to add task:", e);
+          return null;
         }
       },
       addMessage: async (m) => {
@@ -479,8 +502,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
             taskRef: created.taskRef ?? undefined,
           };
           setMessages((ms) => [...ms, mapped]);
+          return mapped;
         } catch (e) {
           console.error("Failed to add message:", e);
+          return null;
         }
       },
       jumpRequest,
@@ -506,7 +531,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       activeSprintId,
       setActiveSprintId,
     }),
-    [tasks, messages, channels, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId]
+    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
