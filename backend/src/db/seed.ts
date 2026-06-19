@@ -96,30 +96,58 @@ async function seed() {
     { name: 'general', projectId: projDelta.id, aiActive: false },
   ]);
 
+  // ── 4b. Sprints & Boards ────────────────────────────────────────────────────
+  console.log('🏃 Seeding sprints & boards...');
+  const [sprint1] = await db
+    .insert(schema.sprints)
+    .values([
+      { 
+        projectId: projX.id, 
+        name: 'Sprint Q3 - Iteration 4',
+        goal: 'Complete payments overhaul and edge runtime migrations',
+        style: 'Agile',
+        durationWeeks: 2,
+        startDate: new Date(Date.now() - 7 * DAY),
+        isActive: true,
+      },
+    ])
+    .returning();
+
+  // Create board for the active sprint
+  await db
+    .insert(schema.boards)
+    .values([
+      {
+        sprintId: sprint1.id,
+        projectId: projX.id,
+        name: `Sprint Board — ${sprint1.name}`,
+      },
+    ]);
+
   // ── 5. Tasks (parent tasks first) ───────────────────────────────────────────
   console.log('✅ Seeding tasks...');
   const [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12] = await db
     .insert(schema.tasks)
     .values([
-      { title: 'Fix race condition in checkout webhook',    description: 'Reproduced under concurrent load — needs idempotency key.', assigneeId: 'u2', priority: 'urgent', column: 'active',   createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 4  * DAY) },
-      { title: 'Refactor auth middleware for edge runtime', assigneeId: 'u3', priority: 'high',   column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 3  * DAY) },
-      { title: 'Design system: token migration to OKLCH',  assigneeId: 'u3', priority: 'medium', column: 'staging',  createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 6  * DAY) },
-      { title: 'Q3 launch: payments overhaul',             assigneeId: 'u1', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 9  * DAY) },
-      { title: 'Add Sentry breadcrumbs to ingest pipeline',               priority: 'low',    column: 'new',      createdBy: 'slash', originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 1  * DAY) },
-      { title: 'Onboarding revamp epic',                   assigneeId: 'u3', priority: 'medium', column: 'new',      createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 2  * DAY) },
-      { title: 'Ship rate limiter to prod',                assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 14 * DAY), completedAt: new Date(Date.now() - 2  * DAY) },
-      { title: 'Audit log retention policy',               assigneeId: 'u3', priority: 'medium', column: 'deployed', createdBy: 'ai',    projectId: projX.id, createdAt: new Date(Date.now() - 11 * DAY), completedAt: new Date(Date.now() - 4  * DAY) },
-      { title: 'Postgres pooler upgrade',                  assigneeId: 'u2', priority: 'high',   column: 'staging',  createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 5  * DAY) },
-      { title: 'Triage AI-flagged 500s on /v2/orders',                    priority: 'urgent', column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, createdAt: new Date(Date.now() - 6  * 3600000) },
-      { title: 'Migrate billing webhook to v2',            assigneeId: 'u1', priority: 'high',   column: 'deployed', createdBy: 'ai',    projectId: projX.id, createdAt: new Date(Date.now() - 18 * DAY), completedAt: new Date(Date.now() - 7  * DAY) },
-      { title: 'Customer SSO: Okta integration',           assigneeId: 'u3', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, createdAt: new Date(Date.now() - 8  * DAY) },
+      { title: 'Fix race condition in checkout webhook',    description: 'Reproduced under concurrent load — needs idempotency key.', assigneeId: 'u2', priority: 'urgent', column: 'active',   createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 4  * DAY) },
+      { title: 'Refactor auth middleware for edge runtime', assigneeId: 'u3', priority: 'high',   column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 3  * DAY) },
+      { title: 'Design system: token migration to OKLCH',  assigneeId: 'u3', priority: 'medium', column: 'staging',  createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 6  * DAY) },
+      { title: 'Q3 launch: payments overhaul',             assigneeId: 'u1', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 9  * DAY) },
+      { title: 'Add Sentry breadcrumbs to ingest pipeline',               priority: 'low',    column: 'new',      createdBy: 'slash', originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 1  * DAY) },
+      { title: 'Onboarding revamp epic',                   assigneeId: 'u3', priority: 'medium', column: 'new',      createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 2  * DAY) },
+      { title: 'Ship rate limiter to prod',                assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 14 * DAY), completedAt: new Date(Date.now() - 2  * DAY) },
+      { title: 'Audit log retention policy',               assigneeId: 'u3', priority: 'medium', column: 'deployed', createdBy: 'ai',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 11 * DAY), completedAt: new Date(Date.now() - 4  * DAY) },
+      { title: 'Postgres pooler upgrade',                  assigneeId: 'u2', priority: 'high',   column: 'staging',  createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 5  * DAY) },
+      { title: 'Triage AI-flagged 500s on /v2/orders',                    priority: 'urgent', column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 6  * 3600000) },
+      { title: 'Migrate billing webhook to v2',            assigneeId: 'u1', priority: 'high',   column: 'deployed', createdBy: 'ai',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 18 * DAY), completedAt: new Date(Date.now() - 7  * DAY) },
+      { title: 'Customer SSO: Okta integration',           assigneeId: 'u3', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 8  * DAY) },
     ])
     .returning();
 
   // Subtasks (reference real parent IDs)
   await db.insert(schema.tasks).values([
-    { title: 'Verify webhook signature validation',    assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui', projectId: projX.id, parentId: t1.id, createdAt: new Date(Date.now() - 3.5 * DAY) },
-    { title: 'Add unit tests for deduplication cache', assigneeId: 'u1', priority: 'medium', column: 'active',   createdBy: 'ui', projectId: projX.id, parentId: t1.id, createdAt: new Date(Date.now() - 3   * DAY) },
+    { title: 'Verify webhook signature validation',    assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, parentId: t1.id, createdAt: new Date(Date.now() - 3.5 * DAY) },
+    { title: 'Add unit tests for deduplication cache', assigneeId: 'u1', priority: 'medium', column: 'active',   createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, parentId: t1.id, createdAt: new Date(Date.now() - 3   * DAY) },
   ]);
 
   // ── 6. Messages ─────────────────────────────────────────────────────────────
@@ -149,7 +177,9 @@ async function seed() {
   console.log('✅ Seed complete!');
   console.log(`   Projects : 3  (Project X, Alpha, Delta)`);
   console.log(`   Channels : 8`);
-  console.log(`   Tasks    : 14 (12 main + 2 subtasks)`);
+  console.log(`   Sprints  : 1  (Q3 - Iteration 4, Active)`);
+  console.log(`   Boards   : 1  (linked to active sprint)`);
+  console.log(`   Tasks    : 14 (12 main + 2 subtasks, all assigned to active sprint)`);
   console.log(`   Messages : 12`);
   console.log(`\n🔐 Test User Credentials:`);
   console.log(`   Email: girum@queenpm.dev / Password: ${testPassword}`);
