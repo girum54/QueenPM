@@ -1,6 +1,18 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('tasks')
 export class TasksController {
@@ -20,13 +32,17 @@ export class TasksController {
   }
 
   @Post()
-  create(@Body() dto: CreateTaskDto) {
-    return this.tasksService.create(dto);
+  create(@Body() dto: CreateTaskDto, @CurrentUser() user: { id: string }) {
+    return this.tasksService.create(dto, user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTaskDto) {
-    return this.tasksService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTaskDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.tasksService.update(id, dto, user.id);
   }
 
   @Delete(':id')
