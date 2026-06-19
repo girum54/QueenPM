@@ -134,15 +134,15 @@ interface StoreShape {
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
   // Dynamic Channels management
-  addChannel: (name: string, aiActive?: boolean) => void;
-  updateChannel: (id: string, patch: Partial<Channel>) => void;
-  deleteChannel: (id: string) => void;
+  addChannel: (name: string, aiActive?: boolean) => Promise<void>;
+  updateChannel: (id: string, patch: Partial<Channel>) => Promise<void>;
+  deleteChannel: (id: string) => Promise<void>;
   // Tabs & sidebar
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
   projectTabs: ProjectTab[];
-  addProjectTab: (name: string, color?: string) => void;
-  closeProjectTab: (id: string) => void;
+  addProjectTab: (name: string, color?: string) => Promise<void>;
+  closeProjectTab: (id: string) => Promise<void>;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   activeSprintId: string | null;
@@ -194,7 +194,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
       setSidebarCollapsed(saved === "true");
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   // 1. Fetch Projects
@@ -433,8 +433,8 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
                 patch.column === "deployed"
                   ? Date.now()
                   : updated.completedAt
-                  ? Date.parse(updated.completedAt)
-                  : t.completedAt ?? null;
+                    ? Date.parse(updated.completedAt)
+                    : t.completedAt ?? null;
               return { ...t, ...patch, completedAt };
             })
           );
