@@ -44,7 +44,6 @@ function SprintPage() {
         setLoading(true);
         const activeSprint = await sprintsApi.getActive(activeProjectId);
         if (activeSprint) {
-          const deliverables = await sprintsApi.getDeliverables(activeSprint.id);
           setSprint({
             id: activeSprint.id,
             name: activeSprint.name,
@@ -52,7 +51,7 @@ function SprintPage() {
             durationWeeks: activeSprint.durationWeeks,
             startDate: activeSprint.startDate,
             goal: activeSprint.goal || "",
-            deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
+            deliverables: (activeSprint.deliverables || []).map(d => ({ id: d.id, text: d.text, done: d.done })),
             isActive: activeSprint.isActive
           });
         } else {

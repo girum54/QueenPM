@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import {
   Sparkles, Calendar, Clock, CheckCircle2, AlertCircle, Plus, Trash2,
-  Workflow, ChevronRight, BarChart3, Users, Play, Check
+  Workflow, ChevronRight, BarChart3, Users, Play, Check, Loader2
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore } from "@/lib/queen-store";
@@ -37,22 +37,18 @@ export function SprintConfigPage() {
   const { tasks, activeProjectId } = useStore();
   const [sprint, setSprint] = useState<Sprint | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Setup Form State
-  const [formName, setFormName] = useState("Sprint Q3 - Payments Overhaul");
-  const [formStyle, setFormStyle] = useState("Agile Scrum");  // free-text methodology label
+  const [formName, setFormName] = useState("");
+  const [formStyle, setFormStyle] = useState("");  // free-text methodology label
   const [formDuration, setFormDuration] = useState(2);
   const [formStartDate, setFormStartDate] = useState(() => {
     const d = new Date();
     return d.toISOString().split("T")[0];
   });
-  const [formGoal, setFormGoal] = useState("Overhaul backend payment gateway integration and ship customer dashboard v2.");
-  const [formDeliverables, setFormDeliverables] = useState<string[]>([
-    "Idempotency keys on webhook ingestion",
-    "Edge-runtime compatibility for Auth middleware",
-    "Postgres connection pool upgrades for peak traffic",
-    "Client-facing Stripe onboarding flow revamp"
-  ]);
+  const [formGoal, setFormGoal] = useState("");
+  const [formDeliverables, setFormDeliverables] = useState<string[]>([]);
   const [newDeliverableText, setNewDeliverableText] = useState("");
 
   const computedSprintEnd = getSprintEndDate(formStartDate, formDuration);
@@ -101,6 +97,7 @@ export function SprintConfigPage() {
 
   const handleStartSprint = async () => {
     if (!activeProjectId) return;
+    setIsSubmitting(true);
     try {
       // 1. Create Sprint
       const created = await sprintsApi.create({
@@ -130,6 +127,8 @@ export function SprintConfigPage() {
       });
     } catch (e) {
       console.error("Failed to start sprint:", e);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -389,10 +388,19 @@ export function SprintConfigPage() {
                     <button
                       type="button"
                       onClick={handleStartSprint}
-                      disabled={formDeliverables.length === 0}
+                      disabled={formDeliverables.length === 0 || isSubmitting}
                       className="w-full h-10 rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-medium text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-fuchsia-500/20 mt-2"
                     >
-                      <Play className="size-3.5 fill-current" /> Initialize Active Sprint
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin" />
+                          Initializing...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="size-3.5 fill-current" /> Initialize Active Sprint
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

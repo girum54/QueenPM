@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Hash, Bot, Plus, Trash2, Shield, Settings, ArrowLeft, Check, Sparkles, MessageSquare,
+  Hash, Bot, Plus, Trash2, Shield, Settings, ArrowLeft, Check, Sparkles, MessageSquare, Loader2
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore } from "@/lib/queen-store";
@@ -24,13 +24,20 @@ function ChannelsConfigPage() {
   const [newAiActive, setNewAiActive] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
-    addChannel(newName.trim(), newAiActive);
-    setNewName("");
-    setNewAiActive(false);
+    if (!newName.trim() || isAdding) return;
+    setIsAdding(true);
+    try {
+      await addChannel(newName.trim(), newAiActive);
+      setNewName("");
+      setNewAiActive(false);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const startRename = (id: string, name: string) => {
@@ -38,10 +45,15 @@ function ChannelsConfigPage() {
     setEditingName(name);
   };
 
-  const saveRename = (id: string) => {
-    if (!editingName.trim()) return;
-    updateChannel(id, { name: editingName.trim().toLowerCase().replace(/\s+/g, "-") });
-    setEditingId(null);
+  const saveRename = async (id: string) => {
+    if (!editingName.trim() || isSaving) return;
+    setIsSaving(true);
+    try {
+      await updateChannel(id, { name: editingName.trim().toLowerCase().replace(/\s+/g, "-") });
+      setEditingId(null);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -108,9 +120,10 @@ function ChannelsConfigPage() {
 
                 <button
                   type="submit"
-                  className="w-full h-8 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition"
+                  disabled={isAdding}
+                  className="w-full h-8 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  Create
+                  {isAdding ? <><Loader2 className="size-3.5 animate-spin" /> Creating...</> : "Create"}
                 </button>
               </form>
             </div>
@@ -139,9 +152,10 @@ function ChannelsConfigPage() {
                           />
                           <button
                             onClick={() => saveRename(ch.id)}
-                            className="size-7 rounded bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30 flex items-center justify-center transition"
+                            disabled={isSaving}
+                            className="size-7 rounded bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30 flex items-center justify-center transition disabled:opacity-50"
                           >
-                            <Check className="size-3.5" />
+                            {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                           </button>
                         </div>
                       ) : (

@@ -116,7 +116,7 @@ function ProjectsPage() {
       const created = await projectsApi.create({ name: createName.trim(), color: createColor });
       setProjects((prev) => [created, ...prev]);
       // Also update the store so the sidebar tab appears
-      addProjectTab(createName.trim(), createColor);
+      await addProjectTab(createName.trim(), createColor);
       setCreateName("");
       setCreateColor(COLOR_OPTIONS[0].value);
       setShowCreate(false);
@@ -254,8 +254,7 @@ function ProjectsPage() {
                   disabled={creating || !createName.trim()}
                   className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 disabled:opacity-50 text-xs font-semibold text-white transition"
                 >
-                  {creating ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
-                  Create
+                  {creating ? <><Loader2 className="size-3.5 animate-spin" /> Creating...</> : <><Check className="size-3.5" /> Create</>}
                 </button>
               </div>
             </div>
@@ -319,7 +318,7 @@ function ProjectsPage() {
                             disabled={saving || !editName.trim()}
                             className="inline-flex items-center gap-1 h-7 px-3 rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 disabled:opacity-50 text-xs font-semibold text-white transition"
                           >
-                            {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />} Save
+                            {saving ? <><Loader2 className="size-3 animate-spin" /> Saving...</> : <><Check className="size-3" /> Save</>}
                           </button>
                           <button onClick={cancelEdit} className="h-7 px-3 rounded-md text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition">
                             Cancel
