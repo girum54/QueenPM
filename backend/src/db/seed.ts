@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq } from 'drizzle-orm';
 import * as postgres from 'postgres';
 import * as schema from './schema';
-import * as argon2 from 'argon2';
+import { hashPassword } from 'better-auth/crypto';
 
 async function seed() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -33,7 +33,7 @@ async function seed() {
   // ── 2. Users (upsert — preserve auth sessions) ──────────────────────────────
   console.log('👤 Seeding users...');
   const testPassword = process.env.SEED_PASSWORD;
-  const hashedPassword = await argon2.hash(testPassword);
+  const hashedPassword = await hashPassword(testPassword);
   
   await db
     .insert(schema.user)
@@ -128,7 +128,7 @@ async function seed() {
     .insert(schema.messages)
     .values([
       { authorId: 'u1', channelId: chanEng.id,     text: 'morning team — pushing the new ingest worker to staging in ~30', pinned: true,  createdAt: new Date(Date.now() - 5 * 3600000) },
-      { authorId: 'u4', channelId: chanEng.id,     text: 'nice. fyi the checkout webhook is flaky again, saw two 500s overnight',          createdAt: new Date(Date.now() - 4 * 3600000 - 2700000) },
+      { authorId: 'u2', channelId: chanEng.id,     text: 'nice. fyi the checkout webhook is flaky again, saw two 500s overnight',          createdAt: new Date(Date.now() - 4 * 3600000 - 2700000) },
       { authorId: 'u2', channelId: chanEng.id,     text: 'yeah it\'s the same race we hit last month. I can repro locally',                createdAt: new Date(Date.now() - 4 * 3600000 - 2600000) },
       { authorId: 'uq', channelId: chanEng.id,     taskRef: t1.id,                                                                          createdAt: new Date(Date.now() - 4 * 3600000 - 2590000) },
       { authorId: 'u1', channelId: chanEng.id,     text: '@queen we should also get the auth middleware ported to edge before Q3 launch, can you track that', createdAt: new Date(Date.now() - 4 * 3600000 - 2100000) },
@@ -139,7 +139,7 @@ async function seed() {
 
   // Thread replies
   await db.insert(schema.messages).values([
-    { authorId: 'u4', channelId: chanEng.id, text: 'small thing — we should add sentry breadcrumbs to the ingest pipeline so we can actually debug these', parentId: m1.id, createdAt: new Date(Date.now() - 3 * 3600000 - 1200000) },
+    { authorId: 'u2', channelId: chanEng.id, text: 'small thing — we should add sentry breadcrumbs to the ingest pipeline so we can actually debug these', parentId: m1.id, createdAt: new Date(Date.now() - 3 * 3600000 - 1200000) },
     { authorId: 'uq', channelId: chanEng.id, taskRef: t5.id, parentId: m1.id, createdAt: new Date(Date.now() - 3 * 3600000 - 1190000) },
     { authorId: 'u2', channelId: chanEng.id, text: 'repro confirmed. patch incoming, will tag the PR to the task', parentId: m3.id, createdAt: new Date(Date.now() - 2 * 3600000) },
     { authorId: 'u1', channelId: chanSprint.id, text: 'sprint kickoff in 15 — agenda in the pinned doc', pinned: true, createdAt: new Date(Date.now() - 6 * 3600000) },
