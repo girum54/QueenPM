@@ -8,6 +8,7 @@ import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
   type ColumnId, type Priority, type Task, userById,
 } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/board")({
   head: () => ({
@@ -168,7 +169,8 @@ function BoardCard({
   onClick: () => void;
   onOriginJump: () => void;
 }) {
-  const assignee = userById(task.assigneeId);
+  const { users } = useStore();
+  const assignee = userById(task.assigneeId, users);
   const trigger = CREATED_BY_META[task.createdBy];
   const TriggerIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
   return (
@@ -237,6 +239,7 @@ function AcceptAssignModal({
   onSubmit: (patch: Partial<Task>) => void;
   users: ReturnType<typeof useStore>["users"];
 }) {
+  const { user: currentUser } = useAuth();
   const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId ?? "");
   const [mode, setMode] = useState<"deadline" | "days">(task.estimateDays ? "days" : "deadline");
   const [deadline, setDeadline] = useState<string>(task.deadline ?? "");
@@ -279,7 +282,7 @@ function AcceptAssignModal({
               className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500"
             >
               <option value="">— Unassigned —</option>
-              {users.filter((u) => u.id !== "me").map((u) => (
+              {users.filter((u) => u.id !== currentUser?.id).map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name} {u.isAi ? "(AI)" : ""}
                 </option>

@@ -150,7 +150,7 @@ interface StoreShape {
 
 const StoreCtx = createContext<StoreShape | null>(null);
 
-import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi } from "./api/queen.api";
+import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi } from "./api/queen.api";
 import { useEffect } from "react";
 
 
@@ -159,6 +159,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [activeChannelId, setActiveChannelId] = useState("");
   const [projectTabs, setProjectTabs] = useState<ProjectTab[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>("");
@@ -166,6 +167,26 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const consumed = useRef(false);
+
+  // Fetch users on mount
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const dbUsers = await usersApi.getAll();
+        const mappedUsers = dbUsers.map((u) => ({
+          id: u.id,
+          name: u.name,
+          handle: u.username || `@${u.name.toLowerCase().replace(/\s+/g, '')}`,
+          color: u.color || 'bg-slate-500',
+          isAi: u.isAi ?? false,
+        }));
+        setUsers(mappedUsers);
+      } catch (e) {
+        console.error("Failed to load users:", e);
+      }
+    }
+    loadUsers();
+  }, []);
 
   // Initialize collapsed state
   useEffect(() => {
@@ -396,7 +417,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       tasks,
       messages,
       channels,
-      users: USERS,
+      users,
       activeChannelId,
       setActiveChannelId: handleSetActiveChannelId,
       updateTask: async (id, patch) => {
@@ -506,7 +527,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       activeSprintId,
       setActiveSprintId,
     }),
-    [tasks, messages, channels, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId]
+    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
