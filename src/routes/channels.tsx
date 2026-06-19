@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import {
   useStore, PRIORITY_STYLES, userById, CREATED_BY_META, type Priority,
 } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/channels")({
 });
 
 function ChannelsPage() {
+  const { user: currentUser } = useAuth();
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
     addMessage, addTask, consumeJump,
@@ -95,7 +97,7 @@ function ChannelsPage() {
     });
     const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     addMessage({
-      id: newMsgId, authorId: "me", channelId: activeChannelId, ts,
+      id: newMsgId, authorId: currentUser?.id || "me", channelId: activeChannelId, ts,
       text: byAi ? `@queen ${title}` : `/todo ${title}${assigneeHandle ? ` ${assigneeHandle}` : ""}`,
     });
     addMessage({ id: cardMsgId, authorId: "uq", channelId: activeChannelId, ts, taskRef: taskId });
@@ -116,7 +118,7 @@ function ChannelsPage() {
       spawnTask(v.slice(6).trim() || "Investigate and scope", true);
     } else {
       addMessage({
-        id: `m${Date.now()}`, authorId: "me", channelId: activeChannelId,
+        id: `m${Date.now()}`, authorId: currentUser?.id || "me", channelId: activeChannelId,
         ts: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         text: v,
       });

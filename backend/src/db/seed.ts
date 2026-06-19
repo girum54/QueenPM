@@ -16,6 +16,7 @@ async function seed() {
 
   // ── 1. Wipe (children first due to FK constraints) ──────────────────────────
   console.log('🗑️  Wiping existing data...');
+  await db.delete(schema.channelMembers);
   await db.delete(schema.messages);
   await db.delete(schema.tasks);
   await db.delete(schema.sprintDeliverables);
@@ -91,10 +92,26 @@ async function seed() {
     .returning();
 
   // Also seed a general channel for the other projects
-  await db.insert(schema.channels).values([
+  const [chanAlphaGen, chanDeltaGen] = await db.insert(schema.channels).values([
     { name: 'general', projectId: projAlpha.id, aiActive: false },
     { name: 'general', projectId: projDelta.id, aiActive: false },
-  ]);
+  ]).returning();
+
+  // ── 4c. Channel Members ──────────────────────────────────────────────────────
+  console.log('👥 Seeding channel members...');
+  const allChannels = [chanGeneral, chanEng, chanDesign, chanSprint, chanIncidents, chanWater, chanAlphaGen, chanDeltaGen];
+  const userIds = ['u1', 'u2', 'u3', 'uq'];
+  
+  const memberValues = [];
+  for (const c of allChannels) {
+    for (const uid of userIds) {
+      memberValues.push({
+        channelId: c.id,
+        userId: uid,
+      });
+    }
+  }
+  await db.insert(schema.channelMembers).values(memberValues);
 
   // ── 4b. Sprints & Boards ────────────────────────────────────────────────────
   console.log('🏃 Seeding sprints & boards...');

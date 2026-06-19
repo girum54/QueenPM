@@ -226,3 +226,20 @@ export const dashboardApi = {
     return request<DashboardStats>(`/dashboard/stats${params}`);
   },
 };
+
+export interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image: string | null;
+  createdAt: string;
+  updatedAt: string;
+  username: string | null;
+  color: string | null;
+  isAi: boolean | null;
+}
+
+export const usersApi = {
+  getAll: () => request<ApiUser[]>("/users"),
+};
