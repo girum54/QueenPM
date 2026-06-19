@@ -9,6 +9,8 @@ import { useStore } from "@/lib/queen-store";
 
 import { sprintsApi } from "@/lib/api/queen.api";
 import { useEffect } from "react";
+import { DatePicker } from "@/components/DatePicker";
+import { formatDisplayDate, getSprintEndDate } from "@/lib/sprint-dates";
 
 export const Route = createFileRoute("/sprint-config")({
   head: () => ({
@@ -52,6 +54,8 @@ export function SprintConfigPage() {
     "Client-facing Stripe onboarding flow revamp"
   ]);
   const [newDeliverableText, setNewDeliverableText] = useState("");
+
+  const computedSprintEnd = getSprintEndDate(formStartDate, formDuration);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -312,12 +316,17 @@ export function SprintConfigPage() {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-400 mb-1.5">Commencement Date</label>
-                      <input
-                        type="date"
+                      <DatePicker
                         value={formStartDate}
-                        onChange={(e) => setFormStartDate(e.target.value)}
-                        className="w-full h-9 rounded-md bg-slate-950/60 border border-slate-800 px-3 text-xs text-slate-100 outline-none focus:border-fuchsia-500 transition"
+                        onChange={setFormStartDate}
+                        placeholder="Sprint start date"
+                        className="bg-slate-950/60 border-slate-800"
                       />
+                      {computedSprintEnd && (
+                        <p className="text-[10px] text-slate-500 mt-1.5">
+                          Sprint ends <span className="text-slate-300 font-medium">{formatDisplayDate(computedSprintEnd)}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
