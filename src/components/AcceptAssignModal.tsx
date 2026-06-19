@@ -1,10 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Crown, X, Calendar, Clock, ArrowRight } from "lucide-react";
 import {
-  COLUMN_META, PRIORITY_STYLES,
+  COLUMN_META, PRIORITY_STYLES, useStore,
   type ColumnId, type Priority, type Task,
 } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
+import { DatePicker } from "@/components/DatePicker";
+import { sprintsApi } from "@/lib/api/queen.api";
+import { formatDisplayDate, getSprintEndDate } from "@/lib/sprint-dates";
 
 const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 
@@ -22,12 +25,43 @@ export function AcceptAssignModal({
   subtitle?: string;
 }) {
   const { user: currentUser } = useAuth();
+  const { activeProjectId } = useStore();
+
   const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId ?? "");
-  const [mode, setMode] = useState<"deadline" | "days">(task.estimateDays ? "days" : "deadline");
-  const [deadline, setDeadline] = useState<string>(task.deadline ?? "");
+  const [mode, setMode] = useState<"deadline" | "days">(
+    task.estimateDays && !task.deadline ? "days" : "deadline",
+  );
+  const [deadline, setDeadline] = useState<string>(task.deadline?.slice(0, 10) ?? "");
+  const [sprintEndDate, setSprintEndDate] = useState<string>("");
   const [days, setDays] = useState<number>(task.estimateDays ?? 3);
   const [column, setColumn] = useState<ColumnId>(task.column === "new" ? "active" : task.column);
   const [priority, setPriority] = useState<Priority>(task.priority);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSprintDeadline() {
+      try {
+        let sprint = null;
+        if (task.sprintId) {
+          sprint = await sprintsApi.getOne(task.sprintId);
+        } else if (activeProjectId) {
+          sprint = await sprintsApi.getActive(activeProjectId);
+        }
+        if (!sprint || cancelled) return;
+
+        const end = getSprintEndDate(sprint.startDate, sprint.durationWeeks);
+        setSprintEndDate(end);
+        if (!task.deadline && !deadline) {
+          setDeadline(end);
+        }
+      } catch {
+        // No active sprint — leave deadline empty
+      }
+    }
+    loadSprintDeadline();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id, task.sprintId, task.deadline, activeProjectId]);
 
   const submit = () => {
     onSubmit({
@@ -76,7 +110,10 @@ export function AcceptAssignModal({
             </select>
           </Field>
 
-          <Field label="Timeframe Allocation" hint="Choose a hard deadline or an estimate in days">
+          <Field
+            label="Timeframe Allocation"
+            hint={sprintEndDate ? `Sprint ends ${formatDisplayDate(sprintEndDate)}` : "Choose a hard deadline or an estimate in days"}
+          >
             <div className="flex gap-1 p-1 rounded-md bg-slate-800/60 border border-slate-700 mb-2 w-fit">
               <button
                 type="button"
@@ -98,12 +135,22 @@ export function AcceptAssignModal({
               </button>
             </div>
             {mode === "deadline" ? (
-              <input
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500"
-              />
+              <div className="space-y-2">
+                <DatePicker
+                  value={deadline}
+                  onChange={setDeadline}
+                  placeholder="Select deadline"
+                />
+                {sprintEndDate && deadline !== sprintEndDate && (
+                  <button
+                    type="button"
+                    onClick={() => setDeadline(sprintEndDate)}
+                    className="text-[10px] font-semibold text-fuchsia-400 hover:text-fuchsia-300 transition"
+                  >
+                    Use sprint end ({formatDisplayDate(sprintEndDate)})
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <input
