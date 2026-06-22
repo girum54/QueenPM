@@ -32,6 +32,7 @@ function BoardPage() {
   const [hoverCol, setHoverCol] = useState<ColumnId | null>(null);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [query, setQuery] = useState("");
+  const [isProcessingDrop, setIsProcessingDrop] = useState(false);
 
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
@@ -54,8 +55,12 @@ function BoardPage() {
     return map;
   }, [filtered]);
 
-  const handleDrop = (col: ColumnId) => {
-    if (dragId) updateTask(dragId, { column: col });
+  const handleDrop = async (col: ColumnId) => {
+    if (dragId) {
+      setIsProcessingDrop(true);
+      await updateTask(dragId, { column: col });
+      setIsProcessingDrop(false);
+    }
     setDragId(null);
     setHoverCol(null);
   };
@@ -68,7 +73,15 @@ function BoardPage() {
 
   return (
     <AppShell>
-      <div className="h-full flex flex-col font-sans">
+      {isProcessingDrop && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-[2px]">
+          <div className="flex flex-col items-center gap-4 bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <div className="size-10 border-4 border-fuchsia-500/20 border-t-fuchsia-500 rounded-full animate-spin"></div>
+            <div className="text-sm font-medium text-slate-200 animate-pulse">Syncing board...</div>
+          </div>
+        </div>
+      )}
+      <div className="h-full flex flex-col font-sans relative">
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-b border-slate-800/80 bg-slate-900/30 px-5 py-3 sm:py-0 sm:h-12 shrink-0">
           <div className="flex items-baseline gap-2">
