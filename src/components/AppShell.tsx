@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   } = useStore();
 
   const { user, loading, signOut } = useAuth();
-  const isStakeholder = user?.email?.toLowerCase().includes("stakeholder") || user?.username?.toLowerCase().includes("stakeholder");
+  const isStakeholder = user?.role === "stakeholder";
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {

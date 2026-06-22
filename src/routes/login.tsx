@@ -39,13 +39,13 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getDestination = (email?: string | null) =>
-    email?.toLowerCase().includes("stakeholder") ? "/executive" : "/";
+  const getDestination = (u?: any) =>
+    u?.role === "stakeholder" ? "/executive" : "/";
 
   // If already logged in, redirect to appropriate dashboard
   useEffect(() => {
     if (!loading && user) {
-      navigate({ to: getDestination(user.email) });
+      navigate({ to: getDestination(user) });
     }
   }, [user, loading, navigate]);
 

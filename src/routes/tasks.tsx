@@ -10,6 +10,7 @@ import {
   type Task, type ColumnId, type Priority, userById,
 } from "@/lib/queen-store";
 import { sprintsApi } from "@/lib/api/queen.api";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -28,6 +29,8 @@ type SortBy = "created" | "priority" | "title";
 
 function TasksPage() {
   const { tasks, users, addTask, activeProjectId, projectTabs } = useStore();
+  const { user } = useAuth();
+  const isStakeholder = user?.role === "stakeholder";
 
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];

@@ -9,6 +9,7 @@ import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
   type ColumnId, type Task, userById,
 } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/board")({
   head: () => ({
@@ -27,6 +28,8 @@ const ACTIVE_SPRINT_ID = "d5d16315-fe1f-4c09-ab7b-c1e3d3f9fb0e"; // From seed da
 
 function BoardPage() {
   const { tasks, updateTask, users, requestJump, activeProjectId, projectTabs } = useStore();
+  const { user } = useAuth();
+  const isStakeholder = user?.role === "stakeholder";
   const navigate = useNavigate();
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverCol, setHoverCol] = useState<ColumnId | null>(null);
@@ -56,6 +59,7 @@ function BoardPage() {
   }, [filtered]);
 
   const handleDrop = async (col: ColumnId) => {
+    if (isStakeholder) return;
     if (dragId) {
       setIsProcessingDrop(true);
       await updateTask(dragId, { column: col });
@@ -102,7 +106,7 @@ function BoardPage() {
               <Filter className="size-3.5" /> Filter
             </button>
             <Link to="/tasks" className="h-8 px-2.5 rounded-md text-xs font-medium bg-slate-800 border border-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100 inline-flex items-center gap-1.5 transition">
-              <ListTodo className="size-3.5" /> Manage Tasks
+              <ListTodo className="size-3.5" /> {isStakeholder ? "View Tasks" : "Manage Tasks"}
             </Link>
           </div>
         </div>
@@ -118,13 +122,14 @@ function BoardPage() {
                 <div
                   key={col}
                   onDragOver={(e) => {
+                    if (isStakeholder) return;
                     e.preventDefault();
                     setHoverCol(col);
                   }}
-                  onDragLeave={() => setHoverCol((h) => (h === col ? null : h))}
-                  onDrop={() => handleDrop(col)}
+                  onDragLeave={() => !isStakeholder && setHoverCol((h) => (h === col ? null : h))}
+                  onDrop={() => !isStakeholder && handleDrop(col)}
                   className={`flex flex-col rounded-xl border bg-slate-900/30 min-h-0 transition ${
-                    isHover ? "border-fuchsia-500/50 bg-slate-900/60" : "border-slate-800/80"
+                    isHover && !isStakeholder ? "border-fuchsia-500/50 bg-slate-900/60" : "border-slate-800/80"
                   }`}
                 >
                   <div className="px-3.5 py-3 flex items-center gap-2 border-b border-slate-800/80">
@@ -137,7 +142,7 @@ function BoardPage() {
                   <div className="flex-1 overflow-y-auto p-2 space-y-2">
                     {items.length === 0 && (
                       <div className="text-[11px] text-slate-600 text-center py-8 border border-dashed border-slate-800 rounded-lg">
-                        Drop tasks here
+                        {isStakeholder ? "No tasks" : "Drop tasks here"}
                       </div>
                     )}
                     {items.map((t) => (
@@ -148,6 +153,7 @@ function BoardPage() {
                         onDragEnd={() => setDragId(null)}
                         onClick={() => setModalTask(t)}
                         onOriginJump={() => handleOriginJump(t)}
+                        isStakeholder={isStakeholder}
                       />
                     ))}
                   </div>
@@ -174,13 +180,14 @@ function BoardPage() {
 }
 
 function BoardCard({
-  task, onDragStart, onDragEnd, onClick, onOriginJump,
+  task, onDragStart, onDragEnd, onClick, onOriginJump, isStakeholder,
 }: {
   task: Task;
   onDragStart: () => void;
   onDragEnd: () => void;
   onClick: () => void;
   onOriginJump: () => void;
+  isStakeholder?: boolean;
 }) {
   const { users } = useStore();
   const assignee = userById(task.assigneeId, users);
@@ -188,14 +195,15 @@ function BoardCard({
   const TriggerIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
   return (
     <div
-      draggable
+      draggable={!isStakeholder}
       onDragStart={(e) => {
+        if (isStakeholder) return;
         e.dataTransfer.effectAllowed = "move";
         onDragStart();
       }}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="group rounded-lg border border-slate-800 bg-slate-900/80 hover:border-slate-700 hover:bg-slate-900 p-3 cursor-grab active:cursor-grabbing transition"
+      className={`group rounded-lg border border-slate-800 bg-slate-900/80 hover:border-slate-700 hover:bg-slate-900 p-3 transition ${isStakeholder ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-start gap-2 mb-2">
         <div className="flex-1 min-w-0">
