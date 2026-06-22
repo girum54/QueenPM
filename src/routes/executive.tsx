@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { DollarSign, Activity, Calendar, Crown, CheckCircle2, ArrowUpRight, TrendingUp, Layers, LogOut } from "lucide-react";
-import { useAuth } from "@/lib/auth-store";
+import { useEffect, useState } from "react";
+import { Activity, Calendar, Crown, CheckCircle2, TrendingUp, Clock, AlertTriangle, AlertCircle, Briefcase, ChevronRight, Loader2, ExternalLink } from "lucide-react";
+import { useStore } from "@/lib/queen-store";
+import { ExecutiveShell } from "@/components/ExecutiveShell";
+import { dashboardApi, projectsApi, sprintsApi, type ApiProject, type ApiSprint } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/executive")({
   head: () => ({
@@ -12,168 +15,276 @@ export const Route = createFileRoute("/executive")({
   component: ExecutiveDashboardPage,
 });
 
+const THEME_COLORS = [
+  { bg: "bg-fuchsia-500", text: "text-fuchsia-400", light: "bg-fuchsia-500/10" },
+  { bg: "bg-emerald-500", text: "text-emerald-400", light: "bg-emerald-500/10" },
+  { bg: "bg-sky-500", text: "text-sky-400", light: "bg-sky-500/10" },
+  { bg: "bg-amber-500", text: "text-amber-400", light: "bg-amber-500/10" },
+  { bg: "bg-rose-500", text: "text-rose-400", light: "bg-rose-500/10" },
+  { bg: "bg-indigo-500", text: "text-indigo-400", light: "bg-indigo-500/10" },
+];
+
 function ExecutiveDashboardPage() {
-  const { signOut } = useAuth();
+  const { setActiveProjectId } = useStore();
   const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate({ to: "/login" });
+  const handleProjectClick = (id: string) => {
+    setActiveProjectId(id);
+    navigate({ to: "/" });
   };
+  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [sprintsMap, setSprintsMap] = useState<Record<string, ApiSprint[]>>({});
+  const [globalVelocity, setGlobalVelocity] = useState(0);
 
-  // Mocked aggregated data across all projects
-  const movingAvgVelocity = 45; // Across all teams
-  const launchDate = "Oct 12, 2026";
-  const okrsAchieved = [
-    { title: "Increase Platform Reliability", progress: 85, color: "bg-emerald-500", text: "text-emerald-300", bgLight: "bg-emerald-500/10" },
-    { title: "Launch Next-Gen Capabilities", progress: 40, color: "bg-fuchsia-500", text: "text-fuchsia-300", bgLight: "bg-fuchsia-500/10" },
-    { title: "Expand Market Reach", progress: 60, color: "bg-sky-500", text: "text-sky-300", bgLight: "bg-sky-500/10" },
-  ];
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const projs = await projectsApi.getAll();
+        setProjects(projs);
+        const smap: Record<string, ApiSprint[]> = {};
+        for (const p of projs) smap[p.id] = await sprintsApi.getByProject(p.id);
+        setSprintsMap(smap);
+        const stats = await dashboardApi.getStats();
+        setGlobalVelocity(stats.movingAvg || 0);
+      } catch (err) {
+        console.error("Failed to load executive data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <ExecutiveShell>
+        <div className="h-full flex items-center justify-center">
+          <Loader2 className="size-8 text-amber-400 animate-spin" />
+        </div>
+      </ExecutiveShell>
+    );
+  }
+
+  const roadmapItems: any[] = [];
+  const milestones: any[] = [];
+  const projectHealthList: any[] = [];
+  let onTrackCount = 0;
+
+  projects.forEach((p, index) => {
+    const projectSprints = sprintsMap[p.id] || [];
+    const activeSprint = projectSprints.find(s => s.isActive) || projectSprints[0];
+    const theme = THEME_COLORS[index % THEME_COLORS.length];
+    let healthStatus = "On Track";
+    let progress = 0;
+    let deadline = "TBD";
+    let isAtRisk = false;
+
+    if (activeSprint) {
+      const deliverables = activeSprint.deliverables || [];
+      const done = deliverables.filter(d => d.done).length;
+      progress = deliverables.length > 0 ? Math.round((done / deliverables.length) * 100) : 0;
+      const startDate = new Date(activeSprint.startDate);
+      const endDate = new Date(startDate.getTime() + activeSprint.durationWeeks * 7 * 24 * 60 * 60 * 1000);
+      deadline = endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const now = new Date();
+      const timeProgress = Math.max(0, Math.min(100, ((now.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100));
+      if (timeProgress > progress + 20) { healthStatus = "Delayed"; isAtRisk = true; }
+      else if (timeProgress > progress + 10) { healthStatus = "At Risk"; isAtRisk = true; }
+      roadmapItems.push({ id: p.id, sector: p.name, feature: activeSprint.name, status: healthStatus, progress, deadline, theme });
+      milestones.push({ id: p.id, name: `${p.name} — ${activeSprint.name}`, date: deadline, status: progress === 100 ? "Completed" : healthStatus, isAtRisk });
+    }
+    if (healthStatus === "On Track") onTrackCount++;
+    projectHealthList.push({ id: p.id, name: p.name, status: healthStatus });
+  });
+
+  const allOkay = projects.length > 0 && onTrackCount === projects.length;
+  let totalDeliverables = 0, completedDeliverables = 0;
+  Object.values(sprintsMap).flat().forEach(s => {
+    (s.deliverables || []).forEach(d => { totalDeliverables++; if (d.done) completedDeliverables++; });
+  });
+  const milestoneCompletionRate = totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0;
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-200 font-sans selection:bg-fuchsia-500/30">
-      {/* Top Navbar specifically for this standalone page */}
-      <header className="h-14 border-b border-slate-900/80 bg-slate-950 flex items-center justify-between px-6 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="size-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/20">
-            <Crown className="size-4 text-white" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-slate-100">Queen PM Enterprise</span>
-        </div>
-        <button 
-          onClick={handleSignOut}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors"
-        >
-          <LogOut className="size-3.5" />
-          Sign Out
-        </button>
-      </header>
-
-      <div className="max-w-[1400px] mx-auto px-8 py-10 space-y-8">
-        {/* Header */}
-        <div className="flex items-end justify-between gap-6">
+    <ExecutiveShell>
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-[1300px] mx-auto px-8 py-8 space-y-8">
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-              <span className="inline-flex items-center gap-1.5">
-                <Crown className="size-3.5 text-amber-400" /> Executive Portfolio
-              </span>
-              <span className="text-slate-700">/</span>
-              <span className="text-amber-400 font-medium tracking-wide">GLOBAL OVERVIEW</span>
+              <Crown className="size-3.5 text-amber-400" />
+              <span className="text-amber-400 font-medium tracking-wide">PORTFOLIO OVERVIEW</span>
             </div>
-            <h1 className="text-4xl font-semibold text-slate-50 tracking-tight">
-              Global Operations
-            </h1>
-            <p className="text-base text-slate-400 mt-2 max-w-2xl">
-              High-level strategic overview of all organizational projects and value creation.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30 text-sm font-medium shadow-inner shadow-emerald-500/10">
-              <TrendingUp className="size-4" /> ROI Positive
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Top KPI Cards (As per MD) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {/* 1. See if projects are okay */}
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-xl shadow-black/20">
-              <div className="size-10 rounded-xl grid place-items-center ring-1 mb-5 bg-emerald-500/10 ring-emerald-500/30">
-                <CheckCircle2 className="size-5 text-emerald-300" />
-              </div>
-              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Portfolio Health</div>
-              <div className="text-3xl font-semibold text-slate-50 mt-2 tabular-nums">12 <span className="text-lg text-slate-500">/ 12</span></div>
-              <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-                <ArrowUpRight className="size-3.5 text-emerald-400" /> All projects are okay
-              </div>
-            </div>
-
-            {/* 2. Watch how fast people work */}
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-xl shadow-black/20">
-              <div className="size-10 rounded-xl grid place-items-center ring-1 mb-5 bg-fuchsia-500/10 ring-fuchsia-500/30">
-                <Activity className="size-5 text-fuchsia-300" />
-              </div>
-              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Global Velocity</div>
-              <div className="text-3xl font-semibold text-slate-50 mt-2 tabular-nums">{movingAvgVelocity} pts</div>
-              <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-                <TrendingUp className="size-3.5 text-fuchsia-400" /> +15% across all teams
-              </div>
-            </div>
-
-            {/* 3. Check final project launch dates */}
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-xl shadow-black/20">
-              <div className="size-10 rounded-xl grid place-items-center ring-1 mb-5 bg-sky-500/10 ring-sky-500/30">
-                <Calendar className="size-5 text-sky-300" />
-              </div>
-              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Next Major Launch</div>
-              <div className="text-3xl font-semibold text-slate-50 mt-2 tabular-nums">{launchDate}</div>
-              <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-                <ArrowUpRight className="size-3.5 text-emerald-400" /> Core Platform Update
-              </div>
-            </div>
-
-            {/* 4. See overall business value created */}
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-xl shadow-black/20">
-              <div className="size-10 rounded-xl grid place-items-center ring-1 mb-5 bg-amber-500/10 ring-amber-500/30">
-                <DollarSign className="size-5 text-amber-300" />
-              </div>
-              <div className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Value Created (YTD)</div>
-              <div className="text-3xl font-semibold text-slate-50 mt-2 tabular-nums">$2.4M</div>
-              <div className="text-xs text-slate-500 mt-2">Est. ARR impact</div>
-            </div>
+            <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Organizational Pulse</h1>
+            <p className="text-sm text-slate-400 mt-1">Real-time health check from live sprint deliverables.</p>
           </div>
 
-          {/* Overall Business Value Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-            <div className="lg:col-span-2 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-xl shadow-black/20">
-              <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2.5 mb-6">
-                <Layers className="size-5 text-amber-400" /> Strategic OKRs Across Portfolio
-              </h3>
-              <div className="space-y-5">
-                {okrsAchieved.map((okr, i) => (
-                  <div key={i} className="p-5 rounded-xl bg-slate-950/40 border border-slate-800/60 shadow-inner">
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="text-sm font-medium text-slate-200">{okr.title}</h4>
-                      <span className={`px-2.5 py-1 rounded ${okr.bgLight} ${okr.text} text-[11px] font-bold tracking-wide uppercase`}>
-                        {okr.progress}% Achieved
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
+                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-5">
+                  <Activity className="size-4 text-emerald-400" /> Macro Project Health
+                </h3>
+                <div className="flex items-center gap-3 mb-5 p-4 rounded-xl bg-slate-950/60 border border-slate-800/40">
+                  <div className={`size-10 rounded-full grid place-items-center ${allOkay ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
+                    {allOkay ? <CheckCircle2 className="size-5" /> : <AlertTriangle className="size-5" />}
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-slate-100">{onTrackCount} <span className="text-sm font-normal text-slate-500">/ {projects.length} On Track</span></div>
+                    <div className="text-xs text-slate-400">{allOkay ? "All projects healthy" : "Some need attention"}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {projectHealthList.map((ph, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleProjectClick(ph.id)}
+                      className="flex justify-between items-center p-3 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:bg-slate-900/60 hover:border-slate-700 transition-all cursor-pointer group/item"
+                    >
+                      <span className="text-sm text-slate-300 font-medium group-hover/item:text-slate-100 flex items-center gap-1.5 transition-colors">
+                        {ph.name}
+                        <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
+                      </span>
+                      <span className={`flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded ${
+                        ph.status === "On Track" ? "text-emerald-400 bg-emerald-500/10" :
+                        ph.status === "At Risk" ? "text-amber-400 bg-amber-500/10" :
+                        "text-rose-400 bg-rose-500/10"
+                      }`}>
+                        {ph.status === "On Track" && <CheckCircle2 className="size-3" />}
+                        {ph.status === "At Risk" && <AlertTriangle className="size-3" />}
+                        {ph.status === "Delayed" && <AlertCircle className="size-3" />}
+                        {ph.status}
                       </span>
                     </div>
-                    <div className="h-2.5 rounded-full bg-slate-800/80 overflow-hidden shadow-inner">
-                      <div className={`h-full ${okr.color} transition-all duration-1000 ease-out`} style={{ width: `${okr.progress}%` }} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
+                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-5">
+                  <TrendingUp className="size-4 text-fuchsia-400" /> Velocity & Efficiency
+                </h3>
+                <div className="mb-5">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold">Shipping Speed</span>
+                    <span className="text-2xl font-bold text-slate-50">{globalVelocity}<span className="text-sm font-normal text-slate-500"> pts/wk</span></span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                    <div className="h-full bg-fuchsia-500 transition-all" style={{ width: `${Math.min(100, (globalVelocity / 100) * 100)}%` }} />
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-slate-800/60 space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-slate-300">Milestone Completion</span>
+                      <span className="text-emerald-400 font-bold">{milestoneCompletionRate}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
+                      <div className="h-full bg-emerald-500" style={{ width: `${milestoneCompletionRate}%` }} />
                     </div>
                   </div>
-                ))}
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Total Deliverables</span>
+                    <span className="font-bold text-slate-300">{totalDeliverables}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Completed</span>
+                    <span className="font-bold text-emerald-400">{completedDeliverables}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Aggregated Project Statuses */}
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-xl shadow-black/20">
-              <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2.5 mb-6">
-                <Activity className="size-5 text-emerald-400" /> Active Project Status
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:bg-slate-900/60 transition-colors cursor-default">
-                  <span className="text-sm text-slate-300 font-medium">Queen PM Core</span>
-                  <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded shadow-inner">On Track</span>
+            <div className="xl:col-span-2 space-y-6">
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
+                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-6">
+                  <Briefcase className="size-4 text-sky-400" /> Active Sprints (Live Roadmap)
+                </h3>
+                <div className="space-y-4">
+                  {roadmapItems.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleProjectClick(item.id)}
+                      className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:border-slate-600 hover:bg-slate-900/40 transition-all cursor-pointer group/item"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${item.theme.text} flex items-center gap-1.5`}>
+                            {item.sector}
+                            <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
+                          </span>
+                          <h4 className="text-sm font-semibold text-slate-200 mt-0.5">{item.feature}</h4>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] text-slate-500">Deadline</div>
+                          <div className="text-xs font-mono text-slate-300">{item.deadline}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                          <div className={`h-full ${item.theme.bg} transition-all duration-1000`} style={{ width: `${item.progress}%` }} />
+                        </div>
+                        <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                          item.status === "On Track" ? "text-emerald-400 bg-emerald-500/10" :
+                          item.status === "At Risk" ? "text-amber-400 bg-amber-500/10" :
+                          "text-rose-400 bg-rose-500/10"
+                        }`}>{item.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {roadmapItems.length === 0 && (
+                    <div className="text-sm text-slate-500 text-center py-8">No active sprints found.</div>
+                  )}
                 </div>
-                <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:bg-slate-900/60 transition-colors cursor-default">
-                  <span className="text-sm text-slate-300 font-medium">Mobile App V2</span>
-                  <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded shadow-inner">On Track</span>
-                </div>
-                <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:bg-slate-900/60 transition-colors cursor-default">
-                  <span className="text-sm text-slate-300 font-medium">Data Analytics API</span>
-                  <span className="text-[11px] font-bold tracking-wider uppercase text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded shadow-inner">At Risk</span>
-                </div>
-                <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:bg-slate-900/60 transition-colors cursor-default">
-                  <span className="text-sm text-slate-300 font-medium">Legacy Migration</span>
-                  <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded shadow-inner">On Track</span>
-                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
+                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-5">
+                  <Calendar className="size-4 text-amber-400" /> Deadlines vs. Delivery Status
+                </h3>
+                <table className="w-full text-sm text-left">
+                  <thead className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-800/60">
+                    <tr>
+                      <th className="pb-3 font-semibold">Sprint / Milestone</th>
+                      <th className="pb-3 font-semibold text-right">Target</th>
+                      <th className="pb-3 font-semibold text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/40">
+                    {milestones.map((m, i) => (
+                      <tr
+                        key={i}
+                        onClick={() => handleProjectClick(m.id)}
+                        className="group hover:bg-slate-900/30 transition-colors cursor-pointer border-b border-slate-800/40 last:border-b-0"
+                      >
+                        <td className="py-3 text-slate-300 font-medium">
+                          <div className="flex items-center gap-2">
+                            <ChevronRight className="size-3 text-slate-600 group-hover:text-amber-400 transition-colors shrink-0" />
+                            <span className="truncate max-w-[280px]">{m.name}</span>
+                            <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          </div>
+                        </td>
+                        <td className="py-3 text-right font-mono text-slate-400 text-xs">{m.date}</td>
+                        <td className="py-3 text-right">
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase px-2 py-0.5 rounded ${
+                            m.isAtRisk || m.status === "Delayed" || m.status === "At Risk" ? "text-amber-400 bg-amber-500/10" :
+                            m.status === "Completed" ? "text-slate-400 bg-slate-800/50" :
+                            "text-emerald-400 bg-emerald-500/10"
+                          }`}>
+                            {(m.isAtRisk || m.status === "Delayed" || m.status === "At Risk") && <AlertTriangle className="size-3" />}
+                            {m.status === "Completed" && <CheckCircle2 className="size-3" />}
+                            {!m.isAtRisk && m.status !== "Completed" && m.status !== "Delayed" && m.status !== "At Risk" && <Clock className="size-3" />}
+                            {m.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ExecutiveShell>
   );
 }
