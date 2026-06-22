@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
-  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2,
+  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2, PieChart
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
@@ -23,12 +23,13 @@ function SprintIcon({ className }: { className?: string }) {
 
 // ── Nav definition (Channels handled separately as accordion) ──
 const TOP_NAV: {
-  to: "/" | "/sprint" | "/board" | "/tasks";
+  to: "/" | "/stakeholder" | "/sprint" | "/board" | "/tasks";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/stakeholder", label: "Stakeholder", icon: PieChart },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
   { to: "/sprint", label: "Sprint", icon: SprintIcon },
   { to: "/board", label: "Board", icon: KanbanSquare },
