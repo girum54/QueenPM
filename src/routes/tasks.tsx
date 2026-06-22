@@ -21,20 +21,7 @@ export const Route = createFileRoute("/tasks")({
   component: TasksPage,
 });
 
-const SPRINT_GROUPS = [
-  { id: "sprint-q3-4", label: "Sprint Q3 - Iteration 4", active: true },
-  { id: "sprint-q3-3", label: "Sprint Q3 - Iteration 3", active: false },
-  { id: "sprint-q3-2", label: "Sprint Q3 - Iteration 2", active: false },
-  { id: "backlog", label: "Backlog", active: false },
-];
 
-const TASK_SPRINT_MAP: Record<string, string> = {
-  t1: "sprint-q3-4", t2: "sprint-q3-4", t4: "sprint-q3-4",
-  t5: "sprint-q3-4", t10: "sprint-q3-4", t12: "sprint-q3-4",
-  t3: "sprint-q3-3", t9: "sprint-q3-3",
-  t6: "sprint-q3-3", t7: "sprint-q3-2", t8: "sprint-q3-2",
-  t11: "sprint-q3-2",
-};
 
 type GroupBy = "sprint" | "status" | "priority" | "none";
 type SortBy = "created" | "priority" | "title";
@@ -131,13 +118,21 @@ function TasksPage() {
       return [{ id: "all", label: "All Tasks", items: filteredRoots }];
     }
     if (groupBy === "sprint") {
-      return SPRINT_GROUPS.map((sg) => ({
-        id: sg.id,
-        label: sg.label,
-        badge: sg.active ? "Active" : undefined,
-        badgeColor: "text-emerald-305 bg-emerald-500/10 ring-emerald-500/30",
-        items: filteredRoots.filter((t) => (TASK_SPRINT_MAP[t.id] ?? "backlog") === sg.id),
-      })).filter((g) => g.items.length > 0);
+      const sprintGroups = sprints.map((s) => ({
+        id: s.id,
+        label: s.name,
+        badge: s.isActive ? "Active" : undefined,
+        badgeColor: s.isActive ? "text-emerald-305 bg-emerald-500/10 ring-emerald-500/30" : "",
+        items: filteredRoots.filter((t) => t.sprintId === s.id),
+      }));
+      sprintGroups.push({
+        id: "backlog",
+        label: "Backlog",
+        badge: undefined,
+        badgeColor: "",
+        items: filteredRoots.filter((t) => !t.sprintId),
+      });
+      return sprintGroups.filter((g) => g.items.length > 0);
     }
     if (groupBy === "status") {
       return (["new", "active", "staging", "deployed"] as ColumnId[]).map((col) => {
@@ -372,6 +367,7 @@ function TasksPage() {
                             task={task}
                             subtasks={subtasksByParent[task.id] || []}
                             users={users}
+                            sprints={sprints}
                             onAddSubtask={() => openSubtaskModal(task.id)}
                           />
                         ))}
@@ -475,16 +471,17 @@ interface RowProps {
   task: Task;
   subtasks: Task[];
   users: any[];
+  sprints: any[];
   onAddSubtask: () => void;
 }
 
-function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) {
+function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: RowProps) {
   const [expanded, setExpanded] = useState(true);
   const [quickTitle, setQuickTitle] = useState("");
   const [isQuickOpen, setIsQuickOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   
-  const { addTask, activeProjectId } = useStore();
+  const { addTask, updateTask, activeProjectId } = useStore();
   const assignee = userById(task.assigneeId, users);
   const colMeta = COLUMN_META[task.column];
   const CreatedIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
@@ -594,6 +591,16 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
 
         {/* Add Subtask actions */}
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+          <select 
+            value={task.sprintId || ""}
+            onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
+            className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
+          >
+            <option value="">Backlog</option>
+            {sprints.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
           <button
             onClick={() => setIsQuickOpen(!isQuickOpen)}
             className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
@@ -676,6 +683,20 @@ function TaskHierarchicalRow({ task, subtasks, users, onAddSubtask }: RowProps) 
                   ) : (
                     <span className="text-[10px] text-slate-650">—</span>
                   )}
+                </div>
+
+                {/* Add to sprint action */}
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 ml-2">
+                  <select 
+                    value={sub.sprintId || ""}
+                    onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
+                    className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
+                  >
+                    <option value="">Backlog</option>
+                    {sprints.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             );
