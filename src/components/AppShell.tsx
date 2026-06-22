@@ -27,9 +27,10 @@ const TOP_NAV: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  reqStakeholder?: boolean;
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/stakeholder", label: "Stakeholder", icon: PieChart },
+  { to: "/stakeholder", label: "Stakeholder", icon: PieChart, reqStakeholder: true },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
   { to: "/sprint", label: "Sprint", icon: SprintIcon },
   { to: "/board", label: "Board", icon: KanbanSquare },
@@ -279,6 +280,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className={`flex-1 overflow-y-auto space-y-px ${collapsed ? "px-1.5 pt-1" : "px-2 pt-1"}`}>
           {/* Top nav items */}
           {TOP_NAV.map((n) => {
+            if (n.reqStakeholder && !user?.email?.toLowerCase().includes("stakeholder") && !user?.username?.toLowerCase().includes("stakeholder")) {
+              return null;
+            }
             const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
             const Icon = n.icon;
             return (
