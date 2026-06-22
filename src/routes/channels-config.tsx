@@ -176,17 +176,20 @@ function ChannelsConfigPage() {
                     {/* AI Monitor toggle */}
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => updateChannel(ch.id, { aiActive: !ch.aiActive })}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition ${
-                            ch.aiActive
-                              ? "bg-fuchsia-500/10 text-fuchsia-300 ring-1 ring-fuchsia-500/30"
-                              : "bg-slate-900 text-slate-500 hover:text-slate-350"
-                          }`}
-                        >
-                          <Bot className="size-3" />
-                          <span>{ch.aiActive ? "AI Active" : "AI Inactive"}</span>
-                        </button>
+                        <div className="flex items-center gap-2 pr-1">
+                          <div className={`flex items-center gap-1 text-[10px] font-semibold ${ch.aiActive ? "text-fuchsia-300" : "text-slate-500"}`}>
+                            <Bot className="size-3" />
+                            <span>{ch.aiActive ? "AI Active" : "AI Inactive"}</span>
+                          </div>
+                          <button
+                            onClick={() => updateChannel(ch.id, { aiActive: !ch.aiActive })}
+                            className={`w-8 h-4.5 rounded-full p-0.5 transition ${
+                              ch.aiActive ? "bg-fuchsia-500" : "bg-slate-800"
+                            }`}
+                          >
+                            <div className={`size-3.5 rounded-full bg-white transition-transform ${ch.aiActive ? "translate-x-3.5" : ""}`} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Action buttons */}
