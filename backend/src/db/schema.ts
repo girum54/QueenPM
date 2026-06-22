@@ -6,6 +6,7 @@ import { relations } from "drizzle-orm";
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high", "urgent"]);
 export const columnEnum = pgEnum("column", ["new", "active", "staging", "deployed"]);
 export const createdByEnum = pgEnum("created_by", ["ui", "ai", "slash"]);
+export const roleEnum = pgEnum("role", ["member", "manager", "admin", "department_head"]);
 
 // ─── Better Auth Tables ───────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ export const user = pgTable("user", {
   username: text("username"), // e.g. @mira
   color: text("color"),       // avatar background class
   isAi: boolean("is_ai").default(false),
+  role: roleEnum("role").default("member").notNull(),
 });
 
 export const session = pgTable("session", {
@@ -77,7 +79,7 @@ export const projects = pgTable("projects", {
 export const channels = pgTable("channels", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  projectId: uuid("project_id").references(() => projects.id),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
   aiActive: boolean("ai_active").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -95,7 +97,7 @@ export const sprints = pgTable("sprints", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),         // e.g. "Sprint Q3 - Payments Overhaul"
   goal: text("goal"),                   // free-text sprint objective / context
   style: text("style"),                 // user-defined methodology label, no enum
@@ -137,7 +139,7 @@ export const boards = pgTable("boards", {
     .references(() => sprints.id, { onDelete: "cascade" }),
   projectId: uuid("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),         // e.g. "Sprint Board — Q3 Iter 4"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -157,9 +159,9 @@ export const tasks = pgTable("tasks", {
   column: columnEnum("column").default("new").notNull(),
   createdBy: createdByEnum("created_by").default("ui").notNull(),
   originMessageId: uuid("origin_message_id"),
-  originChannelId: uuid("origin_channel_id").references(() => channels.id),
-  projectId: uuid("project_id").references(() => projects.id),
-  sprintId: uuid("sprint_id").references(() => sprints.id), // required when on a board
+  originChannelId: uuid("origin_channel_id").references(() => channels.id, { onDelete: "set null" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  sprintId: uuid("sprint_id").references(() => sprints.id, { onDelete: "set null" }), // required when on a board
   parentId: uuid("parent_id"),          // for subtasks
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
@@ -174,11 +176,11 @@ export const messages = pgTable("messages", {
     .references(() => user.id),
   channelId: uuid("channel_id")
     .notNull()
-    .references(() => channels.id),
+    .references(() => channels.id, { onDelete: "cascade" }),
   text: text("text"),
   pinned: boolean("pinned").default(false).notNull(),
   parentId: uuid("parent_id"),          // for threads
-  taskRef: uuid("task_ref").references(() => tasks.id),
+  taskRef: uuid("task_ref").references(() => tasks.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
