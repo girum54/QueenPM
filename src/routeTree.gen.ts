@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as StakeholderRouteImport } from './routes/stakeholder'
 import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
@@ -22,6 +23,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StakeholderRoute = StakeholderRouteImport.update({
+  id: '/stakeholder',
+  path: '/stakeholder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SprintConfigRoute = SprintConfigRouteImport.update({
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
+  '/stakeholder': typeof StakeholderRoute
   '/tasks': typeof TasksRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
+  '/stakeholder': typeof StakeholderRoute
   '/tasks': typeof TasksRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
+  '/stakeholder': typeof StakeholderRoute
   '/tasks': typeof TasksRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/sprint'
     | '/sprint-config'
+    | '/stakeholder'
     | '/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/sprint'
     | '/sprint-config'
+    | '/stakeholder'
     | '/tasks'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/sprint'
     | '/sprint-config'
+    | '/stakeholder'
     | '/tasks'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   SprintRoute: typeof SprintRoute
   SprintConfigRoute: typeof SprintConfigRoute
+  StakeholderRoute: typeof StakeholderRoute
   TasksRoute: typeof TasksRoute
 }
 
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stakeholder': {
+      id: '/stakeholder'
+      path: '/stakeholder'
+      fullPath: '/stakeholder'
+      preLoaderRoute: typeof StakeholderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sprint-config': {
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   SprintRoute: SprintRoute,
   SprintConfigRoute: SprintConfigRoute,
+  StakeholderRoute: StakeholderRoute,
   TasksRoute: TasksRoute,
 }
 export const routeTree = rootRouteImport
