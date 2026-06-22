@@ -26,11 +26,16 @@ export const auth = betterAuth({
         type: "string",
         required: false,
       },
-      isAi: {
+            isAi: {
         type: "boolean",
         required: false,
         defaultValue: false,
         input: false,
+      },
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "developer",
       },
     },
   },
