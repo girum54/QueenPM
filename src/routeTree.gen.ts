@@ -10,11 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TasksRouteImport } from './routes/tasks'
-import { Route as StakeholderRouteImport } from './routes/stakeholder'
 import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ExecutiveRouteImport } from './routes/executive'
 import { Route as ChannelsConfigRouteImport } from './routes/channels-config'
 import { Route as ChannelsRouteImport } from './routes/channels'
 import { Route as BoardRouteImport } from './routes/board'
@@ -23,11 +23,6 @@ import { Route as IndexRouteImport } from './routes/index'
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StakeholderRoute = StakeholderRouteImport.update({
-  id: '/stakeholder',
-  path: '/stakeholder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SprintConfigRoute = SprintConfigRouteImport.update({
@@ -48,6 +43,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutiveRoute = ExecutiveRouteImport.update({
+  id: '/executive',
+  path: '/executive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsConfigRoute = ChannelsConfigRouteImport.update({
@@ -76,11 +76,11 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/executive': typeof ExecutiveRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
-  '/stakeholder': typeof StakeholderRoute
   '/tasks': typeof TasksRoute
 }
 export interface FileRoutesByTo {
@@ -88,11 +88,11 @@ export interface FileRoutesByTo {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/executive': typeof ExecutiveRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
-  '/stakeholder': typeof StakeholderRoute
   '/tasks': typeof TasksRoute
 }
 export interface FileRoutesById {
@@ -101,11 +101,11 @@ export interface FileRoutesById {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/executive': typeof ExecutiveRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
-  '/stakeholder': typeof StakeholderRoute
   '/tasks': typeof TasksRoute
 }
 export interface FileRouteTypes {
@@ -115,11 +115,11 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/executive'
     | '/login'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
-    | '/stakeholder'
     | '/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,11 +127,11 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/executive'
     | '/login'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
-    | '/stakeholder'
     | '/tasks'
   id:
     | '__root__'
@@ -139,11 +139,11 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/executive'
     | '/login'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
-    | '/stakeholder'
     | '/tasks'
   fileRoutesById: FileRoutesById
 }
@@ -152,11 +152,11 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRoute
   ChannelsRoute: typeof ChannelsRoute
   ChannelsConfigRoute: typeof ChannelsConfigRoute
+  ExecutiveRoute: typeof ExecutiveRoute
   LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   SprintRoute: typeof SprintRoute
   SprintConfigRoute: typeof SprintConfigRoute
-  StakeholderRoute: typeof StakeholderRoute
   TasksRoute: typeof TasksRoute
 }
 
@@ -167,13 +167,6 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stakeholder': {
-      id: '/stakeholder'
-      path: '/stakeholder'
-      fullPath: '/stakeholder'
-      preLoaderRoute: typeof StakeholderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sprint-config': {
@@ -202,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executive': {
+      id: '/executive'
+      path: '/executive'
+      fullPath: '/executive'
+      preLoaderRoute: typeof ExecutiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channels-config': {
@@ -240,11 +240,11 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRoute,
   ChannelsRoute: ChannelsRoute,
   ChannelsConfigRoute: ChannelsConfigRoute,
+  ExecutiveRoute: ExecutiveRoute,
   LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   SprintRoute: SprintRoute,
   SprintConfigRoute: SprintConfigRoute,
-  StakeholderRoute: StakeholderRoute,
   TasksRoute: TasksRoute,
 }
 export const routeTree = rootRouteImport

@@ -30,7 +30,6 @@ const TOP_NAV: {
   reqStakeholder?: boolean;
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, reqStakeholder: false },
-  { to: "/stakeholder", label: "Dashboard", icon: PieChart, reqStakeholder: true },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
   { to: "/sprint", label: "Sprint", icon: SprintIcon, reqStakeholder: false },
   { to: "/board", label: "Board", icon: KanbanSquare },
