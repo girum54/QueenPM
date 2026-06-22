@@ -235,12 +235,14 @@ function TasksPage() {
                 {stats.total} total items (including nested subtasks) · {stats.done} completed
               </p>
             </div>
-            <button
-              onClick={() => { setNewParentId(null); setIsNewTaskOpen(true); }}
-              className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center gap-2 transition"
-            >
-              <Plus className="size-4" /> Create Task
-            </button>
+            {!isStakeholder && (
+              <button
+                onClick={() => { setNewParentId(null); setIsNewTaskOpen(true); }}
+                className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center gap-2 transition"
+              >
+                <Plus className="size-4" /> Create Task
+              </button>
+            )}
           </div>
 
           {/* Stat chips */}
@@ -372,6 +374,7 @@ function TasksPage() {
                             users={users}
                             sprints={sprints}
                             onAddSubtask={() => openSubtaskModal(task.id)}
+                            isStakeholder={isStakeholder}
                           />
                         ))}
                       </div>
@@ -476,9 +479,10 @@ interface RowProps {
   users: any[];
   sprints: any[];
   onAddSubtask: () => void;
+  isStakeholder: boolean;
 }
 
-function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: RowProps) {
+function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isStakeholder }: RowProps) {
   const [expanded, setExpanded] = useState(true);
   const [quickTitle, setQuickTitle] = useState("");
   const [isQuickOpen, setIsQuickOpen] = useState(false);
@@ -593,24 +597,26 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: R
         </div>
 
         {/* Add Subtask actions */}
-        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
-          <select 
-            value={task.sprintId || ""}
-            onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
-            className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
-          >
-            <option value="">Backlog</option>
-            {sprints.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => setIsQuickOpen(!isQuickOpen)}
-            className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
-          >
-            + Subtask
-          </button>
-        </div>
+        {!isStakeholder && (
+          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+            <select 
+              value={task.sprintId || ""}
+              onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
+              className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
+            >
+              <option value="">Backlog</option>
+              {sprints.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setIsQuickOpen(!isQuickOpen)}
+              className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
+            >
+              + Subtask
+            </button>
+          </div>
+        )}
 
       </div>
 
@@ -689,18 +695,20 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: R
                 </div>
 
                 {/* Add to sprint action */}
-                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 ml-2">
-                  <select 
-                    value={sub.sprintId || ""}
-                    onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
-                    className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
-                  >
-                    <option value="">Backlog</option>
-                    {sprints.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {!isStakeholder && (
+                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 ml-2">
+                    <select 
+                      value={sub.sprintId || ""}
+                      onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
+                      className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
+                    >
+                      <option value="">Backlog</option>
+                      {sprints.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             );
           })}
