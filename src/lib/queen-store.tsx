@@ -127,7 +127,7 @@ interface StoreShape {
   users: User[];
   activeChannelId: string;
   setActiveChannelId: (id: string) => void;
-  updateTask: (id: string, patch: Partial<Task>) => void;
+  updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
   addTask: (t: Omit<Task, "id"> & { id?: string }) => Promise<Task | null>;
   addMessage: (m: Omit<Message, "id" | "ts"> & { id?: string; ts?: string }) => Promise<Message | null>;
   jumpRequest: JumpRequest | null;
