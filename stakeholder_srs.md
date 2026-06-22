@@ -1,15 +1,22 @@
-# What Top Level Stakeholders Need
+# Top-Level Stakeholders
 
 * See if projects are okay.
-* Make sure logins are safe.
-* Check how money is doing.
-* See if the app works.
 * Watch how fast people work.
+* Check final project launch dates.
+* See overall business value created.
 
-# What Middle Level Stakeholders Want
+# Middle-Level Stakeholders
 
 * Give feedback on next sprints.
-* View tasks on the board.
+* View and comment on tasks.
 * Read updates in chat rooms.
 * Watch the team make progress.
 * Review completed project task lists.
+
+# The Developers
+
+* Write and track technical tasks.
+* Organize work by industry type.
+* Build features without distraction flags.
+* Share code updates very easily.
+* Store setup and system guides.
