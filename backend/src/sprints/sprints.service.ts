@@ -58,7 +58,16 @@ export class SprintsService {
   }
 
   async update(id: string, dto: UpdateSprintDto) {
-    await this.findOne(id); // guard: 404 if not found
+    const sprint = await this.findOne(id); // guard: 404 if not found
+    
+    // If activating this sprint, deactivate all others in the project
+    if (dto.isActive === true) {
+      await this.db
+        .update(schema.sprints)
+        .set({ isActive: false })
+        .where(eq(schema.sprints.projectId, sprint.projectId));
+    }
+
     const [updated] = await this.db
       .update(schema.sprints)
       .set({
