@@ -249,6 +249,7 @@ export interface ApiUser {
   username: string | null;
   color: string | null;
   isAi: boolean | null;
+  role?: string;
 }
 
 export const usersApi = {
