@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+const postgres = require('postgres');
 import * as schema from './schema';
 import { hashPassword } from 'better-auth/crypto';
 
@@ -8,7 +8,7 @@ async function seedStakeholder() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error('DATABASE_URL is not set in .env');
 
-  const client = (postgres as any)(databaseUrl);
+  const client = postgres(databaseUrl);
   const db = drizzle(client, { schema });
 
   console.log('👤 Seeding user: Executive Stakeholder...');
