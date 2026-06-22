@@ -122,7 +122,7 @@ function TasksPage() {
         id: s.id,
         label: s.name,
         badge: s.isActive ? "Active" : undefined,
-        badgeColor: s.isActive ? "text-emerald-305 bg-emerald-500/10 ring-emerald-500/30" : "",
+        badgeColor: s.isActive ? "text-fuchsia-300 bg-fuchsia-500/10 ring-1 ring-fuchsia-500/30" : "",
         items: filteredRoots.filter((t) => t.sprintId === s.id),
       }));
       sprintGroups.push({
@@ -243,10 +243,10 @@ function TasksPage() {
           {/* Stat chips */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Total Project Tasks", value: stats.total, color: "text-slate-200", bg: "bg-slate-805/50" },
-              { label: "Completed", value: stats.done, color: "text-emerald-300", bg: "bg-emerald-500/10 ring-1 ring-emerald-500/20" },
-              { label: "Active Execution", value: stats.active, color: "text-sky-300", bg: "bg-sky-500/10 ring-1 ring-sky-500/20" },
-              { label: "Urgent Incidents", value: stats.urgent, color: "text-rose-300", bg: "bg-rose-500/10 ring-1 ring-rose-500/20" },
+              { label: "Total Project Tasks", value: stats.total, color: "text-slate-200" },
+              { label: "Completed", value: stats.done, color: "text-slate-500" },
+              { label: "Active Execution", value: stats.active, color: "text-slate-300" },
+              { label: "Urgent Incidents", value: stats.urgent, color: "text-fuchsia-400" },
             ].map((s) => (
               <div key={s.label} className={`rounded-xl px-4 py-3 flex items-center gap-3 bg-slate-900/40 border border-slate-900`}>
                 <span className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</span>
@@ -540,11 +540,11 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: R
         {/* Status circle */}
         <div className="shrink-0">
           {task.column === "deployed" ? (
-            <CheckCircle2 className="size-4 text-emerald-400" />
+            <CheckCircle2 className="size-4 text-slate-600" />
           ) : task.column === "active" ? (
-            <AlertCircle className="size-4 text-sky-400" />
+            <AlertCircle className="size-4 text-slate-300" />
           ) : (
-            <Circle className="size-4 text-slate-600" />
+            <Circle className="size-4 text-slate-700" />
           )}
         </div>
 
@@ -645,9 +645,9 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: R
                 {/* Status circle */}
                 <div className="shrink-0 pl-1">
                   {sub.column === "deployed" ? (
-                    <CheckCircle2 className="size-3.5 text-emerald-450" />
+                    <CheckCircle2 className="size-3.5 text-slate-600" />
                   ) : sub.column === "active" ? (
-                    <AlertCircle className="size-3.5 text-sky-405" />
+                    <AlertCircle className="size-3.5 text-slate-300" />
                   ) : (
                     <Circle className="size-3.5 text-slate-700" />
                   )}
