@@ -67,7 +67,6 @@ function ExecutiveDashboardPage() {
   }
 
   const roadmapItems: any[] = [];
-  const milestones: any[] = [];
   const projectHealthList: any[] = [];
   let onTrackCount = 0;
 
@@ -92,7 +91,6 @@ function ExecutiveDashboardPage() {
       if (timeProgress > progress + 20) { healthStatus = "Delayed"; isAtRisk = true; }
       else if (timeProgress > progress + 10) { healthStatus = "At Risk"; isAtRisk = true; }
       roadmapItems.push({ id: p.id, sector: p.name, feature: activeSprint.name, status: healthStatus, progress, deadline, theme });
-      milestones.push({ id: p.id, name: `${p.name} — ${activeSprint.name}`, date: deadline, status: progress === 100 ? "Completed" : healthStatus, isAtRisk });
     }
     if (healthStatus === "On Track") onTrackCount++;
     projectHealthList.push({ id: p.id, name: p.name, status: healthStatus });
@@ -194,92 +192,45 @@ function ExecutiveDashboardPage() {
               </div>
             </div>
 
-            <div className="xl:col-span-2 space-y-6">
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-6">
-                  <Briefcase className="size-4 text-sky-400" /> Active Sprints (Live Roadmap)
-                </h3>
-                <div className="space-y-4">
-                  {roadmapItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => handleProjectClick(item.id)}
-                      className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:border-slate-600 hover:bg-slate-900/40 transition-all cursor-pointer group/item"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider ${item.theme.text} flex items-center gap-1.5`}>
-                            {item.sector}
-                            <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
-                          </span>
-                          <h4 className="text-sm font-semibold text-slate-200 mt-0.5">{item.feature}</h4>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] text-slate-500">Deadline</div>
-                          <div className="text-xs font-mono text-slate-300">{item.deadline}</div>
-                        </div>
+            <div className="xl:col-span-2 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 self-start">
+              <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-6">
+                <Briefcase className="size-4 text-sky-400" /> Active Sprints (Live Roadmap)
+              </h3>
+              <div className="space-y-4">
+                {roadmapItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleProjectClick(item.id)}
+                    className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/60 hover:border-slate-600 hover:bg-slate-900/40 transition-all cursor-pointer group/item"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${item.theme.text} flex items-center gap-1.5`}>
+                          {item.sector}
+                          <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
+                        </span>
+                        <h4 className="text-sm font-semibold text-slate-200 mt-0.5">{item.feature}</h4>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden">
-                          <div className={`h-full ${item.theme.bg} transition-all duration-1000`} style={{ width: `${item.progress}%` }} />
-                        </div>
-                        <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                          item.status === "On Track" ? "text-emerald-400 bg-emerald-500/10" :
-                          item.status === "At Risk" ? "text-amber-400 bg-amber-500/10" :
-                          "text-rose-400 bg-rose-500/10"
-                        }`}>{item.status}</span>
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-500">Deadline</div>
+                        <div className="text-xs font-mono text-slate-300">{item.deadline}</div>
                       </div>
                     </div>
-                  ))}
-                  {roadmapItems.length === 0 && (
-                    <div className="text-sm text-slate-500 text-center py-8">No active sprints found.</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-5">
-                  <Calendar className="size-4 text-amber-400" /> Deadlines vs. Delivery Status
-                </h3>
-                <table className="w-full text-sm text-left">
-                  <thead className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-800/60">
-                    <tr>
-                      <th className="pb-3 font-semibold">Sprint / Milestone</th>
-                      <th className="pb-3 font-semibold text-right">Target</th>
-                      <th className="pb-3 font-semibold text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/40">
-                    {milestones.map((m, i) => (
-                      <tr
-                        key={i}
-                        onClick={() => handleProjectClick(m.id)}
-                        className="group hover:bg-slate-900/30 transition-colors cursor-pointer border-b border-slate-800/40 last:border-b-0"
-                      >
-                        <td className="py-3 text-slate-300 font-medium">
-                          <div className="flex items-center gap-2">
-                            <ChevronRight className="size-3 text-slate-600 group-hover:text-amber-400 transition-colors shrink-0" />
-                            <span className="truncate max-w-[280px]">{m.name}</span>
-                            <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                          </div>
-                        </td>
-                        <td className="py-3 text-right font-mono text-slate-400 text-xs">{m.date}</td>
-                        <td className="py-3 text-right">
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase px-2 py-0.5 rounded ${
-                            m.isAtRisk || m.status === "Delayed" || m.status === "At Risk" ? "text-amber-400 bg-amber-500/10" :
-                            m.status === "Completed" ? "text-slate-400 bg-slate-800/50" :
-                            "text-emerald-400 bg-emerald-500/10"
-                          }`}>
-                            {(m.isAtRisk || m.status === "Delayed" || m.status === "At Risk") && <AlertTriangle className="size-3" />}
-                            {m.status === "Completed" && <CheckCircle2 className="size-3" />}
-                            {!m.isAtRisk && m.status !== "Completed" && m.status !== "Delayed" && m.status !== "At Risk" && <Clock className="size-3" />}
-                            {m.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-2 rounded-full bg-slate-800/80 overflow-hidden">
+                        <div className={`h-full ${item.theme.bg} transition-all duration-1000`} style={{ width: `${item.progress}%` }} />
+                      </div>
+                      <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                        item.status === "On Track" ? "text-emerald-400 bg-emerald-500/10" :
+                        item.status === "At Risk" ? "text-amber-400 bg-amber-500/10" :
+                        "text-rose-400 bg-rose-500/10"
+                      }`}>{item.status}</span>
+                    </div>
+                  </div>
+                ))}
+                {roadmapItems.length === 0 && (
+                  <div className="text-sm text-slate-500 text-center py-8">No active sprints found.</div>
+                )}
               </div>
             </div>
           </div>

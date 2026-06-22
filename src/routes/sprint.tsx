@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore, COLUMN_META } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/sprint")({
   head: () => ({
@@ -34,6 +35,8 @@ interface Sprint {
 
 function SprintPage() {
   const { tasks, activeProjectId } = useStore();
+  const { user } = useAuth();
+  const isStakeholder = user?.role === "stakeholder";
   const [sprint, setSprint] = useState<Sprint | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -98,14 +101,18 @@ function SprintPage() {
           </div>
           <h2 className="text-2xl font-bold text-slate-100">No Active Sprint</h2>
           <p className="text-slate-400 max-w-sm mt-2 text-sm leading-relaxed">
-            There is no active sprint initialized for this project. Start by configuring specifications and deliverables.
+            {isStakeholder
+              ? "There is no active sprint initialized for this project. Sprints can be started by project managers or developers."
+              : "There is no active sprint initialized for this project. Start by configuring specifications and deliverables."}
           </p>
-          <Link
-            to="/sprint-config"
-            className="mt-6 inline-flex items-center gap-2 h-10 px-5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white transition shadow-lg shadow-fuchsia-500/20"
-          >
-            Configure & Start Sprint <ArrowRight className="size-4" />
-          </Link>
+          {!isStakeholder && (
+            <Link
+              to="/sprint-config"
+              className="mt-6 inline-flex items-center gap-2 h-10 px-5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white transition shadow-lg shadow-fuchsia-500/20"
+            >
+              Configure & Start Sprint <ArrowRight className="size-4" />
+            </Link>
+          )}
         </div>
       </AppShell>
     );
@@ -152,12 +159,14 @@ function SprintPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link
-                to="/sprint-config"
-                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition"
-              >
-                <Settings className="size-3.5" /> Configure Model
-              </Link>
+              {!isStakeholder && (
+                <Link
+                  to="/sprint-config"
+                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition"
+                >
+                  <Settings className="size-3.5" /> Configure Model
+                </Link>
+              )}
               <Link
                 to="/board"
                 className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition"

@@ -15,6 +15,13 @@
       "when": 1781769900000,
       "tag": "0001_project_members",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782138872311,
+      "tag": "0002_polite_the_leader",
+      "breakpoints": true
     }
   ]
 }

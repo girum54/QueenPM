@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -75,6 +76,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    if (location.pathname === "/executive.roadmap") {
+      throw redirect({
+        to: "/executive-roadmap",
+      });
+    }
+    if (location.pathname === "/executive.reports") {
+      throw redirect({
+        to: "/executive-reports",
+      });
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

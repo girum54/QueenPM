@@ -12,6 +12,7 @@ export interface AuthUser {
   username: string | null;
   color: string | null;
   isAi: boolean;
+  role: string;
   createdAt: string;
   updatedAt: string;
 }
