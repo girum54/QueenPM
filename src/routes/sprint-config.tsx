@@ -51,6 +51,9 @@ export function SprintConfigPage() {
   const [formDeliverables, setFormDeliverables] = useState<string[]>([]);
   const [newDeliverableText, setNewDeliverableText] = useState("");
 
+  const [editingDeliverableId, setEditingDeliverableId] = useState<string | null>(null);
+  const [editingDeliverableText, setEditingDeliverableText] = useState("");
+
   const computedSprintEnd = getSprintEndDate(formStartDate, formDuration);
 
   useEffect(() => {
@@ -146,6 +149,46 @@ export function SprintConfigPage() {
       });
     } catch (e) {
       console.error("Failed to toggle deliverable:", e);
+    }
+  };
+
+  const handleAddActiveDeliverable = async () => {
+    if (!sprint || !newDeliverableText.trim()) return;
+    try {
+      const added = await sprintsApi.addDeliverable(sprint.id, newDeliverableText.trim());
+      setSprint({
+        ...sprint,
+        deliverables: [...sprint.deliverables, { id: added.id, text: added.text, done: added.done }]
+      });
+      setNewDeliverableText("");
+    } catch (e) {
+      console.error("Failed to add deliverable:", e);
+    }
+  };
+
+  const handleUpdateActiveDeliverableText = async (id: string, newText: string) => {
+    if (!sprint || !newText.trim()) return;
+    try {
+      const updated = await sprintsApi.updateDeliverable(sprint.id, id, { text: newText.trim() });
+      setSprint({
+        ...sprint,
+        deliverables: sprint.deliverables.map(d => d.id === id ? { ...d, text: updated.text } : d)
+      });
+    } catch (e) {
+      console.error("Failed to update deliverable text:", e);
+    }
+  };
+
+  const handleDeleteActiveDeliverable = async (id: string) => {
+    if (!sprint) return;
+    try {
+      await sprintsApi.deleteDeliverable(sprint.id, id);
+      setSprint({
+        ...sprint,
+        deliverables: sprint.deliverables.filter(d => d.id !== id)
+      });
+    } catch (e) {
+      console.error("Failed to delete deliverable:", e);
     }
   };
 
@@ -501,26 +544,83 @@ export function SprintConfigPage() {
 
                   <div className="space-y-3">
                     {sprint.deliverables.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => handleToggleDeliverable(d.id)}
-                        className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition group ${
+                      <div key={d.id} className={`w-full flex items-center gap-3 p-3.5 rounded-xl border transition group ${
                           d.done
                             ? "bg-slate-950/60 border-slate-800/50 text-slate-500"
                             : "bg-slate-950/20 border-slate-850 text-slate-200 hover:border-slate-750 hover:bg-slate-950/30"
-                        }`}
-                      >
-                        <div className={`size-5 rounded-md border flex items-center justify-center transition shrink-0 ${
-                          d.done 
-                            ? "border-fuchsia-500 bg-fuchsia-500 text-white" 
-                            : "border-slate-700 group-hover:border-slate-500 text-transparent"
                         }`}>
+                        <button
+                          onClick={() => handleToggleDeliverable(d.id)}
+                          className={`size-5 rounded-md border flex items-center justify-center transition shrink-0 ${
+                            d.done 
+                              ? "border-fuchsia-500 bg-fuchsia-500 text-white" 
+                              : "border-slate-700 hover:border-slate-500 text-transparent"
+                          }`}
+                        >
                           <Check className="size-3.5 stroke-[3]" />
-                        </div>
-                        <span className={`text-xs font-medium flex-1 ${d.done ? "line-through" : ""}`}>{d.text}</span>
-                        <ChevronRight className="size-4 text-slate-600 group-hover:text-slate-400 transition" />
-                      </button>
+                        </button>
+                        
+                        {editingDeliverableId === d.id ? (
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editingDeliverableText}
+                            onChange={(e) => setEditingDeliverableText(e.target.value)}
+                            onBlur={() => {
+                              handleUpdateActiveDeliverableText(d.id, editingDeliverableText);
+                              setEditingDeliverableId(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleUpdateActiveDeliverableText(d.id, editingDeliverableText);
+                                setEditingDeliverableId(null);
+                              }
+                              if (e.key === "Escape") setEditingDeliverableId(null);
+                            }}
+                            className="flex-1 bg-transparent text-xs font-medium outline-none text-slate-200 placeholder-slate-500 border-b border-fuchsia-500/50 pb-0.5"
+                          />
+                        ) : (
+                          <span
+                            onDoubleClick={() => {
+                              setEditingDeliverableId(d.id);
+                              setEditingDeliverableText(d.text);
+                            }}
+                            className={`text-xs font-medium flex-1 cursor-text ${d.done ? "line-through" : ""}`}
+                            title="Double click to edit"
+                          >
+                            {d.text}
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteActiveDeliverable(d.id)}
+                          className="size-5 opacity-0 group-hover:opacity-100 grid place-items-center text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
                     ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t border-slate-800/60 mt-4">
+                    <input
+                      type="text"
+                      value={newDeliverableText}
+                      onChange={(e) => setNewDeliverableText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddActiveDeliverable();
+                      }}
+                      placeholder="Add new deliverable to active sprint..."
+                      className="flex-1 h-9 rounded-md bg-slate-950/60 border border-slate-800 px-3 text-xs text-slate-100 outline-none focus:border-fuchsia-500 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddActiveDeliverable}
+                      className="size-9 rounded-md bg-slate-800 hover:bg-slate-700 grid place-items-center text-slate-300 shrink-0 transition"
+                    >
+                      <Plus className="size-4" />
+                    </button>
                   </div>
                 </div>
 
