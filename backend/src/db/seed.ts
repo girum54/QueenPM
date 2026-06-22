@@ -25,7 +25,7 @@ async function seed() {
   await db.delete(schema.sprints);
   await db.delete(schema.channels);
   await db.delete(schema.projects);
-  
+
   // Clear auth-related data
   await db.delete(schema.session);
   await db.delete(schema.verification);
@@ -36,14 +36,15 @@ async function seed() {
   console.log('👤 Seeding users...');
   const testPassword = process.env.SEED_PASSWORD;
   const hashedPassword = await hashPassword(testPassword);
-  
+
   await db
     .insert(schema.user)
     .values([
-      { id: 'u1', name: 'Girum Tilahun',    email: 'girum@queenpm.dev',  emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@girum',       color: 'bg-rose-500',    isAi: false },
-      { id: 'u2', name: 'Abenezer Hailu',   email: 'abenezer@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@abenezer',   color: 'bg-amber-500',   isAi: false },
-      { id: 'u3', name: 'Samrawit Amare',   email: 'samrawit@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@samrawit',   color: 'bg-emerald-500', isAi: false },
-      { id: 'uq', name: 'Queen PM',     email: 'queen@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@queen', color: 'bg-gradient-to-br from-fuchsia-500 to-violet-600', isAi: true },
+      { id: 'u1', name: 'Girum Tilahun', email: 'girum@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@girum', color: 'bg-rose-500', isAi: false, role: 'developer' },
+      { id: 'u2', name: 'Abenezer Hailu', email: 'abenezer@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@abenezer', color: 'bg-amber-500', isAi: false, role: 'developer' },
+      { id: 'u3', name: 'Samrawit Amare', email: 'samrawit@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@samrawit', color: 'bg-emerald-500', isAi: false, role: 'developer' },
+      { id: 'u4', name: 'Stakeholder User', email: 'stakeholder@queenpm.com', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@stakeholder', color: 'bg-cyan-500', isAi: false, role: 'stakeholder' },
+      { id: 'uq', name: 'Queen PM', email: 'queen@queenpm.dev', emailVerified: false, createdAt: new Date(), updatedAt: new Date(), username: '@queen', color: 'bg-gradient-to-br from-fuchsia-500 to-violet-600', isAi: true, role: 'developer' },
     ])
     .onConflictDoUpdate({ target: schema.user.id, set: { updatedAt: new Date() } });
 
@@ -52,6 +53,7 @@ async function seed() {
     { id: 'u1', name: 'Girum Tilahun', email: 'girum@queenpm.dev', username: '@girum', color: 'bg-rose-500' },
     { id: 'u2', name: 'Abenezer Hailu', email: 'abenezer@queenpm.dev', username: '@abenezer', color: 'bg-amber-500' },
     { id: 'u3', name: 'Samrawit Amare', email: 'samrawit@queenpm.dev', username: '@samrawit', color: 'bg-emerald-500' },
+    { id: 'u4', name: 'Stakeholder User', email: 'stakeholder@queenpm.com', username: '@stakeholder', color: 'bg-cyan-500' },
   ];
 
   // Create password accounts - Better Auth expects accountId to be email for credential provider
@@ -72,9 +74,9 @@ async function seed() {
   const [projX, projAlpha, projDelta] = await db
     .insert(schema.projects)
     .values([
-      { name: 'Project X',     color: 'from-fuchsia-500 to-violet-600', ownerId: 'u1' },
-      { name: 'Project Alpha', color: 'from-sky-500 to-cyan-600',       ownerId: 'u1' },
-      { name: 'Project Delta', color: 'from-emerald-500 to-teal-600',   ownerId: 'u1' },
+      { name: 'Project X', color: 'from-fuchsia-500 to-violet-600', ownerId: 'u1' },
+      { name: 'Project Alpha', color: 'from-sky-500 to-cyan-600', ownerId: 'u1' },
+      { name: 'Project Delta', color: 'from-emerald-500 to-teal-600', ownerId: 'u1' },
     ])
     .returning();
 
@@ -83,7 +85,7 @@ async function seed() {
   const allProjects = [projX, projAlpha, projDelta];
   const projectMemberValues = [];
   for (const p of allProjects) {
-    for (const uid of ['u1', 'u2', 'u3']) {
+    for (const uid of ['u1', 'u2', 'u3', 'u4']) {
       projectMemberValues.push({ projectId: p.id, userId: uid });
     }
   }
@@ -94,12 +96,12 @@ async function seed() {
   const [chanGeneral, chanEng, chanDesign, chanSprint, chanIncidents, chanWater] = await db
     .insert(schema.channels)
     .values([
-      { name: 'general',      projectId: projX.id, aiActive: false },
-      { name: 'eng-platform', projectId: projX.id, aiActive: true  },
-      { name: 'design-crit',  projectId: projX.id, aiActive: false },
-      { name: 'sprint-q3',    projectId: projX.id, aiActive: true  },
-      { name: 'incidents',    projectId: projX.id, aiActive: true  },
-      { name: 'watercooler',  projectId: projX.id, aiActive: false },
+      { name: 'general', projectId: projX.id, aiActive: false },
+      { name: 'eng-platform', projectId: projX.id, aiActive: true },
+      { name: 'design-crit', projectId: projX.id, aiActive: false },
+      { name: 'sprint-q3', projectId: projX.id, aiActive: true },
+      { name: 'incidents', projectId: projX.id, aiActive: true },
+      { name: 'watercooler', projectId: projX.id, aiActive: false },
     ])
     .returning();
 
@@ -112,8 +114,8 @@ async function seed() {
   // ── 4c. Channel Members ──────────────────────────────────────────────────────
   console.log('👥 Seeding channel members...');
   const allChannels = [chanGeneral, chanEng, chanDesign, chanSprint, chanIncidents, chanWater, chanAlphaGen, chanDeltaGen];
-  const userIds = ['u1', 'u2', 'u3', 'uq'];
-  
+  const userIds = ['u1', 'u2', 'u3', 'u4', 'uq'];
+
   const memberValues = [];
   for (const c of allChannels) {
     for (const uid of userIds) {
@@ -130,8 +132,8 @@ async function seed() {
   const [sprint1] = await db
     .insert(schema.sprints)
     .values([
-      { 
-        projectId: projX.id, 
+      {
+        projectId: projX.id,
         name: 'Sprint Q3 - Iteration 4',
         goal: 'Complete payments overhaul and edge runtime migrations',
         style: 'Agile',
@@ -158,25 +160,25 @@ async function seed() {
   const [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12] = await db
     .insert(schema.tasks)
     .values([
-      { title: 'Fix race condition in checkout webhook',    description: 'Reproduced under concurrent load — needs idempotency key.', assigneeId: 'u2', priority: 'urgent', column: 'active',   createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 4  * DAY) },
-      { title: 'Refactor auth middleware for edge runtime', assigneeId: 'u3', priority: 'high',   column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 3  * DAY) },
-      { title: 'Design system: token migration to OKLCH',  assigneeId: 'u3', priority: 'medium', column: 'staging',  createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 6  * DAY) },
-      { title: 'Q3 launch: payments overhaul',             assigneeId: 'u1', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 9  * DAY) },
-      { title: 'Add Sentry breadcrumbs to ingest pipeline',               priority: 'low',    column: 'new',      createdBy: 'slash', originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 1  * DAY) },
-      { title: 'Onboarding revamp epic',                   assigneeId: 'u3', priority: 'medium', column: 'new',      createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 2  * DAY) },
-      { title: 'Ship rate limiter to prod',                assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 14 * DAY), completedAt: new Date(Date.now() - 2  * DAY) },
-      { title: 'Audit log retention policy',               assigneeId: 'u3', priority: 'medium', column: 'deployed', createdBy: 'ai',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 11 * DAY), completedAt: new Date(Date.now() - 4  * DAY) },
-      { title: 'Postgres pooler upgrade',                  assigneeId: 'u2', priority: 'high',   column: 'staging',  createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 5  * DAY) },
-      { title: 'Triage AI-flagged 500s on /v2/orders',                    priority: 'urgent', column: 'new',      createdBy: 'ai',    originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 6  * 3600000) },
-      { title: 'Migrate billing webhook to v2',            assigneeId: 'u1', priority: 'high',   column: 'deployed', createdBy: 'ai',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 18 * DAY), completedAt: new Date(Date.now() - 7  * DAY) },
-      { title: 'Customer SSO: Okta integration',           assigneeId: 'u3', priority: 'high',   column: 'active',   createdBy: 'ui',    projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 8  * DAY) },
+      { title: 'Fix race condition in checkout webhook', description: 'Reproduced under concurrent load — needs idempotency key.', assigneeId: 'u2', priority: 'urgent', column: 'active', createdBy: 'ai', originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 4 * DAY) },
+      { title: 'Refactor auth middleware for edge runtime', assigneeId: 'u3', priority: 'high', column: 'new', createdBy: 'ai', originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 3 * DAY) },
+      { title: 'Design system: token migration to OKLCH', assigneeId: 'u3', priority: 'medium', column: 'staging', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 6 * DAY) },
+      { title: 'Q3 launch: payments overhaul', assigneeId: 'u1', priority: 'high', column: 'active', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 9 * DAY) },
+      { title: 'Add Sentry breadcrumbs to ingest pipeline', priority: 'low', column: 'new', createdBy: 'slash', originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 1 * DAY) },
+      { title: 'Onboarding revamp epic', assigneeId: 'u3', priority: 'medium', column: 'new', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 2 * DAY) },
+      { title: 'Ship rate limiter to prod', assigneeId: 'u2', priority: 'high', column: 'deployed', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 14 * DAY), completedAt: new Date(Date.now() - 2 * DAY) },
+      { title: 'Audit log retention policy', assigneeId: 'u3', priority: 'medium', column: 'deployed', createdBy: 'ai', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 11 * DAY), completedAt: new Date(Date.now() - 4 * DAY) },
+      { title: 'Postgres pooler upgrade', assigneeId: 'u2', priority: 'high', column: 'staging', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 5 * DAY) },
+      { title: 'Triage AI-flagged 500s on /v2/orders', priority: 'urgent', column: 'new', createdBy: 'ai', originChannelId: chanEng.id, projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 6 * 3600000) },
+      { title: 'Migrate billing webhook to v2', assigneeId: 'u1', priority: 'high', column: 'deployed', createdBy: 'ai', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 18 * DAY), completedAt: new Date(Date.now() - 7 * DAY) },
+      { title: 'Customer SSO: Okta integration', assigneeId: 'u3', priority: 'high', column: 'active', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, createdAt: new Date(Date.now() - 8 * DAY) },
     ])
     .returning();
 
   // Subtasks (reference real parent IDs)
   await db.insert(schema.tasks).values([
-    { title: 'Verify webhook signature validation',    assigneeId: 'u2', priority: 'high',   column: 'deployed', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, parentId: t1.id, createdAt: new Date(Date.now() - 3.5 * DAY) },
-    { title: 'Add unit tests for deduplication cache', assigneeId: 'u1', priority: 'medium', column: 'active',   createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, parentId: t1.id, createdAt: new Date(Date.now() - 3   * DAY) },
+    { title: 'Verify webhook signature validation', assigneeId: 'u2', priority: 'high', column: 'deployed', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, parentId: t1.id, createdAt: new Date(Date.now() - 3.5 * DAY) },
+    { title: 'Add unit tests for deduplication cache', assigneeId: 'u1', priority: 'medium', column: 'active', createdBy: 'ui', projectId: projX.id, sprintId: sprint1.id, parentId: t1.id, createdAt: new Date(Date.now() - 3 * DAY) },
   ]);
 
   // ── 6. Messages ─────────────────────────────────────────────────────────────
@@ -184,13 +186,13 @@ async function seed() {
   const [m1, m2, m3, m4, m5, m6, m7] = await db
     .insert(schema.messages)
     .values([
-      { authorId: 'u1', channelId: chanEng.id,     text: 'morning team — pushing the new ingest worker to staging in ~30', pinned: true,  createdAt: new Date(Date.now() - 5 * 3600000) },
-      { authorId: 'u2', channelId: chanEng.id,     text: 'nice. fyi the checkout webhook is flaky again, saw two 500s overnight',          createdAt: new Date(Date.now() - 4 * 3600000 - 2700000) },
-      { authorId: 'u2', channelId: chanEng.id,     text: 'yeah it\'s the same race we hit last month. I can repro locally',                createdAt: new Date(Date.now() - 4 * 3600000 - 2600000) },
-      { authorId: 'uq', channelId: chanEng.id,     taskRef: t1.id,                                                                          createdAt: new Date(Date.now() - 4 * 3600000 - 2590000) },
-      { authorId: 'u1', channelId: chanEng.id,     text: '@queen we should also get the auth middleware ported to edge before Q3 launch, can you track that', createdAt: new Date(Date.now() - 4 * 3600000 - 2100000) },
-      { authorId: 'uq', channelId: chanEng.id,     taskRef: t2.id,                                                                          createdAt: new Date(Date.now() - 4 * 3600000 - 2090000) },
-      { authorId: 'u3', channelId: chanEng.id,     text: 'design crit at 2, will share the token migration prototype',                      createdAt: new Date(Date.now() - 3 * 3600000) },
+      { authorId: 'u1', channelId: chanEng.id, text: 'morning team — pushing the new ingest worker to staging in ~30', pinned: true, createdAt: new Date(Date.now() - 5 * 3600000) },
+      { authorId: 'u2', channelId: chanEng.id, text: 'nice. fyi the checkout webhook is flaky again, saw two 500s overnight', createdAt: new Date(Date.now() - 4 * 3600000 - 2700000) },
+      { authorId: 'u2', channelId: chanEng.id, text: 'yeah it\'s the same race we hit last month. I can repro locally', createdAt: new Date(Date.now() - 4 * 3600000 - 2600000) },
+      { authorId: 'uq', channelId: chanEng.id, taskRef: t1.id, createdAt: new Date(Date.now() - 4 * 3600000 - 2590000) },
+      { authorId: 'u1', channelId: chanEng.id, text: '@queen we should also get the auth middleware ported to edge before Q3 launch, can you track that', createdAt: new Date(Date.now() - 4 * 3600000 - 2100000) },
+      { authorId: 'uq', channelId: chanEng.id, taskRef: t2.id, createdAt: new Date(Date.now() - 4 * 3600000 - 2090000) },
+      { authorId: 'u3', channelId: chanEng.id, text: 'design crit at 2, will share the token migration prototype', createdAt: new Date(Date.now() - 3 * 3600000) },
     ])
     .returning();
 
@@ -214,6 +216,7 @@ async function seed() {
   console.log(`   Email: girum@queenpm.dev / Password: ${testPassword}`);
   console.log(`   Email: abenezer@queenpm.dev / Password: ${testPassword}`);
   console.log(`   Email: samrawit@queenpm.dev / Password: ${testPassword}`);
+  console.log(`   Email: stakeholder@queenpm.com / Password: ${testPassword}`);
 
   await client.end();
 }
