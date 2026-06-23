@@ -1,14 +1,16 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
-  Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, ListTodo,
+  Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, ListTodo, X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
 import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
   type ColumnId, type Task, userById,
 } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/board")({
   head: () => ({
@@ -26,13 +28,29 @@ const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 const ACTIVE_SPRINT_ID = "d5d16315-fe1f-4c09-ab7b-c1e3d3f9fb0e"; // From seed data
 
 function BoardPage() {
-  const { tasks, updateTask, users, requestJump, activeProjectId, projectTabs } = useStore();
+  const { tasks, updateTask, addTask, users, requestJump, activeProjectId, projectTabs, activeSprintId } = useStore();
+  const { user } = useAuth();
+  const isStakeholder = user?.role === "stakeholder";
   const navigate = useNavigate();
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverCol, setHoverCol] = useState<ColumnId | null>(null);
   const [modalTask, setModalTask] = useState<Task | null>(null);
+  const [quickAddCol, setQuickAddCol] = useState<ColumnId | null>(null);
   const [query, setQuery] = useState("");
+  const [filterPriority, setFilterPriority] = useState<Priority | "all">("all");
+  const [filterAssignee, setFilterAssignee] = useState<string>("all");
   const [isProcessingDrop, setIsProcessingDrop] = useState(false);
+  const [sprints, setSprints] = useState<any[]>([]);
+
+  // Fetch sprints for the modal
+  useEffect(() => {
+    if (!activeProjectId) return;
+    import("@/lib/api/queen.api").then((m) => {
+      m.sprintsApi.getByProject(activeProjectId).then((data) => {
+        setSprints(data);
+      }).catch(console.error);
+    });
+  }, [activeProjectId]);
 
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
@@ -46,9 +64,16 @@ function BoardPage() {
       if (!t.sprintId) return false; // Only show tasks that have a sprint assigned
       // Filter by search query
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
+      // Filter by priority
+      if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+      // Filter by assignee
+      if (filterAssignee !== "all") {
+        if (filterAssignee === "unassigned" && t.assigneeId !== null) return false;
+        if (filterAssignee !== "unassigned" && t.assigneeId !== filterAssignee) return false;
+      }
       return true;
     });
-  }, [tasks, activeProjectId, query]);
+  }, [tasks, activeProjectId, query, filterPriority, filterAssignee]);
   const byCol = useMemo(() => {
     const map: Record<ColumnId, Task[]> = { new: [], active: [], staging: [], deployed: [] };
     filtered.forEach((t) => map[t.column].push(t));
@@ -56,6 +81,7 @@ function BoardPage() {
   }, [filtered]);
 
   const handleDrop = async (col: ColumnId) => {
+    if (isStakeholder) return;
     if (dragId) {
       setIsProcessingDrop(true);
       await updateTask(dragId, { column: col });
@@ -63,6 +89,29 @@ function BoardPage() {
     }
     setDragId(null);
     setHoverCol(null);
+  };
+
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      const task: Task = {
+        id: `t_${Date.now()}`,
+        title: taskData.title,
+        priority: taskData.priority,
+        column: taskData.column,
+        createdBy: "ui",
+        assigneeId: taskData.assigneeId || null,
+        originMessageId: null,
+        originChannelId: null,
+        sprintId: taskData.sprintId,
+        createdAt: Date.now(),
+        projectId: activeProjectId,
+        parentId: taskData.parentId || undefined,
+      };
+      await addTask(task);
+      setQuickAddCol(null);
+    } catch (error) {
+      console.error("Failed to create task on board:", error);
+    }
   };
 
   const handleOriginJump = (t: Task) => {
@@ -90,19 +139,43 @@ function BoardPage() {
           </div>
           <div className="sm:ml-auto flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-slate-800/50 border border-slate-800 text-xs text-slate-300 flex-1 sm:flex-initial sm:w-48">
-              <Search className="size-3.5 text-slate-505" />
+              <Search className="size-3.5 text-slate-505 shrink-0" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Filter tasks…"
                 className="bg-transparent outline-none flex-1 placeholder:text-slate-505 min-w-0"
               />
+              {query && (
+                <button onClick={() => setQuery("")} className="shrink-0"><X className="size-3 text-slate-500 hover:text-slate-300" /></button>
+              )}
             </div>
-            <button className="h-8 px-2.5 rounded-md text-xs text-slate-300 border border-slate-800 hover:bg-slate-800/60 inline-flex items-center gap-1.5 transition">
-              <Filter className="size-3.5" /> Filter
-            </button>
+            {/* Priority filter */}
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value as Priority | "all")}
+              className="h-8 px-2.5 rounded-md bg-slate-800 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer hover:bg-slate-700 transition"
+            >
+              <option value="all">All Priorities</option>
+              {(["urgent", "high", "medium", "low"] as Priority[]).map((p) => (
+                <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+              ))}
+            </select>
+
+            {/* Assignee filter */}
+            <select
+              value={filterAssignee}
+              onChange={(e) => setFilterAssignee(e.target.value)}
+              className="h-8 px-2.5 rounded-md bg-slate-800 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer hover:bg-slate-700 transition max-w-[120px]"
+            >
+              <option value="all">All Assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
             <Link to="/tasks" className="h-8 px-2.5 rounded-md text-xs font-medium bg-slate-800 border border-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100 inline-flex items-center gap-1.5 transition">
-              <ListTodo className="size-3.5" /> Manage Tasks
+              <ListTodo className="size-3.5" /> {isStakeholder ? "View Tasks" : "Manage Tasks"}
             </Link>
           </div>
         </div>
@@ -118,26 +191,35 @@ function BoardPage() {
                 <div
                   key={col}
                   onDragOver={(e) => {
+                    if (isStakeholder) return;
                     e.preventDefault();
                     setHoverCol(col);
                   }}
-                  onDragLeave={() => setHoverCol((h) => (h === col ? null : h))}
-                  onDrop={() => handleDrop(col)}
+                  onDragLeave={() => !isStakeholder && setHoverCol((h) => (h === col ? null : h))}
+                  onDrop={() => !isStakeholder && handleDrop(col)}
                   className={`flex flex-col rounded-xl border bg-slate-900/30 min-h-0 transition ${
-                    isHover ? "border-fuchsia-500/50 bg-slate-900/60" : "border-slate-800/80"
+                    isHover && !isStakeholder ? "border-fuchsia-500/50 bg-slate-900/60" : "border-slate-800/80"
                   }`}
                 >
-                  <div className="px-3.5 py-3 flex items-center gap-2 border-b border-slate-800/80">
+                  <div className="px-3.5 py-3 flex items-center gap-2 border-b border-slate-800/80 group">
                     <span className={`size-1.5 rounded-full ${meta.dot}`} />
                     <span className={`text-xs font-semibold uppercase tracking-wider ${meta.accent}`}>
                       {meta.label}
                     </span>
                     <span className="text-[11px] text-slate-500 tabular-nums">{items.length}</span>
+                    {!isStakeholder && (
+                      <button
+                        onClick={() => setQuickAddCol(col)}
+                        className="ml-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-800 rounded transition text-slate-400 hover:text-slate-200"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-2">
                     {items.length === 0 && (
                       <div className="text-[11px] text-slate-600 text-center py-8 border border-dashed border-slate-800 rounded-lg">
-                        Drop tasks here
+                        {isStakeholder ? "No tasks" : "Drop tasks here"}
                       </div>
                     )}
                     {items.map((t) => (
@@ -148,6 +230,7 @@ function BoardPage() {
                         onDragEnd={() => setDragId(null)}
                         onClick={() => setModalTask(t)}
                         onOriginJump={() => handleOriginJump(t)}
+                        isStakeholder={isStakeholder}
                       />
                     ))}
                   </div>
@@ -169,18 +252,29 @@ function BoardPage() {
           users={users}
         />
       )}
+
+      <CreateTaskModal
+        isOpen={quickAddCol !== null}
+        onClose={() => setQuickAddCol(null)}
+        onSubmit={handleCreateTask}
+        initialColumn={quickAddCol || "new"}
+        initialSprintId={activeSprintId}
+        sprints={sprints}
+        users={users}
+      />
     </AppShell>
   );
 }
 
 function BoardCard({
-  task, onDragStart, onDragEnd, onClick, onOriginJump,
+  task, onDragStart, onDragEnd, onClick, onOriginJump, isStakeholder,
 }: {
   task: Task;
   onDragStart: () => void;
   onDragEnd: () => void;
   onClick: () => void;
   onOriginJump: () => void;
+  isStakeholder?: boolean;
 }) {
   const { users } = useStore();
   const assignee = userById(task.assigneeId, users);
@@ -188,14 +282,15 @@ function BoardCard({
   const TriggerIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
   return (
     <div
-      draggable
+      draggable={!isStakeholder}
       onDragStart={(e) => {
+        if (isStakeholder) return;
         e.dataTransfer.effectAllowed = "move";
         onDragStart();
       }}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="group rounded-lg border border-slate-800 bg-slate-900/80 hover:border-slate-700 hover:bg-slate-900 p-3 cursor-grab active:cursor-grabbing transition"
+      className={`group rounded-lg border border-slate-800 bg-slate-900/80 hover:border-slate-700 hover:bg-slate-900 p-3 transition ${isStakeholder ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-start gap-2 mb-2">
         <div className="flex-1 min-w-0">

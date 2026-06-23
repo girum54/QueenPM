@@ -14,6 +14,8 @@ import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ExecutiveRoadmapRouteImport } from './routes/executive-roadmap'
+import { Route as ExecutiveReportsRouteImport } from './routes/executive-reports'
 import { Route as ExecutiveRouteImport } from './routes/executive'
 import { Route as ChannelsConfigRouteImport } from './routes/channels-config'
 import { Route as ChannelsRouteImport } from './routes/channels'
@@ -43,6 +45,16 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutiveRoadmapRoute = ExecutiveRoadmapRouteImport.update({
+  id: '/executive-roadmap',
+  path: '/executive-roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutiveReportsRoute = ExecutiveReportsRouteImport.update({
+  id: '/executive-reports',
+  path: '/executive-reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExecutiveRoute = ExecutiveRouteImport.update({
@@ -77,6 +89,8 @@ export interface FileRoutesByFullPath {
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
   '/executive': typeof ExecutiveRoute
+  '/executive-reports': typeof ExecutiveReportsRoute
+  '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
@@ -89,6 +103,8 @@ export interface FileRoutesByTo {
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
   '/executive': typeof ExecutiveRoute
+  '/executive-reports': typeof ExecutiveReportsRoute
+  '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
@@ -102,6 +118,8 @@ export interface FileRoutesById {
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
   '/executive': typeof ExecutiveRoute
+  '/executive-reports': typeof ExecutiveReportsRoute
+  '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
@@ -116,6 +134,8 @@ export interface FileRouteTypes {
     | '/channels'
     | '/channels-config'
     | '/executive'
+    | '/executive-reports'
+    | '/executive-roadmap'
     | '/login'
     | '/projects'
     | '/sprint'
@@ -128,6 +148,8 @@ export interface FileRouteTypes {
     | '/channels'
     | '/channels-config'
     | '/executive'
+    | '/executive-reports'
+    | '/executive-roadmap'
     | '/login'
     | '/projects'
     | '/sprint'
@@ -140,6 +162,8 @@ export interface FileRouteTypes {
     | '/channels'
     | '/channels-config'
     | '/executive'
+    | '/executive-reports'
+    | '/executive-roadmap'
     | '/login'
     | '/projects'
     | '/sprint'
@@ -153,6 +177,8 @@ export interface RootRouteChildren {
   ChannelsRoute: typeof ChannelsRoute
   ChannelsConfigRoute: typeof ChannelsConfigRoute
   ExecutiveRoute: typeof ExecutiveRoute
+  ExecutiveReportsRoute: typeof ExecutiveReportsRoute
+  ExecutiveRoadmapRoute: typeof ExecutiveRoadmapRoute
   LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   SprintRoute: typeof SprintRoute
@@ -195,6 +221,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executive-roadmap': {
+      id: '/executive-roadmap'
+      path: '/executive-roadmap'
+      fullPath: '/executive-roadmap'
+      preLoaderRoute: typeof ExecutiveRoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executive-reports': {
+      id: '/executive-reports'
+      path: '/executive-reports'
+      fullPath: '/executive-reports'
+      preLoaderRoute: typeof ExecutiveReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/executive': {
@@ -241,6 +281,8 @@ const rootRouteChildren: RootRouteChildren = {
   ChannelsRoute: ChannelsRoute,
   ChannelsConfigRoute: ChannelsConfigRoute,
   ExecutiveRoute: ExecutiveRoute,
+  ExecutiveReportsRoute: ExecutiveReportsRoute,
+  ExecutiveRoadmapRoute: ExecutiveRoadmapRoute,
   LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   SprintRoute: SprintRoute,

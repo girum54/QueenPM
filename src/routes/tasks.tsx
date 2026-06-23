@@ -5,11 +5,13 @@ import {
   CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight, Loader2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { CreateTaskModal } from "@/components/CreateTaskModal";
 import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
   type Task, type ColumnId, type Priority, userById,
 } from "@/lib/queen-store";
 import { sprintsApi } from "@/lib/api/queen.api";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -28,6 +30,8 @@ type SortBy = "created" | "priority" | "title";
 
 function TasksPage() {
   const { tasks, users, addTask, activeProjectId, projectTabs } = useStore();
+  const { user } = useAuth();
+  const isStakeholder = user?.role === "stakeholder";
 
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
@@ -42,11 +46,7 @@ function TasksPage() {
   
   // Modals / Inputs
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newPriority, setNewPriority] = useState<Priority>("medium");
-  const [newColumn, setNewColumn] = useState<ColumnId>("new");
   const [newParentId, setNewParentId] = useState<string | null>(null);
-  const [newSprintId, setNewSprintId] = useState<string | null>(null);
   const [sprints, setSprints] = useState<any[]>([]);
   const [activeSprint, setActiveSprint] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,7 +60,6 @@ function TasksPage() {
         setSprints(projectSprints);
         const active = projectSprints.find((s: any) => s.isActive);
         setActiveSprint(active || null);
-        setNewSprintId(active?.id || null);
       } catch (e) {
         console.error("Failed to load sprints:", e);
       }
@@ -164,44 +163,32 @@ function TasksPage() {
     });
   };
 
-  const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim() || isSubmitting) return;
-    if (!newSprintId) {
-      alert("Please select a sprint");
-      return;
-    }
-    setIsSubmitting(true);
+  const handleAddTask = async (taskData: any) => {
     try {
       const task: Task = {
         id: `t_${Date.now()}`,
-        title: newTitle.trim(),
-        priority: newPriority,
-        column: newColumn,
+        title: taskData.title,
+        priority: taskData.priority,
+        column: taskData.column,
         createdBy: "ui",
-        assigneeId: null,
+        assigneeId: taskData.assigneeId || null,
         originMessageId: null,
         originChannelId: null,
-        sprintId: newSprintId,
+        sprintId: taskData.sprintId,
         createdAt: Date.now(),
         projectId: activeProjectId,
-        parentId: newParentId || undefined,
+        parentId: taskData.parentId || undefined,
       };
       await addTask(task);
-      setNewTitle("");
       setNewParentId(null);
-      setNewSprintId(activeSprint ? activeSprint.id : null);
       setIsNewTaskOpen(false);
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      console.error("Failed to add task:", error);
     }
   };
 
   const openSubtaskModal = (parentId: string) => {
     setNewParentId(parentId);
-    setNewPriority("medium");
-    setNewColumn("new");
-    setNewSprintId(activeSprint ? activeSprint.id : null);
     setIsNewTaskOpen(true);
   };
 
@@ -232,12 +219,14 @@ function TasksPage() {
                 {stats.total} total items (including nested subtasks) · {stats.done} completed
               </p>
             </div>
-            <button
-              onClick={() => { setNewParentId(null); setIsNewTaskOpen(true); }}
-              className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center gap-2 transition"
-            >
-              <Plus className="size-4" /> Create Task
-            </button>
+            {!isStakeholder && (
+              <button
+                onClick={() => { setNewParentId(null); setIsNewTaskOpen(true); }}
+                className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center gap-2 transition"
+              >
+                <Plus className="size-4" /> Create Task
+              </button>
+            )}
           </div>
 
           {/* Stat chips */}
@@ -369,6 +358,7 @@ function TasksPage() {
                             users={users}
                             sprints={sprints}
                             onAddSubtask={() => openSubtaskModal(task.id)}
+                            isStakeholder={isStakeholder}
                           />
                         ))}
                       </div>
@@ -382,87 +372,15 @@ function TasksPage() {
       </div>
 
       {/* New Task / Subtask Modal */}
-      {isNewTaskOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Plus className="size-4 text-fuchsia-400" />
-                <h3 className="text-sm font-semibold text-slate-100">
-                  {newParentId ? "Add Subtask" : "New Task"}
-                </h3>
-              </div>
-              <button onClick={() => setIsNewTaskOpen(false)} className="size-7 grid place-items-center rounded hover:bg-slate-800 text-slate-505">
-                <X className="size-4" />
-              </button>
-            </div>
-            <form onSubmit={handleAddTask} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Title</label>
-                <input
-                  autoFocus required value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder={newParentId ? "Subtask description..." : "Task description..."}
-                  className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500 transition"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Priority</label>
-                  <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as Priority)}
-                    className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500">
-                    {(["urgent","high","medium","low"] as Priority[]).map((p) => (
-                      <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Status</label>
-                  <select value={newColumn} onChange={(e) => setNewColumn(e.target.value as ColumnId)}
-                    className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500">
-                    {(["new","active","staging","deployed"] as ColumnId[]).map((c) => (
-                      <option key={c} value={c}>{COLUMN_META[c].label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Sprint *</label>
-                <select value={newSprintId || ""} onChange={(e) => setNewSprintId(e.target.value || null)}
-                  className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500">
-                  <option value="">-- Select a sprint --</option>
-                  {sprints
-                    .filter((s) => !s.completedAt)
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.isActive ? "(Active)" : "(Upcoming)"}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {newParentId && (
-                <div className="text-[10px] text-slate-550 italic">
-                  * Creating nested subtask under parent task #{newParentId}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={() => setIsNewTaskOpen(false)}
-                  className="h-9 px-4 rounded-md text-xs font-medium text-slate-400 hover:bg-slate-800 transition">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isSubmitting}
-                  className="h-9 px-4 rounded-md text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5">
-                  {isSubmitting ? <><Loader2 className="size-3.5 animate-spin" /> {newParentId ? "Adding..." : "Creating..."}</> : (newParentId ? "Add Subtask" : "Create Task")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateTaskModal
+        isOpen={isNewTaskOpen}
+        onClose={() => setIsNewTaskOpen(false)}
+        onSubmit={handleAddTask}
+        parentId={newParentId}
+        initialSprintId={activeSprint?.id || null}
+        sprints={sprints}
+        users={users}
+      />
     </AppShell>
   );
 }
@@ -473,9 +391,10 @@ interface RowProps {
   users: any[];
   sprints: any[];
   onAddSubtask: () => void;
+  isStakeholder: boolean;
 }
 
-function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: RowProps) {
+function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isStakeholder }: RowProps) {
   const [expanded, setExpanded] = useState(true);
   const [quickTitle, setQuickTitle] = useState("");
   const [isQuickOpen, setIsQuickOpen] = useState(false);
@@ -590,24 +509,26 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: R
         </div>
 
         {/* Add Subtask actions */}
-        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
-          <select 
-            value={task.sprintId || ""}
-            onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
-            className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
-          >
-            <option value="">Backlog</option>
-            {sprints.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => setIsQuickOpen(!isQuickOpen)}
-            className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
-          >
-            + Subtask
-          </button>
-        </div>
+        {!isStakeholder && (
+          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+            <select 
+              value={task.sprintId || ""}
+              onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
+              className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
+            >
+              <option value="">Backlog</option>
+              {sprints.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setIsQuickOpen(!isQuickOpen)}
+              className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
+            >
+              + Subtask
+            </button>
+          </div>
+        )}
 
       </div>
 
@@ -686,18 +607,20 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask }: R
                 </div>
 
                 {/* Add to sprint action */}
-                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 ml-2">
-                  <select 
-                    value={sub.sprintId || ""}
-                    onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
-                    className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
-                  >
-                    <option value="">Backlog</option>
-                    {sprints.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {!isStakeholder && (
+                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 ml-2">
+                    <select 
+                      value={sub.sprintId || ""}
+                      onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
+                      className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
+                    >
+                      <option value="">Backlog</option>
+                      {sprints.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             );
           })}

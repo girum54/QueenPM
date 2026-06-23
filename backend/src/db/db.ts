@@ -9,8 +9,8 @@ if (!databaseUrl) {
 
 export const queryClient = postgres(databaseUrl, {
   ssl: { rejectUnauthorized: false },
-  idle_timeout: 20,
-  max_lifetime: 60 * 30,
-  keep_alive: 15,
+  idle_timeout: 30, // Close idle connections after 30 seconds of inactivity
+  max_lifetime: 60 * 3, // Recreate connections every 3 minutes to avoid stale sockets
+  keep_alive: null, // Disable TCP keep-alive probes to prevent half-open sockets from persisting
 });
 export const db = drizzle(queryClient, { schema });

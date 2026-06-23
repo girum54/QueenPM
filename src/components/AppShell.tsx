@@ -29,11 +29,10 @@ const TOP_NAV: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
-  reqStakeholder?: boolean;
 }[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, reqStakeholder: false },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
-  { to: "/sprint", label: "Sprint", icon: SprintIcon, reqStakeholder: false },
+  { to: "/sprint", label: "Sprint", icon: SprintIcon },
   { to: "/board", label: "Board", icon: KanbanSquare },
 ];
 
@@ -51,6 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const { user, loading, signOut } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const isStakeholder = user?.role === "stakeholder";
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -209,6 +209,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </div>
 
+        {/* ── Stakeholder Back Link ── */}
+        {isStakeholder && (
+          <div className={`px-2.5 pt-3 ${collapsed ? "flex justify-center" : ""}`}>
+            <Link
+              to="/executive"
+              title={collapsed ? "Portfolio Overview" : undefined}
+              className={`w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 transition ${
+                collapsed ? "size-9 p-0" : "text-[12px] font-semibold"
+              }`}
+            >
+              <Crown className={`${collapsed ? "size-4" : "size-3.5"} text-amber-400 shrink-0`} />
+              {!collapsed && <span className="flex-1 text-left truncate">Portfolio Overview</span>}
+            </Link>
+          </div>
+        )}
+
         {/* ── Project Switcher ── */}
         {!collapsed && (
           <div className="px-2.5 pt-3 pb-2" ref={dropdownRef}>
@@ -292,10 +308,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className={`flex-1 overflow-y-auto space-y-px ${collapsed ? "px-1.5 pt-1" : "px-2 pt-1"}`}>
           {/* Top nav items */}
           {TOP_NAV.map((n) => {
-            const isStakeholder = user?.email?.toLowerCase().includes("stakeholder") || user?.username?.toLowerCase().includes("stakeholder");
-            if (n.reqStakeholder === true && !isStakeholder) return null;
-            if (n.reqStakeholder === false && isStakeholder) return null;
-            
             const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
             const Icon = n.icon;
             return (
@@ -322,7 +334,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {/* ── Channels accordion ── */}
           <div>
-            <button
+            <div
               title={collapsed ? "Channels" : undefined}
               onClick={() => {
                 if (collapsed) {
@@ -362,7 +374,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </div>
                 </>
               )}
-            </button>
+            </div>
 
             {/* Channel sub-list */}
             {isChannelsOpen && !collapsed && (

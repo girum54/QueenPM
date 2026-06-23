@@ -39,10 +39,13 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already logged in, redirect to dashboard
+  const getDestination = (u?: any) =>
+    u?.role === "stakeholder" ? "/executive" : "/";
+
+  // If already logged in, redirect to appropriate dashboard
   useEffect(() => {
     if (!loading && user) {
-      navigate({ to: "/" });
+      navigate({ to: getDestination(user) });
     }
   }, [user, loading, navigate]);
 
@@ -57,7 +60,7 @@ function LoginPage() {
         const handle = username.startsWith("@") ? username : `@${username}`;
         await signUp({ email, password, name, username: handle, color });
       }
-      navigate({ to: "/" });
+      navigate({ to: getDestination(email) });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
