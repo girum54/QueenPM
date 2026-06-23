@@ -6,7 +6,15 @@ import { relations } from "drizzle-orm";
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high", "urgent"]);
 export const columnEnum = pgEnum("column", ["new", "active", "staging", "deployed"]);
 export const createdByEnum = pgEnum("created_by", ["ui", "ai", "slash"]);
-export const roleEnum = pgEnum("role", ["member", "manager", "admin", "department_head"]);
+export const roleEnum = pgEnum("role", ["member", "manager", "admin", "department_head", "developer", "stakeholder"]);
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "task_assigned",
+  "task_moved",
+  "mentioned",
+  "sprint_started",
+  "sprint_completed",
+  "task_added",
+]);
 
 // ─── Better Auth Tables ───────────────────────────────────────────────────────
 
@@ -318,5 +326,39 @@ export const projectMemberRelations = relations(projectMembers, ({ one }) => ({
   user: one(user, {
     fields: [projectMembers.userId],
     references: [user.id],
+  }),
+}));
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipientId: text("recipient_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  taskId: uuid("task_id"),
+  read: boolean("read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const notificationRelations = relations(notifications, ({ one }) => ({
+  recipient: one(user, {
+    fields: [notifications.recipientId],
+    references: [user.id],
+    relationName: "notificationRecipient",
+  }),
+  actor: one(user, {
+    fields: [notifications.actorId],
+    references: [user.id],
+    relationName: "notificationActor",
+  }),
+  project: one(projects, {
+    fields: [notifications.projectId],
+    references: [projects.id],
   }),
 }));

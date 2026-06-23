@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { QueenStoreProvider } from "../lib/queen-store";
 import { AuthProvider } from "../lib/auth-store";
+import { NotificationsProvider } from "../lib/notifications-store";
 
 function NotFoundComponent() {
   return (
@@ -127,7 +128,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <QueenStoreProvider>
-          <Outlet />
+          <NotificationsProvider>
+            <Outlet />
+          </NotificationsProvider>
         </QueenStoreProvider>
       </AuthProvider>
     </QueryClientProvider>
