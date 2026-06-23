@@ -7,6 +7,8 @@ import {
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
+import { useNotifications } from "@/lib/notifications-store";
+import { formatDistanceToNow } from "date-fns";
 
 // ── Custom Sprint Icon ─────────────────────────────────────────
 function SprintIcon({ className }: { className?: string }) {
@@ -23,7 +25,7 @@ function SprintIcon({ className }: { className?: string }) {
 
 // ── Nav definition (Channels handled separately as accordion) ──
 const TOP_NAV: {
-  to: "/" | "/stakeholder" | "/sprint" | "/board" | "/tasks";
+  to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
@@ -48,7 +50,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   } = useStore();
 
   const { user, loading, signOut } = useAuth();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -85,6 +89,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         setIsProjectDropdownOpen(false);
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
         setShowUserMenu(false);
+      // We can use a simple check for notifications dropdown as well
+      const notifBtn = document.getElementById("notif-btn");
+      const notifPanel = document.getElementById("notif-panel");
+      if (
+        notifBtn && !notifBtn.contains(e.target as Node) &&
+        notifPanel && !notifPanel.contains(e.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
     }
     document.addEventListener("mousedown", onOut);
     return () => document.removeEventListener("mousedown", onOut);
@@ -467,10 +480,74 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="truncate">Jump to…</span>
             <span className="hidden sm:inline ml-auto px-1.5 py-0.5 rounded bg-slate-950 text-[9px] font-mono text-slate-605">⌘K</span>
           </div>
-          <div className="ml-auto flex items-center gap-1">
-            <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
+          <div className="ml-auto flex items-center gap-1 relative">
+            <button
+              id="notif-btn"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition"
+            >
               <Bell className="size-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 size-2.5 bg-fuchsia-500 rounded-full ring-2 ring-slate-950 animate-pulse" />
+              )}
             </button>
+            
+            {showNotifications && (
+              <div
+                id="notif-panel"
+                className="absolute top-full right-0 mt-2 w-80 max-h-[28rem] bg-slate-900 border border-slate-800 shadow-2xl rounded-xl z-50 flex flex-col overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                  <span className="text-sm font-semibold text-slate-100">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markAllRead()}
+                      className="text-[11px] text-fuchsia-400 hover:text-fuchsia-300 transition"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-1">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 text-xs">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          if (!n.read) markRead(n.id);
+                        }}
+                        className={`group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition ${
+                          n.read
+                            ? "hover:bg-slate-800/50"
+                            : "bg-slate-800/80 hover:bg-slate-800"
+                        }`}
+                      >
+                        <div className={`mt-0.5 size-2 rounded-full shrink-0 ${n.read ? 'bg-transparent' : 'bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.6)]'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium truncate ${n.read ? 'text-slate-300' : 'text-slate-100'}`}>
+                            {n.title}
+                          </p>
+                          {n.body && (
+                            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-snug">
+                              {n.body}
+                            </p>
+                          )}
+                          <span className="block mt-1.5 text-[9px] text-slate-600 font-medium uppercase tracking-wider">
+                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
               <Settings className="size-4" />
             </button>

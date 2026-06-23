@@ -255,3 +255,25 @@ export interface ApiUser {
 export const usersApi = {
   getAll: () => request<ApiUser[]>("/users"),
 };
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export interface ApiNotification {
+  id: string;
+  recipientId: string;
+  actorId: string | null;
+  type: "task_assigned" | "task_moved" | "mentioned" | "sprint_started" | "sprint_completed" | "task_added";
+  title: string;
+  body: string | null;
+  projectId: string | null;
+  taskId: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export const notificationsApi = {
+  getAll: () => request<ApiNotification[]>("/notifications"),
+  markRead: (id: string) => request<any>(`/notifications/${id}/read`, { method: "PATCH" }),
+  markAllRead: () => request<any>("/notifications/read-all", { method: "PATCH" }),
+  delete: (id: string) => request<{ deleted: string }>(`/notifications/${id}`, { method: "DELETE" }),
+};

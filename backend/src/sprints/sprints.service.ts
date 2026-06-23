@@ -4,12 +4,16 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
 import { DRIZZLE } from '../database/database.provider';
 import { CreateSprintDto, UpdateSprintDto, CreateDeliverableDto, UpdateDeliverableDto } from './dto/sprint.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Db = NodePgDatabase<typeof schema>;
 
 @Injectable()
 export class SprintsService {
-  constructor(@Inject(DRIZZLE) private readonly db: Db) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Db,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // ─── Sprints ──────────────────────────────────────────────────────────────
 
@@ -84,7 +88,7 @@ export class SprintsService {
   }
 
   /** Activate a sprint — deactivates any other active sprint in the same project first */
-  async activate(id: string) {
+  async activate(id: string, actingUserId?: string) {
     const sprint = await this.findOne(id);
     // Deactivate all other sprints in the project
     await this.db
@@ -97,17 +101,53 @@ export class SprintsService {
       .set({ isActive: true })
       .where(eq(schema.sprints.id, id))
       .returning();
+
+    // Notify all project members
+    const members = await this.db.query.projectMembers.findMany({
+      where: eq(schema.projectMembers.projectId, sprint.projectId),
+    });
+    await Promise.all(
+      members.map((m) =>
+        this.notificationsService.push({
+          recipientId: m.userId,
+          actorId: actingUserId ?? null,
+          type: 'sprint_started',
+          title: `Sprint started: ${activated.name}`,
+          body: activated.goal ?? undefined,
+          projectId: activated.projectId,
+        }),
+      ),
+    );
+
     return activated;
   }
 
   /** Complete a sprint — marks it inactive and sets completedAt */
-  async complete(id: string) {
-    await this.findOne(id);
+  async complete(id: string, actingUserId?: string) {
+    const sprint = await this.findOne(id);
     const [completed] = await this.db
       .update(schema.sprints)
       .set({ isActive: false, completedAt: new Date() })
       .where(eq(schema.sprints.id, id))
       .returning();
+
+    // Notify all project members
+    const members = await this.db.query.projectMembers.findMany({
+      where: eq(schema.projectMembers.projectId, sprint.projectId),
+    });
+    await Promise.all(
+      members.map((m) =>
+        this.notificationsService.push({
+          recipientId: m.userId,
+          actorId: actingUserId ?? null,
+          type: 'sprint_completed',
+          title: `Sprint completed: ${completed.name} ✅`,
+          body: `The sprint has been wrapped up.`,
+          projectId: completed.projectId,
+        }),
+      ),
+    );
+
     return completed;
   }
 
