@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, ListTodo,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
 import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
@@ -27,15 +28,27 @@ const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
 const ACTIVE_SPRINT_ID = "d5d16315-fe1f-4c09-ab7b-c1e3d3f9fb0e"; // From seed data
 
 function BoardPage() {
-  const { tasks, updateTask, users, requestJump, activeProjectId, projectTabs } = useStore();
+  const { tasks, updateTask, addTask, users, requestJump, activeProjectId, projectTabs, activeSprintId } = useStore();
   const { user } = useAuth();
   const isStakeholder = user?.role === "stakeholder";
   const navigate = useNavigate();
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverCol, setHoverCol] = useState<ColumnId | null>(null);
   const [modalTask, setModalTask] = useState<Task | null>(null);
+  const [quickAddCol, setQuickAddCol] = useState<ColumnId | null>(null);
   const [query, setQuery] = useState("");
   const [isProcessingDrop, setIsProcessingDrop] = useState(false);
+  const [sprints, setSprints] = useState<any[]>([]);
+
+  // Fetch sprints for the modal
+  useEffect(() => {
+    if (!activeProjectId) return;
+    import("@/lib/api/queen.api").then((m) => {
+      m.sprintsApi.getByProject(activeProjectId).then((data) => {
+        setSprints(data);
+      }).catch(console.error);
+    });
+  }, [activeProjectId]);
 
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
@@ -67,6 +80,29 @@ function BoardPage() {
     }
     setDragId(null);
     setHoverCol(null);
+  };
+
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      const task: Task = {
+        id: `t_${Date.now()}`,
+        title: taskData.title,
+        priority: taskData.priority,
+        column: taskData.column,
+        createdBy: "ui",
+        assigneeId: taskData.assigneeId || null,
+        originMessageId: null,
+        originChannelId: null,
+        sprintId: taskData.sprintId,
+        createdAt: Date.now(),
+        projectId: activeProjectId,
+        parentId: taskData.parentId || undefined,
+      };
+      await addTask(task);
+      setQuickAddCol(null);
+    } catch (error) {
+      console.error("Failed to create task on board:", error);
+    }
   };
 
   const handleOriginJump = (t: Task) => {
@@ -132,12 +168,20 @@ function BoardPage() {
                     isHover && !isStakeholder ? "border-fuchsia-500/50 bg-slate-900/60" : "border-slate-800/80"
                   }`}
                 >
-                  <div className="px-3.5 py-3 flex items-center gap-2 border-b border-slate-800/80">
+                  <div className="px-3.5 py-3 flex items-center gap-2 border-b border-slate-800/80 group">
                     <span className={`size-1.5 rounded-full ${meta.dot}`} />
                     <span className={`text-xs font-semibold uppercase tracking-wider ${meta.accent}`}>
                       {meta.label}
                     </span>
                     <span className="text-[11px] text-slate-500 tabular-nums">{items.length}</span>
+                    {!isStakeholder && (
+                      <button
+                        onClick={() => setQuickAddCol(col)}
+                        className="ml-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-800 rounded transition text-slate-400 hover:text-slate-200"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-2">
                     {items.length === 0 && (
@@ -175,6 +219,16 @@ function BoardPage() {
           users={users}
         />
       )}
+
+      <CreateTaskModal
+        isOpen={quickAddCol !== null}
+        onClose={() => setQuickAddCol(null)}
+        onSubmit={handleCreateTask}
+        initialColumn={quickAddCol || "new"}
+        initialSprintId={activeSprintId}
+        sprints={sprints}
+        users={users}
+      />
     </AppShell>
   );
 }

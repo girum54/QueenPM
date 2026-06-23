@@ -321,7 +321,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {/* ── Channels accordion ── */}
           <div>
-            <button
+            <div
               title={collapsed ? "Channels" : undefined}
               onClick={() => {
                 if (collapsed) {
@@ -361,7 +361,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </div>
                 </>
               )}
-            </button>
+            </div>
 
             {/* Channel sub-list */}
             {isChannelsOpen && !collapsed && (
