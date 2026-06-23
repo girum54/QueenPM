@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import {
-  Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, ListTodo,
+  Plus, ExternalLink, Crown, Bot, Zap, MousePointerClick, Filter, Search, ListTodo, X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
@@ -37,6 +37,8 @@ function BoardPage() {
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [quickAddCol, setQuickAddCol] = useState<ColumnId | null>(null);
   const [query, setQuery] = useState("");
+  const [filterPriority, setFilterPriority] = useState<Priority | "all">("all");
+  const [filterAssignee, setFilterAssignee] = useState<string>("all");
   const [isProcessingDrop, setIsProcessingDrop] = useState(false);
   const [sprints, setSprints] = useState<any[]>([]);
 
@@ -62,9 +64,16 @@ function BoardPage() {
       if (!t.sprintId) return false; // Only show tasks that have a sprint assigned
       // Filter by search query
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
+      // Filter by priority
+      if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+      // Filter by assignee
+      if (filterAssignee !== "all") {
+        if (filterAssignee === "unassigned" && t.assigneeId !== null) return false;
+        if (filterAssignee !== "unassigned" && t.assigneeId !== filterAssignee) return false;
+      }
       return true;
     });
-  }, [tasks, activeProjectId, query]);
+  }, [tasks, activeProjectId, query, filterPriority, filterAssignee]);
   const byCol = useMemo(() => {
     const map: Record<ColumnId, Task[]> = { new: [], active: [], staging: [], deployed: [] };
     filtered.forEach((t) => map[t.column].push(t));
@@ -130,17 +139,41 @@ function BoardPage() {
           </div>
           <div className="sm:ml-auto flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <div className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-slate-800/50 border border-slate-800 text-xs text-slate-300 flex-1 sm:flex-initial sm:w-48">
-              <Search className="size-3.5 text-slate-505" />
+              <Search className="size-3.5 text-slate-505 shrink-0" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Filter tasks…"
                 className="bg-transparent outline-none flex-1 placeholder:text-slate-505 min-w-0"
               />
+              {query && (
+                <button onClick={() => setQuery("")} className="shrink-0"><X className="size-3 text-slate-500 hover:text-slate-300" /></button>
+              )}
             </div>
-            <button className="h-8 px-2.5 rounded-md text-xs text-slate-300 border border-slate-800 hover:bg-slate-800/60 inline-flex items-center gap-1.5 transition">
-              <Filter className="size-3.5" /> Filter
-            </button>
+            {/* Priority filter */}
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value as Priority | "all")}
+              className="h-8 px-2.5 rounded-md bg-slate-800 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer hover:bg-slate-700 transition"
+            >
+              <option value="all">All Priorities</option>
+              {(["urgent", "high", "medium", "low"] as Priority[]).map((p) => (
+                <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+              ))}
+            </select>
+
+            {/* Assignee filter */}
+            <select
+              value={filterAssignee}
+              onChange={(e) => setFilterAssignee(e.target.value)}
+              className="h-8 px-2.5 rounded-md bg-slate-800 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer hover:bg-slate-700 transition max-w-[120px]"
+            >
+              <option value="all">All Assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
             <Link to="/tasks" className="h-8 px-2.5 rounded-md text-xs font-medium bg-slate-800 border border-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100 inline-flex items-center gap-1.5 transition">
               <ListTodo className="size-3.5" /> {isStakeholder ? "View Tasks" : "Manage Tasks"}
             </Link>
