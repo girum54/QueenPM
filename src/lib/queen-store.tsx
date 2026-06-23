@@ -10,6 +10,7 @@ export interface User {
   handle: string;
   color: string;
   isAi?: boolean;
+  role?: "member" | "manager" | "admin" | "department_head";
 }
 
 export interface Channel {
@@ -48,7 +49,58 @@ export interface Message {
   taskRef?: string; // task id
 }
 
+export const USERS: User[] = [
+  { id: "u1", name: "Mira Chen", handle: "@mira", color: "bg-rose-500" },
+  { id: "u2", name: "Daniel Park", handle: "@dan", color: "bg-amber-500" },
+  { id: "u3", name: "Sofia Reyes", handle: "@sofia", color: "bg-emerald-500" },
+  { id: "u4", name: "Kai Tanaka", handle: "@kai", color: "bg-sky-500" },
+  { id: "uq", name: "Queen PM", handle: "@queen", color: "bg-gradient-to-br from-fuchsia-500 to-violet-600", isAi: true },
+  { id: "me", name: "You", handle: "@you", color: "bg-slate-500" },
+];
 
+export const CHANNELS: Channel[] = [
+  { id: "c1", name: "general" },
+  { id: "c2", name: "eng-platform", aiActive: true },
+  { id: "c3", name: "design-crit" },
+  { id: "c4", name: "sprint-q3", aiActive: true },
+  { id: "c5", name: "incidents", aiActive: true },
+  { id: "c6", name: "watercooler" },
+];
+
+const now = Date.now();
+const DAY = 86400000;
+
+const INITIAL_TASKS: Task[] = [
+  { id: "t1", title: "Fix race condition in checkout webhook", description: "Reproduced under concurrent load — needs idempotency key.", assigneeId: "u2", priority: "urgent", column: "active", createdBy: "ai", originMessageId: "m3", originChannelId: "c2", createdAt: now - 4 * DAY, projectId: "p-x" },
+  { id: "t1_sub1", title: "Verify webhook signature validation", assigneeId: "u2", priority: "high", column: "deployed", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 3.5 * DAY, projectId: "p-x", parentId: "t1" },
+  { id: "t1_sub2", title: "Add unit tests for deduplication cache", assigneeId: "me", priority: "medium", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 3 * DAY, projectId: "p-x", parentId: "t1" },
+  { id: "t2", title: "Refactor auth middleware for edge runtime", assigneeId: "u4", priority: "high", column: "new", createdBy: "ai", originMessageId: "m5", originChannelId: "c2", createdAt: now - 3 * DAY, projectId: "p-x" },
+  { id: "t3", title: "Design system: token migration to OKLCH", assigneeId: "u3", priority: "medium", column: "staging", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 6 * DAY, projectId: "p-x" },
+  { id: "t4", title: "Q3 launch: payments overhaul", assigneeId: "u1", priority: "high", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 9 * DAY, projectId: "p-x" },
+  { id: "t5", title: "Add Sentry breadcrumbs to ingest pipeline", assigneeId: null, priority: "low", column: "new", createdBy: "slash", originMessageId: "m7", originChannelId: "c2", createdAt: now - 1 * DAY, projectId: "p-x" },
+  { id: "t6", title: "Onboarding revamp epic", assigneeId: "u3", priority: "medium", column: "new", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 2 * DAY, projectId: "p-x" },
+  { id: "t7", title: "Ship rate limiter to prod", assigneeId: "u2", priority: "high", column: "deployed", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 14 * DAY, completedAt: now - 2 * DAY, projectId: "p-x" },
+  { id: "t8", title: "Audit log retention policy", assigneeId: "u4", priority: "medium", column: "deployed", createdBy: "ai", originMessageId: null, originChannelId: null, createdAt: now - 11 * DAY, completedAt: now - 4 * DAY, projectId: "p-x" },
+  { id: "t9", title: "Postgres pooler upgrade", assigneeId: "u2", priority: "high", column: "staging", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 5 * DAY, projectId: "p-x" },
+  { id: "t10", title: "Triage AI-flagged 500s on /v2/orders", assigneeId: null, priority: "urgent", column: "new", createdBy: "ai", originMessageId: "m2", originChannelId: "c2", createdAt: now - 6 * 3600000, projectId: "p-x" },
+  { id: "t11", title: "Migrate billing webhook to v2", assigneeId: "u1", priority: "high", column: "deployed", createdBy: "ai", originMessageId: null, originChannelId: null, createdAt: now - 18 * DAY, completedAt: now - 7 * DAY, projectId: "p-x" },
+  { id: "t12", title: "Customer SSO: Okta integration", assigneeId: "u4", priority: "high", column: "active", createdBy: "ui", originMessageId: null, originChannelId: null, createdAt: now - 8 * DAY, projectId: "p-x" },
+];
+
+const INITIAL_MESSAGES: Message[] = [
+  { id: "m1", authorId: "u1", channelId: "c2", ts: "9:02", text: "morning team — pushing the new ingest worker to staging in ~30", pinned: true },
+  { id: "m2", authorId: "u4", channelId: "c2", ts: "9:14", text: "nice. fyi the checkout webhook is flaky again, saw two 500s overnight" },
+  { id: "m3", authorId: "u2", channelId: "c2", ts: "9:16", text: "yeah it's the same race we hit last month. I can repro locally" },
+  { id: "m4", authorId: "uq", channelId: "c2", ts: "9:16", taskRef: "t1" },
+  { id: "m5", authorId: "u1", channelId: "c2", ts: "9:21", text: "@queen we should also get the auth middleware ported to edge before Q3 launch, can you track that" },
+  { id: "m6", authorId: "uq", channelId: "c2", ts: "9:21", taskRef: "t2" },
+  { id: "m7", authorId: "u4", channelId: "c2", ts: "9:33", text: "small thing — we should add sentry breadcrumbs to the ingest pipeline so we can actually debug these", parentId: "m1" },
+  { id: "m8", authorId: "uq", channelId: "c2", ts: "9:33", taskRef: "t5" },
+  { id: "m9", authorId: "u3", channelId: "c2", ts: "10:02", text: "design crit at 2, will share the token migration prototype" },
+  { id: "m10", authorId: "u2", channelId: "c2", ts: "10:18", text: "repro confirmed. patch incoming, will tag the PR to the task", parentId: "m3" },
+  { id: "m11", authorId: "u1", channelId: "c4", ts: "8:45", text: "sprint kickoff in 15 — agenda in the pinned doc", pinned: true },
+  { id: "m12", authorId: "u3", channelId: "c1", ts: "11:00", text: "lunch order goes in at 12:30 sharp" },
+];
 
 export interface ProjectTab {
   id: string;
@@ -57,7 +109,11 @@ export interface ProjectTab {
   ownerId?: string | null;
 }
 
-
+const DEFAULT_PROJECT_TABS: ProjectTab[] = [
+  { id: "p-x", name: "Project X", color: "from-fuchsia-500 to-violet-600" },
+  { id: "p-alpha", name: "Project Alpha", color: "from-sky-500 to-cyan-600" },
+  { id: "p-delta", name: "Project Delta", color: "from-emerald-500 to-teal-600" },
+];
 
 interface JumpRequest {
   messageId: string;
@@ -119,13 +175,13 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     async function loadUsers() {
       try {
         const dbUsers = await usersApi.getAll();
-        const slateColors = ['bg-slate-500', 'bg-slate-600', 'bg-slate-700', 'bg-slate-800', 'bg-slate-900'];
-        const mappedUsers = dbUsers.map((u, i) => ({
+        const mappedUsers = dbUsers.map((u) => ({
           id: u.id,
           name: u.name,
           handle: u.username || `@${u.name.toLowerCase().replace(/\s+/g, '')}`,
-          color: u.isAi ? 'bg-fuchsia-600' : slateColors[i % slateColors.length],
+          color: u.color || 'bg-slate-500',
           isAi: u.isAi ?? false,
+          role: (u.role as "member" | "manager" | "admin" | "department_head") ?? "member",
         }));
         setUsers(mappedUsers);
       } catch (e) {
@@ -276,10 +332,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const addProjectTab = async (name: string, color?: string) => {
     const colors = [
       "from-fuchsia-500 to-violet-600",
-      "from-slate-600 to-slate-700",
-      "from-slate-700 to-slate-800",
-      "from-slate-800 to-slate-900",
-      "from-fuchsia-900 to-slate-900",
+      "from-sky-500 to-cyan-600",
+      "from-emerald-500 to-teal-600",
+      "from-amber-500 to-orange-600",
+      "from-rose-500 to-pink-600",
     ];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     try {
@@ -493,17 +549,17 @@ export function useStore() {
 }
 
 export const PRIORITY_STYLES: Record<Priority, string> = {
-  low: "bg-slate-900 text-slate-500 ring-1 ring-slate-800",
-  medium: "bg-slate-800 text-slate-300 ring-1 ring-slate-700",
-  high: "bg-slate-700 text-slate-100 ring-1 ring-slate-600",
-  urgent: "bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30",
+  low: "bg-slate-700/60 text-slate-300 ring-1 ring-slate-600/50",
+  medium: "bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/30",
+  high: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
+  urgent: "bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/40",
 };
 
 export const COLUMN_META: Record<ColumnId, { label: string; accent: string; dot: string }> = {
-  new: { label: "New", accent: "text-slate-500", dot: "bg-slate-600" },
-  active: { label: "Active", accent: "text-slate-200", dot: "bg-slate-300" },
-  staging: { label: "Staging", accent: "text-slate-400", dot: "bg-slate-500" },
-  deployed: { label: "Deployed", accent: "text-slate-600", dot: "bg-slate-800" },
+  new: { label: "New", accent: "text-slate-300", dot: "bg-slate-400" },
+  active: { label: "Active", accent: "text-sky-300", dot: "bg-sky-400" },
+  staging: { label: "Staging", accent: "text-amber-300", dot: "bg-amber-400" },
+  deployed: { label: "Deployed", accent: "text-emerald-300", dot: "bg-emerald-400" },
 };
 
 export const CREATED_BY_META: Record<CreatedBy, { label: string; className: string }> = {
@@ -512,7 +568,7 @@ export const CREATED_BY_META: Record<CreatedBy, { label: string; className: stri
   ai: { label: "AI Autonomous", className: "bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30" },
 };
 
-export function userById(id: string | null | undefined, list: User[]): User | undefined {
+export function userById(id: string | null | undefined, list: User[] = USERS): User | undefined {
   if (!id) return undefined;
   return list.find((u) => u.id === id);
 }
