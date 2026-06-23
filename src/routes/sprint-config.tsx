@@ -34,7 +34,7 @@ interface Sprint {
   isActive: boolean;
 }
 
-export function SprintConfigPage() {
+function SprintConfigPage() {
   const { tasks, activeProjectId } = useStore();
   const { user } = useAuth();
   const isStakeholder = user?.role === "stakeholder";
