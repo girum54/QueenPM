@@ -6,7 +6,6 @@ import { relations } from "drizzle-orm";
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high", "urgent"]);
 export const columnEnum = pgEnum("column", ["new", "active", "staging", "deployed"]);
 export const createdByEnum = pgEnum("created_by", ["ui", "ai", "slash"]);
-export const roleEnum = pgEnum("role", ["member", "manager", "admin", "department_head", "developer", "stakeholder"]);
 export const notificationTypeEnum = pgEnum("notification_type", [
   "task_assigned",
   "task_moved",
@@ -15,6 +14,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "sprint_completed",
   "task_added",
 ]);
+export const userRoleEnum = pgEnum("user_role", ["developer", "stakeholder"]);
 
 // ─── Better Auth Tables ───────────────────────────────────────────────────────
 
@@ -32,6 +32,7 @@ export const user = pgTable("user", {
   color: text("color"),       // avatar background class
   isAi: boolean("is_ai").default(false),
   role: roleEnum("role").default("member").notNull(),
+  role: userRoleEnum("role").default("developer").notNull(),
 });
 
 export const session = pgTable("session", {

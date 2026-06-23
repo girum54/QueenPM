@@ -11,6 +11,7 @@ import { sprintsApi } from "@/lib/api/queen.api";
 import { useEffect } from "react";
 import { DatePicker } from "@/components/DatePicker";
 import { formatDisplayDate, getSprintEndDate } from "@/lib/sprint-dates";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/sprint-config")({
   head: () => ({
@@ -33,8 +34,27 @@ interface Sprint {
   isActive: boolean;
 }
 
-export function SprintConfigPage() {
+function SprintConfigPage() {
   const { tasks, activeProjectId } = useStore();
+  const { user } = useAuth();
+  const isStakeholder = user?.role === "stakeholder";
+
+  if (isStakeholder) {
+    return (
+      <AppShell>
+        <div className="flex h-full flex-col items-center justify-center bg-slate-950 p-6 text-center">
+          <div className="size-16 rounded-2xl bg-rose-500/10 ring-1 ring-rose-500/30 flex items-center justify-center mb-6">
+            <AlertCircle className="size-8 text-rose-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-100">Access Denied</h2>
+          <p className="text-slate-400 max-w-sm mt-2 text-sm leading-relaxed font-light">
+            You do not have permission to view or modify sprint configurations.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
+
   const [sprint, setSprint] = useState<Sprint | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
