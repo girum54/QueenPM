@@ -2,7 +2,8 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
-  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2, PieChart
+  ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2, PieChart,
+  PhoneCall, Music
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
@@ -27,6 +28,7 @@ const TOP_NAV: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  search?: Record<string, string>;
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
@@ -44,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     projectTabs, addProjectTab, closeProjectTab,
     channels, activeChannelId, setActiveChannelId,
     sidebarCollapsed, setSidebarCollapsed,
+    isInCall, callParticipants,
   } = useStore();
 
   const { user, loading, signOut } = useAuth();
@@ -415,7 +418,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-semibold text-slate-200 truncate">{user?.name ?? "Guest"}</div>
-                  <div className="text-[10px] text-slate-500 truncate">{user?.email ?? "Not signed in"}</div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {isInCall ? (
+                      <span className="text-emerald-400 font-semibold">
+                        In call · {callParticipants.length} participant{callParticipants.length !== 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      user?.email ?? "Not signed in"
+                    )}
+                  </div>
                 </div>
                 <Settings className="size-3.5 text-slate-600 group-hover:text-slate-400 transition shrink-0" />
               </div>

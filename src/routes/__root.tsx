@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { QueenStoreProvider } from "../lib/queen-store";
 import { AuthProvider } from "../lib/auth-store";
+import { LivekitProvider } from "../lib/livekit-provider";
 
 function NotFoundComponent() {
   return (
@@ -139,9 +140,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <QueenStoreProvider>
-          <Outlet />
-        </QueenStoreProvider>
+        <LivekitProvider>
+          <QueenStoreProvider>
+            <Outlet />
+          </QueenStoreProvider>
+        </LivekitProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

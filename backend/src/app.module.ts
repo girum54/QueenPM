@@ -14,6 +14,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { MessagesModule } from './messages/messages.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UsersModule } from './users/users.module';
+import { CallsModule } from './calls/calls.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UsersModule } from './users/users.module';
     TasksModule,
     MessagesModule,
     UsersModule,
+    CallsModule,
   ],
   controllers: [AppController],
   providers: [

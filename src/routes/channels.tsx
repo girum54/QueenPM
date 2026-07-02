@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users, ListTodo,
+  Video, Music
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
@@ -15,6 +16,8 @@ import {
   titleFromMessage,
 } from "@/lib/chat-commands";
 import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
+import { VoiceView } from "@/components/VoiceView";
+import { MusicView } from "@/components/MusicView";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -31,7 +34,7 @@ function ChannelsPage() {
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
     addMessage, addTask, updateTask, consumeJump,
-    activeProjectId, projectTabs, activeSprintId,
+    activeProjectId, projectTabs, activeSprintId, isInCall,
   } = useStore();
 
   const activeProject = useMemo(() => {
@@ -70,6 +73,37 @@ function ChannelsPage() {
   const [assignModalSubtitle, setAssignModalSubtitle] = useState<string | undefined>();
   const [spawningTask, setSpawningTask] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<"chat" | "voice" | "music">("chat");
+
+  // Sync mode state with search parameters on activeChannelId change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const qMode = searchParams.get("mode");
+
+      // If in a call, prioritize voice mode
+      if (isInCall) {
+        setMode("voice");
+      } else if (qMode === "voice" || qMode === "music") {
+        setMode(qMode);
+      } else {
+        setMode("chat");
+      }
+    }
+  }, [activeChannelId, isInCall]);
+
+  const handleModeChange = (newMode: "chat" | "voice" | "music") => {
+    setMode(newMode);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (newMode === "chat") {
+        url.searchParams.delete("mode");
+      } else {
+        url.searchParams.set("mode", newMode);
+      }
+      window.history.pushState({}, "", url.pathname + url.search);
+    }
+  };
 
   const queenUser = users.find((u) => u.isAi);
 
@@ -291,16 +325,55 @@ function ChannelsPage() {
                 QUEEN PM ACTIVE
               </span>
             )}
+
+            {/* Segmented Mode Controls */}
+            <div className="flex items-center bg-slate-900/60 rounded-lg p-0.5 border border-slate-800/80 ml-4 shrink-0">
+              <button
+                onClick={() => handleModeChange("chat")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition ${
+                  mode === "chat"
+                    ? "bg-slate-850 text-slate-100 shadow-sm border border-slate-700/30"
+                    : "text-slate-450 hover:text-slate-200"
+                }`}
+              >
+                <MessageSquare className="size-3.5" />
+                <span>Chat</span>
+              </button>
+              <button
+                onClick={() => handleModeChange("voice")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition ${
+                  mode === "voice"
+                    ? "bg-slate-850 text-fuchsia-300 shadow-sm border border-fuchsia-500/20"
+                    : "text-slate-450 hover:text-slate-200"
+                }`}
+              >
+                <Video className="size-3.5" />
+                <span>Voice & Video</span>
+              </button>
+              <button
+                onClick={() => handleModeChange("music")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition ${
+                  mode === "music"
+                    ? "bg-slate-850 text-fuchsia-300 shadow-sm border border-fuchsia-500/20"
+                    : "text-slate-450 hover:text-slate-200"
+                }`}
+              >
+                <Music className="size-3.5" />
+                <span>Music Lounge</span>
+              </button>
+            </div>
             
             {/* Header controls */}
             <div className="ml-auto flex items-center gap-3 text-slate-500">
-              <button
-                onClick={() => setRightPanelOpen(!rightPanelOpen)}
-                className={`size-8 rounded-lg grid place-items-center transition ${rightPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-300 hover:bg-slate-900/60"}`}
-                title="Toggle Channel Details"
-              >
-                <Info className="size-4.5" />
-              </button>
+              {mode === "chat" && (
+                <button
+                  onClick={() => setRightPanelOpen(!rightPanelOpen)}
+                  className={`size-8 rounded-lg grid place-items-center transition ${rightPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-300 hover:bg-slate-900/60"}`}
+                  title="Toggle Channel Details"
+                >
+                  <Info className="size-4.5" />
+                </button>
+              )}
               <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
                 <Bell className="size-4" />
               </button>
@@ -315,166 +388,179 @@ function ChannelsPage() {
             </div>
           </header>
 
-          {/* Messages Stream */}
-          <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
-            {channelMessages.map((m, idx) => {
-              const author = userById(m.authorId, users)!;
-              const prev = channelMessages[idx - 1];
-              const grouped = prev && prev.authorId === m.authorId && !m.taskRef && !prev.taskRef;
-              const flashing = flashId === m.id;
-              const task = m.taskRef ? tasks.find((t) => t.id === m.taskRef) : null;
-              const linkedTask = !m.taskRef
-                ? tasks.find((t) => t.originMessageId === m.id)
-                : null;
-              const canConvert = !!m.text && !m.taskRef && !linkedTask;
-              return (
-                <div
-                  key={m.id}
-                  id={`msg-${m.id}`}
-                  className={`group relative rounded-lg px-3 py-1.5 transition-all duration-300 ${
-                    m.parentId ? "ml-8 border-l-2 border-slate-800 pl-4" : ""
-                  } ${flashing
-                    ? "bg-fuchsia-500/10 ring-1 ring-fuchsia-500/50 shadow-lg shadow-fuchsia-500/20"
-                    : "hover:bg-slate-900/40"}`}
-                >
-                  {m.pinned && (
-                    <div className="absolute -top-1 left-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 ring-1 ring-amber-500/30 text-[9px] font-semibold text-amber-300">
-                      <Pin className="size-2.5" /> PINNED
-                    </div>
-                  )}
-                  {!grouped && (
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <div className={`size-7 rounded-md ${author.color} grid place-items-center text-[11px] font-bold text-white`}>
-                        {author.isAi ? <Crown className="size-3.5" /> : author.name[0]}
-                      </div>
-                      <span className="text-sm font-semibold text-slate-100">{author.name}</span>
-                      {author.isAi && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 font-semibold tracking-wide">
-                          AI
-                        </span>
-                      )}
-                      <span className="text-[11px] text-slate-500">{m.ts}</span>
-                    </div>
-                  )}
-                  {task ? (
+          {/* Conditional Views based on mode */}
+          {mode === "chat" ? (
+            <>
+              {/* Messages Stream */}
+              <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
+                {channelMessages.map((m, idx) => {
+                  const author = userById(m.authorId, users)!;
+                  const prev = channelMessages[idx - 1];
+                  const grouped = prev && prev.authorId === m.authorId && !m.taskRef && !prev.taskRef;
+                  const flashing = flashId === m.id;
+                  const task = m.taskRef ? tasks.find((t) => t.id === m.taskRef) : null;
+                  const linkedTask = !m.taskRef
+                    ? tasks.find((t) => t.originMessageId === m.id)
+                    : null;
+                  const canConvert = !!m.text && !m.taskRef && !linkedTask;
+                  return (
                     <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setAssignModalSubtitle(undefined);
-                        setAssignModalTask(task);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          setAssignModalSubtitle(undefined);
-                          setAssignModalTask(task);
-                        }
-                      }}
-                      className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/5 to-violet-500/5 p-3 max-w-md cursor-pointer hover:border-fuchsia-500/40 hover:from-fuchsia-500/10 transition`}
+                      key={m.id}
+                      id={`msg-${m.id}`}
+                      className={`group relative rounded-lg px-3 py-1.5 transition-all duration-300 ${
+                        m.parentId ? "ml-8 border-l-2 border-slate-800 pl-4" : ""
+                      } ${flashing
+                        ? "bg-fuchsia-500/10 ring-1 ring-fuchsia-500/50 shadow-lg shadow-fuchsia-500/20"
+                        : "hover:bg-slate-900/40"}`}
                     >
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider mb-1.5">
-                        <Sparkles className="size-3" /> Queen PM created a task
-                      </div>
-                      <div className="text-sm font-medium text-slate-100">{task.title}</div>
-                      <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${PRIORITY_STYLES[task.priority]}`}>
-                          {task.priority}
-                        </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${CREATED_BY_META[task.createdBy].className}`}>
-                          {CREATED_BY_META[task.createdBy].label}
-                        </span>
-                        <span className="ml-auto text-[10px] text-fuchsia-300/80">
-                          {task.assigneeId
-                            ? `→ ${userById(task.assigneeId, users)?.handle}`
-                            : "Click to assign →"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`${grouped ? "ml-9" : "ml-9"} relative`}>
-                      <div className="text-sm text-slate-300 leading-relaxed pr-16">{m.text}</div>
-                      {linkedTask && (
-                        <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400/90 bg-emerald-500/10 ring-1 ring-emerald-500/25 rounded-full px-2 py-0.5">
-                          <ListTodo className="size-3" /> Task created
+                      {m.pinned && (
+                        <div className="absolute -top-1 left-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 ring-1 ring-amber-500/30 text-[9px] font-semibold text-amber-300">
+                          <Pin className="size-2.5" /> PINNED
                         </div>
                       )}
-                      {canConvert && (
-                        <button
-                          onClick={() => convertMessageToTask(m.id, m.text!)}
-                          disabled={spawningTask}
-                          title="Convert message to task"
-                          className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 ring-1 ring-fuchsia-500/30 transition disabled:opacity-40"
+                      {!grouped && (
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <div className={`size-7 rounded-md ${author.color} grid place-items-center text-[11px] font-bold text-white`}>
+                            {author.isAi ? <Crown className="size-3.5" /> : author.name[0]}
+                          </div>
+                          <span className="text-sm font-semibold text-slate-100">{author.name}</span>
+                          {author.isAi && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 font-semibold tracking-wide">
+                              AI
+                            </span>
+                          )}
+                          <span className="text-[11px] text-slate-500">{m.ts}</span>
+                        </div>
+                      )}
+                      {task ? (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setAssignModalSubtitle(undefined);
+                            setAssignModalTask(task);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              setAssignModalSubtitle(undefined);
+                              setAssignModalTask(task);
+                            }
+                          }}
+                          className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/5 to-violet-500/5 p-3 max-w-md cursor-pointer hover:border-fuchsia-500/40 hover:from-fuchsia-500/10 transition`}
                         >
-                          <ListTodo className="size-3" /> Create task
-                        </button>
+                          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider mb-1.5">
+                            <Sparkles className="size-3" /> Queen PM created a task
+                          </div>
+                          <div className="text-sm font-medium text-slate-100">{task.title}</div>
+                          <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${PRIORITY_STYLES[task.priority]}`}>
+                              {task.priority}
+                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${CREATED_BY_META[task.createdBy].className}`}>
+                              {CREATED_BY_META[task.createdBy].label}
+                            </span>
+                            <span className="ml-auto text-[10px] text-fuchsia-300/80">
+                              {task.assigneeId
+                                ? `→ ${userById(task.assigneeId, users)?.handle}`
+                                : "Click to assign →"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`${grouped ? "ml-9" : "ml-9"} relative`}>
+                          <div className="text-sm text-slate-300 leading-relaxed pr-16">{m.text}</div>
+                          {linkedTask && (
+                            <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400/90 bg-emerald-500/10 ring-1 ring-emerald-500/25 rounded-full px-2 py-0.5">
+                              <ListTodo className="size-3" /> Task created
+                            </div>
+                          )}
+                          {canConvert && (
+                            <button
+                              onClick={() => convertMessageToTask(m.id, m.text!)}
+                              disabled={spawningTask}
+                              title="Convert message to task"
+                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 ring-1 ring-fuchsia-500/30 transition disabled:opacity-40"
+                            >
+                              <ListTodo className="size-3" /> Create task
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Composer */}
-          <div className="p-4 border-t border-slate-900 shrink-0 relative">
-            {showAuto && (
-              <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40 overflow-hidden">
-                <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-800">
-                  Quick actions
-                </div>
-                {quickActions.map((o) => (
-                  <button
-                    key={o.cmd}
-                    type="button"
-                    onClick={() => setInput(o.example)}
-                    className="w-full px-3 py-2.5 hover:bg-slate-800/60 cursor-pointer flex items-center gap-3 text-left transition"
-                  >
-                    {o.icon === "zap" ? (
-                      <Zap className="size-4 text-violet-400 shrink-0" />
-                    ) : (
-                      <Crown className="size-4 text-fuchsia-400 shrink-0" />
-                    )}
-                    <div>
-                      <div className="text-sm font-mono text-slate-200">{o.example}</div>
-                      <div className="text-[11px] text-slate-500">{o.desc}</div>
-                    </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
-            )}
-            <div className="flex items-end gap-2 rounded-xl border border-slate-800 bg-slate-900/60 focus-within:border-slate-700 px-3 py-2 transition">
-              <textarea
-                rows={1}
-                value={input}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={`Message #${activeChannel?.name}  ·  /createtask, /todo, or @queen`}
-                className="flex-1 bg-transparent resize-none outline-none text-sm text-slate-200 placeholder:text-slate-500 max-h-40 py-1"
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || spawningTask}
-                className="size-8 grid place-items-center rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 disabled:bg-slate-800 disabled:text-slate-600 text-white transition"
-              >
-                <Send className="size-3.5" />
-              </button>
+
+              {/* Composer */}
+              <div className="p-4 border-t border-slate-900 shrink-0 relative animate-fade-in">
+                {showAuto && (
+                  <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40 overflow-hidden">
+                    <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-800">
+                      Quick actions
+                    </div>
+                    {quickActions.map((o) => (
+                      <button
+                        key={o.cmd}
+                        type="button"
+                        onClick={() => setInput(o.example)}
+                        className="w-full px-3 py-2.5 hover:bg-slate-800/60 cursor-pointer flex items-center gap-3 text-left transition"
+                      >
+                        {o.icon === "zap" ? (
+                          <Zap className="size-4 text-violet-400 shrink-0" />
+                        ) : (
+                          <Crown className="size-4 text-fuchsia-400 shrink-0" />
+                        )}
+                        <div>
+                          <div className="text-sm font-mono text-slate-200">{o.example}</div>
+                          <div className="text-[11px] text-slate-550">{o.desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-end gap-2 rounded-xl border border-slate-800 bg-slate-900/60 focus-within:border-slate-700 px-3 py-2 transition">
+                  <textarea
+                    rows={1}
+                    value={input}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    placeholder={`Message #${activeChannel?.name}  ·  /createtask, /todo, or @queen`}
+                    className="flex-1 bg-transparent resize-none outline-none text-sm text-slate-200 placeholder:text-slate-500 max-h-40 py-1"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || spawningTask}
+                    className="size-8 grid place-items-center rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 disabled:bg-slate-800 disabled:text-slate-600 text-white transition"
+                  >
+                    <Send className="size-3.5" />
+                  </button>
+                </div>
+                <div className="mt-1.5 text-[10px] text-slate-600 flex items-center gap-3 px-1 flex-wrap">
+                  <span><MessageSquare className="size-3 inline mr-1" /> Enter to send</span>
+                  <span>Shift+Enter for newline</span>
+                  <span className="text-slate-700">·</span>
+                  <span>Hover a message → Create task</span>
+                </div>
+              </div>
+            </>
+          ) : mode === "voice" ? (
+            <div className="flex-1 min-h-0">
+              <VoiceView channelName={activeChannel?.name || "Voice Lounge"} onLeave={() => handleModeChange("chat")} />
             </div>
-            <div className="mt-1.5 text-[10px] text-slate-600 flex items-center gap-3 px-1 flex-wrap">
-              <span><MessageSquare className="size-3 inline mr-1" /> Enter to send</span>
-              <span>Shift+Enter for newline</span>
-              <span className="text-slate-700">·</span>
-              <span>Hover a message → Create task</span>
+          ) : (
+            <div className="flex-1 min-h-0">
+              <MusicView />
             </div>
-          </div>
+          )}
         </section>
 
         {/* RIGHT SIDE PANEL: Details, Pins & Members */}
-        {rightPanelOpen && (
+        {mode === "chat" && rightPanelOpen && (
           <>
             <div
               onClick={() => setRightPanelOpen(false)}
