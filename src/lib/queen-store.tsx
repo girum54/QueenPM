@@ -148,6 +148,11 @@ interface StoreShape {
   setSidebarCollapsed: (collapsed: boolean) => void;
   activeSprintId: string | null;
   setActiveSprintId: (id: string | null) => void;
+  // Call state
+  isInCall: boolean;
+  setIsInCall: (inCall: boolean) => void;
+  callParticipants: string[];
+  setCallParticipants: (participants: string[]) => void;
 }
 
 const StoreCtx = createContext<StoreShape | null>(null);
@@ -168,6 +173,8 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [activeSprintId, setActiveSprintId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
+  const [isInCall, setIsInCall] = useState<boolean>(false);
+  const [callParticipants, setCallParticipants] = useState<string[]>([]);
   const consumed = useRef(false);
 
   // Fetch users on mount
@@ -535,8 +542,12 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       setSidebarCollapsed: handleSetSidebarCollapsed,
       activeSprintId,
       setActiveSprintId,
+      isInCall,
+      setIsInCall,
+      callParticipants,
+      setCallParticipants,
     }),
-    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId]
+    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, isInCall, callParticipants]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

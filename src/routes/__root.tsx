@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { QueenStoreProvider } from "../lib/queen-store";
 import { AuthProvider } from "../lib/auth-store";
 import { NotificationsProvider } from "../lib/notifications-store";
+import { LivekitProvider } from "../lib/livekit-provider";
 
 function NotFoundComponent() {
   return (
@@ -140,11 +141,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <QueenStoreProvider>
-          <NotificationsProvider>
+        <LivekitProvider>
+          <QueenStoreProvider>
             <Outlet />
-          </NotificationsProvider>
-        </QueenStoreProvider>
+          </QueenStoreProvider>
+        </LivekitProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -9,10 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as MusicRouteImport } from './routes/music'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ExecutiveRoadmapRouteImport } from './routes/executive-roadmap'
 import { Route as ExecutiveReportsRouteImport } from './routes/executive-reports'
@@ -22,6 +24,11 @@ import { Route as ChannelsRouteImport } from './routes/channels'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VoiceRoute = VoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -40,6 +47,11 @@ const SprintRoute = SprintRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MusicRoute = MusicRouteImport.update({
+  id: '/music',
+  path: '/music',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -92,10 +104,12 @@ export interface FileRoutesByFullPath {
   '/executive-reports': typeof ExecutiveReportsRoute
   '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
+  '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
   '/tasks': typeof TasksRoute
+  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -106,10 +120,12 @@ export interface FileRoutesByTo {
   '/executive-reports': typeof ExecutiveReportsRoute
   '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
+  '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
   '/tasks': typeof TasksRoute
+  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -121,10 +137,12 @@ export interface FileRoutesById {
   '/executive-reports': typeof ExecutiveReportsRoute
   '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
+  '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
   '/tasks': typeof TasksRoute
+  '/voice': typeof VoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,10 +155,12 @@ export interface FileRouteTypes {
     | '/executive-reports'
     | '/executive-roadmap'
     | '/login'
+    | '/music'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
     | '/tasks'
+    | '/voice'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,10 +171,12 @@ export interface FileRouteTypes {
     | '/executive-reports'
     | '/executive-roadmap'
     | '/login'
+    | '/music'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
     | '/tasks'
+    | '/voice'
   id:
     | '__root__'
     | '/'
@@ -165,10 +187,12 @@ export interface FileRouteTypes {
     | '/executive-reports'
     | '/executive-roadmap'
     | '/login'
+    | '/music'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
     | '/tasks'
+    | '/voice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -180,14 +204,23 @@ export interface RootRouteChildren {
   ExecutiveReportsRoute: typeof ExecutiveReportsRoute
   ExecutiveRoadmapRoute: typeof ExecutiveRoadmapRoute
   LoginRoute: typeof LoginRoute
+  MusicRoute: typeof MusicRoute
   ProjectsRoute: typeof ProjectsRoute
   SprintRoute: typeof SprintRoute
   SprintConfigRoute: typeof SprintConfigRoute
   TasksRoute: typeof TasksRoute
+  VoiceRoute: typeof VoiceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voice': {
+      id: '/voice'
+      path: '/voice'
+      fullPath: '/voice'
+      preLoaderRoute: typeof VoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tasks': {
       id: '/tasks'
       path: '/tasks'
@@ -214,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/music': {
+      id: '/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof MusicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -284,10 +324,12 @@ const rootRouteChildren: RootRouteChildren = {
   ExecutiveReportsRoute: ExecutiveReportsRoute,
   ExecutiveRoadmapRoute: ExecutiveRoadmapRoute,
   LoginRoute: LoginRoute,
+  MusicRoute: MusicRoute,
   ProjectsRoute: ProjectsRoute,
   SprintRoute: SprintRoute,
   SprintConfigRoute: SprintConfigRoute,
   TasksRoute: TasksRoute,
+  VoiceRoute: VoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
