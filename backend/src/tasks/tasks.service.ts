@@ -9,12 +9,16 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
 import { DRIZZLE } from '../database/database.provider';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Db = NodePgDatabase<typeof schema>;
 
 @Injectable()
 export class TasksService {
-  constructor(@Inject(DRIZZLE) private readonly db: Db) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Db,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async findAll(projectId?: string, sprintId?: string) {
     return this.db.query.tasks.findMany({
@@ -96,6 +100,20 @@ export class TasksService {
         estimateDays: dto.estimateDays ?? null,
       })
       .returning();
+
+    // Notify assignee if different from creator
+    if (task.assigneeId && task.assigneeId !== actingUserId) {
+      await this.notificationsService.push({
+        recipientId: task.assigneeId,
+        actorId: actingUserId,
+        type: 'task_assigned',
+        title: 'You were assigned a task',
+        body: task.title,
+        projectId: task.projectId,
+        taskId: task.id,
+      });
+    }
+
     return task;
   }
 
@@ -130,6 +148,42 @@ export class TasksService {
       })
       .where(eq(schema.tasks.id, id))
       .returning();
+
+    // Notify on assignee change
+    if (
+      dto.assigneeId &&
+      dto.assigneeId !== existing.assigneeId &&
+      dto.assigneeId !== actingUserId
+    ) {
+      await this.notificationsService.push({
+        recipientId: dto.assigneeId,
+        actorId: actingUserId,
+        type: 'task_assigned',
+        title: 'You were assigned a task',
+        body: updated.title,
+        projectId: updated.projectId,
+        taskId: updated.id,
+      });
+    }
+
+    // Notify task creator when task is deployed
+    if (
+      dto.column === 'deployed' &&
+      existing.column !== 'deployed' &&
+      existing.assigneeId &&
+      existing.assigneeId !== actingUserId
+    ) {
+      await this.notificationsService.push({
+        recipientId: existing.assigneeId,
+        actorId: actingUserId,
+        type: 'task_moved',
+        title: 'Your task was deployed! 🚀',
+        body: updated.title,
+        projectId: updated.projectId,
+        taskId: updated.id,
+      });
+    }
+
     return updated;
   }
 
