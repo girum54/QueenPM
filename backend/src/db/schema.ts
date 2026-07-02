@@ -31,10 +31,9 @@ export const user = pgTable("user", {
   username: text("username"), // e.g. @mira
   color: text("color"),       // avatar background class
   isAi: boolean("is_ai").default(false),
-  role: roleEnum("role").default("member").notNull(),
+  // role: roleEnum("role").default("member").notNull(),
   role: userRoleEnum("role").default("developer").notNull(),
 });
-
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
