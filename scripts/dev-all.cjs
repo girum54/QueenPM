@@ -118,7 +118,7 @@ function handleOutput(name, isErr, data) {
 
 function spawnService({ name, cmd, args: cmdArgs, cwd }) {
   log('SYSTEM', `Starting ${name}...`);
-  const child = spawn(cmd, cmdArgs, { cwd, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(cmd, cmdArgs, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
   child.stdout.on('data', (d) => handleOutput(name, false, d));
   child.stderr.on('data', (d) => handleOutput(name, true, d));
   child.on('exit', (code) => log('SYSTEM', `${name} exited (code ${code})`));
@@ -150,7 +150,7 @@ async function main() {
     log('SYSTEM', `✅ DB tunnel already up on :${localDbPort} — skipping`);
   } else {
     log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
-    const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { stdio: ['ignore', 'pipe', 'pipe'] });
     tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
     tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
     tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
