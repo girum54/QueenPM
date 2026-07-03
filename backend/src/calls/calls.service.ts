@@ -1,25 +1,31 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AccessToken } from 'livekit-server-sdk';
-import { DRIZZLE } from '../database/database.provider';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import * as schema from '../db/schema';
-
-type Db = NodePgDatabase<typeof schema>;
 
 @Injectable()
 export class CallsService {
-  private readonly livekitUrl = process.env.LIVEKIT_URL || 'http://localhost:7880';
-  private readonly apiKey = process.env.LIVEKIT_API_KEY || 'devkey';
-  private readonly apiSecret = process.env.LIVEKIT_API_SECRET || 'secret';
+  private readonly livekitUrl: string;
+  private readonly apiKey: string;
+  private readonly apiSecret: string;
 
-  constructor(@Inject(DRIZZLE) private db: Db) {}
+  constructor(private config: ConfigService) {
+    this.livekitUrl = this.config.get<string>('LIVEKIT_URL', 'ws://localhost:7880');
+    this.apiKey = this.config.get<string>('LIVEKIT_API_KEY', 'devkey');
+    this.apiSecret = this.config.get<string>('LIVEKIT_API_SECRET', 'secret');
+  }
 
   async generateAccessToken(
     roomName: string,
     userId: string,
     userName: string,
   ): Promise<string> {
-    const at = new AccessToken(this.apiKey, this.apiSecret);
+    const at = new AccessToken(this.apiKey, this.apiSecret, {
+      identity: userId,
+      name: userName,
+      // Token expires in 6 hours
+      ttl: '6h',
+    });
+
     at.addGrant({
       room: roomName,
       roomJoin: true,
@@ -28,10 +34,7 @@ export class CallsService {
       canSubscribe: true,
     });
 
-    at.identity = userId;
-    at.name = userName;
-
-    return at.toJwt();
+    return await at.toJwt();
   }
 
   getLivekitUrl(): string {

@@ -1,8 +1,8 @@
 # Live Audio/Video Call Tasks
 
 ## Feature 1: Connection & Signaling Infrastructure
-- [ ] Setup LiveKit env variables and token generation endpoints.
-- [ ] Implement LivekitProvider token fetching and room guard logic.
+- [x] Setup LiveKit env variables and token generation endpoints.
+- [x] Implement LivekitProvider token fetching and room guard logic.
 
 ## Feature 2: Core Call View & Media Binding
 - [ ] Wrap VoiceView UI with LiveKitRoom and implement participant hooks safety.
