@@ -1,3 +1,14 @@
+/**
+ * dev:all — Start all dev services in one terminal (Queen Project Variant).
+ *
+ * Mirrors the working manual setup:
+ * 1. DB tunnel  (ssh -N -L 5433:127.0.0.1:5432 uib-server)
+ * 2. Backend    (nest start — no built-in tunnel, uses the one above)
+ * 3. Frontend   (next dev)
+ *
+ * Usage: npm run dev:all
+ */
+
 const net = require('net');
 const path = require('path');
 const fs = require('fs');
@@ -21,12 +32,12 @@ function getLocalIP() {
 }
 
 function updateIP(newIP) {
+  // REMOVED: mobile/.env out of the target list
   const envFiles = [
     path.join(__dirname, '../.env'),
     path.join(__dirname, '../backend/.env'),
     path.join(__dirname, '../env/web.development'),
-    path.join(__dirname, '../env/backend.development'),
-    path.join(__dirname, '../mobile/.env')
+    path.join(__dirname, '../env/backend.development')
   ];
 
   console.log(`[SYSTEM] Updating LOCAL_IP to ${newIP} in all .env files...`);
@@ -64,7 +75,6 @@ const COLORS = {
   Tunnel:   '\x1b[33m',
   Backend:  '\x1b[36m',
   Frontend: '\x1b[35m',
-  Mobile:   '\x1b[32m',
   SYSTEM:   '\x1b[34m',
   RESET:    '\x1b[0m',
 };
@@ -118,7 +128,7 @@ function handleOutput(name, isErr, data) {
 
 function spawnService({ name, cmd, args: cmdArgs, cwd }) {
   log('SYSTEM', `Starting ${name}...`);
-  const child = spawn(cmd, cmdArgs, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(cmd, cmdArgs, { cwd, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
   child.stdout.on('data', (d) => handleOutput(name, false, d));
   child.stderr.on('data', (d) => handleOutput(name, true, d));
   child.on('exit', (code) => log('SYSTEM', `${name} exited (code ${code})`));
@@ -131,17 +141,23 @@ async function main() {
 
   const active = [];
   let cleaning = false;
+  
   const cleanup = () => {
     if (cleaning) return;
     cleaning = true;
     log('SYSTEM', '🛑 Stopping all processes...');
     for (const { child, name } of active) {
-      try { process.kill(child.pid, 'SIGTERM'); } catch (_) { }
+      try {
+        execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: 'ignore', timeout: 3000 });
+      } catch (_) {
+        try { child.kill('SIGKILL'); } catch (__) {}
+      }
       log('SYSTEM', `✅ ${name} stopped`);
     }
     log('SYSTEM', '👋 Goodbye!');
     process.exit(0);
   };
+  
   process.on('SIGINT', cleanup);
   process.on('SIGTERM', cleanup);
   process.on('SIGHUP', cleanup);
@@ -150,7 +166,7 @@ async function main() {
     log('SYSTEM', `✅ DB tunnel already up on :${localDbPort} — skipping`);
   } else {
     log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
-    const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
     tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
     tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
     tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
@@ -173,8 +189,7 @@ async function main() {
   const frontend = spawnService({ name: 'Frontend', cmd: 'npm', args: ['run', 'dev'], cwd: root });
   active.push({ child: frontend, name: 'Frontend' });
 
-  const mobile = spawnService({ name: 'Mobile', cmd: 'npm', args: ['start'], cwd: path.join(root, 'mobile') });
-  active.push({ child: mobile, name: 'Mobile' });
+  // REMOVED: Mobile execution completely out of the workflow
 
   log('SYSTEM', '✨ All services starting. Press Ctrl+C to stop everything.\n');
 
