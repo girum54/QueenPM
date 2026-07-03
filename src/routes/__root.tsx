@@ -141,11 +141,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <LivekitProvider>
-          <QueenStoreProvider>
-            <Outlet />
-          </QueenStoreProvider>
-        </LivekitProvider>
+        <NotificationsProvider>
+          <LivekitProvider>
+            <QueenStoreProvider>
+              <Outlet />
+            </QueenStoreProvider>
+          </LivekitProvider>
+        </NotificationsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
