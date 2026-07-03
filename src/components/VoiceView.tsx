@@ -4,10 +4,11 @@ import {
   Users, MessageSquare, MoreHorizontal, Plus, Send, Hash, Loader2,
   AlertCircle, RefreshCw,
 } from "lucide-react";
+import { Track } from "livekit-client";
 import { useStore } from "@/lib/queen-store";
 import { useLivekit } from "@/lib/livekit-provider";
 import { ParticipantTile } from "./call/ParticipantTile";
-import { useLocalParticipant, useParticipants, RoomAudioRenderer } from "@livekit/components-react";
+import { useLocalParticipant, useParticipants, useTracks } from "@livekit/components-react";
 
 export interface VoiceViewProps {
   channelName?: string;
@@ -32,6 +33,14 @@ function ConnectedCallView({
   const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
 
+  // Get all room tracks once — filter per participant when rendering tiles.
+  // This replaces RoomAudioRenderer: each ParticipantTile renders its own AudioTrack.
+  const allTracks = useTracks([
+    { source: Track.Source.Camera, withPlaceholder: true },
+    { source: Track.Source.ScreenShare, withPlaceholder: false },
+    { source: Track.Source.Microphone, withPlaceholder: false },
+  ]);
+
   const [elapsed, setElapsed] = useState(0);
   const [chat, setChat] = useState<Array<{ id: string; who: string; text: string; t: string }>>([]);
   const [draft, setDraft] = useState("");
@@ -54,13 +63,13 @@ function ConnectedCallView({
     };
   }, [localParticipant, participants, setIsInCall, setCallParticipants]);
 
-  // Initialize mic/camera toggles from the actual local participant state
+  // Initialize mic/camera toggle state from the real local participant on mount
   useEffect(() => {
-    if (localParticipant) {
-      setIsMicOn(localParticipant.isMicrophoneEnabled());
-      setIsCameraOn(localParticipant.isCameraEnabled());
-    }
-  }, [localParticipant]);
+    if (!localParticipant) return;
+    setIsMicOn(localParticipant.isMicrophoneEnabled());
+    setIsCameraOn(localParticipant.isCameraEnabled());
+    setIsScreenSharing(localParticipant.isScreenShareEnabled());
+  }, [localParticipant?.identity]); // only re-run when the participant itself changes
 
   // Call timer
   useEffect(() => {
@@ -134,8 +143,6 @@ function ConnectedCallView({
 
   return (
     <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0 bg-slate-950">
-      {/* Renders audio tracks for all remote participants */}
-      <RoomAudioRenderer />
 
       {/* CENTER: stage */}
       <main className="flex flex-col min-h-0">
@@ -167,12 +174,17 @@ function ConnectedCallView({
           <div className={`min-h-0 grid gap-3 ${focusedParticipant ? "grid-cols-[1fr_220px]" : ""}`}>
             {focusedParticipant ? (
               <>
-                <ParticipantTile participant={focusedParticipant} large />
+                <ParticipantTile
+                  participant={focusedParticipant}
+                  tracks={allTracks.filter((t) => t.participant.identity === focusedParticipant.identity)}
+                  large
+                />
                 <div className="grid grid-cols-1 auto-rows-[120px] gap-2 overflow-y-auto pr-1">
                   {gridParticipants.map((p) => (
                     <ParticipantTile
                       key={p.identity}
                       participant={p}
+                      tracks={allTracks.filter((t) => t.participant.identity === p.identity)}
                       small
                       onClick={() => setFocusId(p.identity)}
                     />
@@ -190,11 +202,12 @@ function ConnectedCallView({
                   <ParticipantTile
                     key={p.identity}
                     participant={p}
+                    tracks={allTracks.filter((t) => t.participant.identity === p.identity)}
                     onClick={() => setFocusId(p.identity)}
                   />
                 ))}
               </div>
-            )}
+            ))}
           </div>
 
           {/* Control bar */}
