@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore, COLUMN_META, type ColumnId } from "@/lib/queen-store";
+import { useAuth } from "@/lib/auth-store";
 import { dashboardApi, type DashboardStats } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/")({
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
   const { activeProjectId, projectTabs } = useStore();
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +73,7 @@ function DashboardPage() {
                 </span>
               </div>
               <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
-                Welcome to QueenPM. Your dashboard is ready.
+                Hello {user?.name ?? "there"}, your dashboard is ready.
               </h1>
               <p className="text-sm text-slate-400 mt-1">
                 {metrics.byCol.active} tasks active · {metrics.byCol.staging} in staging · {metrics.byCol.deployed} deployed this cycle
