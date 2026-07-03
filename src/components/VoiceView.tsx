@@ -66,12 +66,9 @@ function ConnectedCallView({
   // Initialize mic/camera toggle state from the real local participant on mount
   useEffect(() => {
     if (!localParticipant) return;
-    setIsMicOn(localParticipant.isMicrophoneEnabled());
-    setIsCameraOn(localParticipant.isCameraEnabled());
-    // isScreenShareEnabled exists on LocalParticipant but not on the base Participant type
-    if (typeof (localParticipant as any).isScreenShareEnabled === "function") {
-      setIsScreenSharing((localParticipant as any).isScreenShareEnabled());
-    }
+    setIsMicOn(localParticipant.isMicrophoneEnabled);
+    setIsCameraOn(localParticipant.isCameraEnabled);
+    setIsScreenSharing(!!(localParticipant as any).isScreenShareEnabled);
   }, [localParticipant?.identity]); // identity string is safe in dep array
 
   // Call timer
@@ -210,7 +207,7 @@ function ConnectedCallView({
                   />
                 ))}
               </div>
-            ))}
+            )}
           </div>
 
           {/* Control bar */}

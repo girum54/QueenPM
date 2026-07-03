@@ -1,12 +1,12 @@
 /**
  * dev:all — Start all dev services in one terminal (Queen Project Variant).
  *
- * Mirrors the working manual setup:
- * 1. DB tunnel  (ssh -N -L 5433:127.0.0.1:5432 uib-server)
- * 2. Backend    (nest start — no built-in tunnel, uses the one above)
- * 3. Frontend   (next dev)
+ * Modes:
+ *   npm run dev:all     — local mode: tunnel + backend + frontend (all local)
+ *   npm run dev:remote  — remote mode: frontend only, pointed at the hosted backend
  *
- * Usage: npm run dev:all
+ * Remote mode reads REMOTE_API_URL from the environment or falls back to
+ * the VITE_API_URL value in the root .env file.
  */
 
 const net = require('net');
@@ -158,6 +158,8 @@ function spawnService({ name, cmd, args: cmdArgs, cwd, env }) {
 }
 
 async function main() {
+  const isRemote = process.argv.includes('--remote');
+
   const currentIP = getLocalIP();
   if (currentIP) updateIP(currentIP);
 
@@ -184,41 +186,65 @@ async function main() {
   process.on('SIGTERM', cleanup);
   process.on('SIGHUP', cleanup);
 
-  if (await portOpen(localDbPort)) {
-    log('SYSTEM', `✅ DB tunnel already up on :${localDbPort} — skipping`);
+  if (isRemote) {
+    // ── Remote mode: only start the frontend, pointed at the hosted backend ──
+    const remoteApiUrl = process.env.REMOTE_API_URL || (() => {
+      // Fall back to VITE_API_URL from root .env
+      const envPath = path.join(root, '.env');
+      if (fs.existsSync(envPath)) {
+        const match = fs.readFileSync(envPath, 'utf8').match(/^VITE_API_URL\s*=\s*(.+)$/m);
+        if (match) return match[1].trim();
+      }
+      return 'http://localhost:3001';
+    })();
+
+    log('SYSTEM', `🌐 Remote mode — frontend → ${remoteApiUrl}`);
+    log('SYSTEM', '   (local backend and DB tunnel are skipped)');
+
+    const frontend = spawnService({
+      name: 'Frontend',
+      cmd: 'npm',
+      args: ['run', 'dev'],
+      cwd: root,
+      env: { VITE_API_URL: remoteApiUrl },
+    });
+    active.push({ child: frontend, name: 'Frontend' });
   } else {
-    log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
-    const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
-    tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
-    tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
-    active.push({ child: tunnel, name: 'Tunnel' });
+    // ── Local mode: tunnel + backend + frontend ───────────────────────────────
+    if (await portOpen(localDbPort)) {
+      log('SYSTEM', `✅ DB tunnel already up on :${localDbPort} — skipping`);
+    } else {
+      log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
+      const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
+      tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
+      tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
+      active.push({ child: tunnel, name: 'Tunnel' });
 
-    log('SYSTEM', 'Waiting for tunnel to be ready...');
-    let ready = false;
-    for (let i = 0; i < 20; i++) {
-      await delay(1000);
-      if (await portOpen(localDbPort)) { ready = true; break; }
+      log('SYSTEM', 'Waiting for tunnel to be ready...');
+      let ready = false;
+      for (let i = 0; i < 20; i++) {
+        await delay(1000);
+        if (await portOpen(localDbPort)) { ready = true; break; }
+      }
+      if (!ready) log('SYSTEM', '⚠️  Tunnel port never opened. Check SSH access to uib-server. Continuing anyway...');
+      else log('SYSTEM', `✅ Tunnel ready on :${localDbPort}`);
     }
-    if (!ready) log('SYSTEM', '⚠️  Tunnel port never opened. Check SSH access to uib-server. Continuing anyway...');
-    else log('SYSTEM', `✅ Tunnel ready on :${localDbPort}`);
+
+    await delay(1500);
+    let backendEnv = undefined;
+    const tunneledDatabaseUrl = resolveDatabaseUrlForTunnel(localDbPort);
+    if (tunneledDatabaseUrl) {
+      backendEnv = { DATABASE_URL: tunneledDatabaseUrl };
+      log('SYSTEM', `✅ Using local DB tunnel for Backend: ${tunneledDatabaseUrl}`);
+    }
+
+    const backend = spawnService({ name: 'Backend', cmd: 'npm', args: ['start'], cwd: path.join(root, 'backend'), env: backendEnv });
+    active.push({ child: backend, name: 'Backend' });
+
+    const frontend = spawnService({ name: 'Frontend', cmd: 'npm', args: ['run', 'dev'], cwd: root });
+    active.push({ child: frontend, name: 'Frontend' });
   }
-
-  await delay(1500);
-  let backendEnv = undefined;
-  const tunneledDatabaseUrl = resolveDatabaseUrlForTunnel(localDbPort);
-  if (tunneledDatabaseUrl) {
-    backendEnv = { DATABASE_URL: tunneledDatabaseUrl };
-    log('SYSTEM', `✅ Using local DB tunnel for Backend: ${tunneledDatabaseUrl}`);
-  }
-
-  const backend = spawnService({ name: 'Backend', cmd: 'npm', args: ['start'], cwd: path.join(root, 'backend'), env: backendEnv });
-  active.push({ child: backend, name: 'Backend' });
-
-  const frontend = spawnService({ name: 'Frontend', cmd: 'npm', args: ['run', 'dev'], cwd: root });
-  active.push({ child: frontend, name: 'Frontend' });
-
-  // REMOVED: Mobile execution completely out of the workflow
 
   log('SYSTEM', '✨ All services starting. Press Ctrl+C to stop everything.\n');
 
