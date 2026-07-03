@@ -126,9 +126,31 @@ function handleOutput(name, isErr, data) {
   }
 }
 
-function spawnService({ name, cmd, args: cmdArgs, cwd }) {
+function resolveDatabaseUrlForTunnel(localPort) {
+  const envPath = path.join(__dirname, '../backend/.env');
+  if (!fs.existsSync(envPath)) return null;
+
+  const content = fs.readFileSync(envPath, 'utf8');
+  const match = content.match(/^DATABASE_URL\s*=\s*["']?(.*?)["']?$/m);
+  if (!match) return null;
+
+  try {
+    const url = new URL(match[1].trim());
+    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+      return url.toString();
+    }
+
+    url.hostname = '127.0.0.1';
+    url.port = String(localPort);
+    return url.toString();
+  } catch (err) {
+    return null;
+  }
+}
+
+function spawnService({ name, cmd, args: cmdArgs, cwd, env }) {
   log('SYSTEM', `Starting ${name}...`);
-  const child = spawn(cmd, cmdArgs, { cwd, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(cmd, cmdArgs, { cwd, shell: true, stdio: ['ignore', 'pipe', 'pipe'], env: env ? { ...process.env, ...env } : process.env });
   child.stdout.on('data', (d) => handleOutput(name, false, d));
   child.stderr.on('data', (d) => handleOutput(name, true, d));
   child.on('exit', (code) => log('SYSTEM', `${name} exited (code ${code})`));
@@ -183,7 +205,14 @@ async function main() {
   }
 
   await delay(1500);
-  const backend = spawnService({ name: 'Backend', cmd: 'npm', args: ['start'], cwd: path.join(root, 'backend') });
+  let backendEnv = undefined;
+  const tunneledDatabaseUrl = resolveDatabaseUrlForTunnel(localDbPort);
+  if (tunneledDatabaseUrl) {
+    backendEnv = { DATABASE_URL: tunneledDatabaseUrl };
+    log('SYSTEM', `✅ Using local DB tunnel for Backend: ${tunneledDatabaseUrl}`);
+  }
+
+  const backend = spawnService({ name: 'Backend', cmd: 'npm', args: ['start'], cwd: path.join(root, 'backend'), env: backendEnv });
   active.push({ child: backend, name: 'Backend' });
 
   const frontend = spawnService({ name: 'Frontend', cmd: 'npm', args: ['run', 'dev'], cwd: root });
