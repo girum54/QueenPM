@@ -187,19 +187,30 @@ async function main() {
   process.on('SIGHUP', cleanup);
 
   if (isRemote) {
-    // ── Remote mode: only start the frontend, pointed at the hosted backend ──
-    const remoteApiUrl = process.env.REMOTE_API_URL || (() => {
-      // Fall back to VITE_API_URL from root .env
-      const envPath = path.join(root, '.env');
-      if (fs.existsSync(envPath)) {
-        const match = fs.readFileSync(envPath, 'utf8').match(/^VITE_API_URL\s*=\s*(.+)$/m);
-        if (match) return match[1].trim();
-      }
-      return 'http://localhost:3001';
-    })();
+    // ── Remote mode: tunnel port 3001 and start frontend pointed at localhost:3001 ──
+    const localBackendPort = '3001';
+    if (await portOpen(localBackendPort)) {
+      log('SYSTEM', `✅ Backend tunnel already up on :${localBackendPort} — skipping`);
+    } else {
+      log('SYSTEM', `Opening Backend tunnel 127.0.0.1:${localBackendPort} → ${sshHost}:3001`);
+      const tunnel = spawn('ssh', ['-N', '-L', `${localBackendPort}:127.0.0.1:3001`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
+      tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
+      tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
+      active.push({ child: tunnel, name: 'Tunnel' });
 
-    log('SYSTEM', `🌐 Remote mode — frontend → ${remoteApiUrl}`);
-    log('SYSTEM', '   (local backend and DB tunnel are skipped)');
+      log('SYSTEM', 'Waiting for backend tunnel to be ready...');
+      let ready = false;
+      for (let i = 0; i < 20; i++) {
+        await delay(1000);
+        if (await portOpen(localBackendPort)) { ready = true; break; }
+      }
+      if (!ready) log('SYSTEM', '⚠️ Tunnel port never opened. Check SSH access to uib-server. Continuing anyway...');
+      else log('SYSTEM', `✅ Backend tunnel ready on :${localBackendPort}`);
+    }
+
+    const remoteApiUrl = 'http://localhost:3001';
+    log('SYSTEM', `🌐 Remote mode — frontend → ${remoteApiUrl} (tunneling to ${sshHost})`);
 
     const frontend = spawnService({
       name: 'Frontend',
