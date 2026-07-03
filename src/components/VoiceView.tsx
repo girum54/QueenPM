@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, PhoneOff,
   Users, MessageSquare, MoreHorizontal, Plus, Send, Hash, Loader2,
@@ -133,7 +133,16 @@ function ConnectedCallView({
     return `${h ? String(h).padStart(2, "0") + ":" : ""}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   })();
 
-  const allParticipants = localParticipant ? [localParticipant, ...participants] : participants;
+  const allParticipants = useMemo(() => {
+    const map = new Map();
+    if (localParticipant) {
+      map.set(localParticipant.identity, localParticipant);
+    }
+    participants.forEach((p) => {
+      map.set(p.identity, p);
+    });
+    return Array.from(map.values());
+  }, [localParticipant, participants]);
   const focusedParticipant = focusId
     ? allParticipants.find((p) => p.identity === focusId)
     : allParticipants[0];
