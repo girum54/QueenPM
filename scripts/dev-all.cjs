@@ -131,7 +131,7 @@ function resolveDatabaseUrlForTunnel(localPort) {
   if (!fs.existsSync(envPath)) return null;
 
   const content = fs.readFileSync(envPath, 'utf8');
-  const match = content.match(/^DATABASE_URL\s*=\s*["']?(.*?)["']?$/m);
+  const match = content.match(/^DATABASE_URL\s*=\s*["']?(.*?)["']?\s*$/m);
   if (!match) return null;
 
   try {
