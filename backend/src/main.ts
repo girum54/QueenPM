@@ -11,9 +11,10 @@ async function bootstrap() {
   // Disable default NestJS body parser so Better Auth can process raw requests
   const app = await NestFactory.create(AppModule, { bodyParser: false });
 
-  // Configure CORS to trust our Vite frontend with credentials
+  // Reflect the requesting origin back — required for cross-origin requests
+  // with credentials (cookies) from any team member's machine.
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:8080'],
+    origin: (origin, callback) => callback(null, origin ?? true),
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
