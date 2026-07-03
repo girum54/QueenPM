@@ -71,7 +71,7 @@ function DashboardPage() {
                 </span>
               </div>
               <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
-                Good morning. The current project sprint is on track.
+                Welcome to QueenPM. Your dashboard is ready.
               </h1>
               <p className="text-sm text-slate-400 mt-1">
                 {metrics.byCol.active} tasks active · {metrics.byCol.staging} in staging · {metrics.byCol.deployed} deployed this cycle
