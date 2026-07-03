@@ -98,7 +98,7 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
     try {
       // 1. Fetch token + LiveKit WebSocket URL from the backend (auth-guarded)
       const response = await fetch(
-        `${API_BASE_URL}/api/calls/token/${encodeURIComponent(roomName)}`,
+        `${API_BASE_URL}/calls/token/${encodeURIComponent(roomName)}`,
         { credentials: 'include' },
       );
 
