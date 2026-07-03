@@ -1,0 +1,196 @@
+const net = require('net');
+const path = require('path');
+const fs = require('fs');
+const { spawn, execSync } = require('child_process');
+
+const root = path.join(__dirname, '..');
+const localDbPort = process.env.DEV_DB_LOCAL_PORT || '5433';
+const sshHost = process.env.DEV_DB_SSH_HOST || 'uib-server';
+
+function getLocalIP() {
+  try {
+    const output = execSync('ipconfig').toString();
+    const matches = output.match(/IPv4 Address[ .]*: (192\.168\.\d+\.\d+)/);
+    if (matches && matches[1]) {
+      return matches[1];
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
+
+function updateIP(newIP) {
+  const envFiles = [
+    path.join(__dirname, '../.env'),
+    path.join(__dirname, '../backend/.env'),
+    path.join(__dirname, '../env/web.development'),
+    path.join(__dirname, '../env/backend.development'),
+    path.join(__dirname, '../mobile/.env')
+  ];
+
+  console.log(`[SYSTEM] Updating LOCAL_IP to ${newIP} in all .env files...`);
+
+  envFiles.forEach(file => {
+    if (fs.existsSync(file)) {
+      let content = fs.readFileSync(file, 'utf8');
+      let updatedContent = content.replace(/^((?:EXPO_PUBLIC_)?LOCAL_IP)=.*/gm, `$1=${newIP}`);
+      updatedContent = updatedContent.replace(/http:\/\/(?!\$\{)(?:192\.168\.\d+\.\d+|1\.2\.3\.4)/g, `http://${newIP}`);
+
+      if (content !== updatedContent) {
+        fs.writeFileSync(file, updatedContent);
+        console.log(`[SYSTEM] ✅ Updated ${file}`);
+      } else {
+        console.log(`[SYSTEM] ℹ️ No change needed for ${file} (already ${newIP})`);
+      }
+    }
+  });
+}
+
+function portOpen(port) {
+  return new Promise((resolve) => {
+    const s = net.connect({ host: '127.0.0.1', port: Number(port) }, () => {
+      s.end();
+      resolve(true);
+    });
+    s.on('error', () => resolve(false));
+    s.setTimeout(1500, () => { s.destroy(); resolve(false); });
+  });
+}
+
+function delay(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+const COLORS = {
+  Tunnel:   '\x1b[33m',
+  Backend:  '\x1b[36m',
+  Frontend: '\x1b[35m',
+  Mobile:   '\x1b[32m',
+  SYSTEM:   '\x1b[34m',
+  RESET:    '\x1b[0m',
+};
+
+function log(name, line) {
+  const c = COLORS[name] || '';
+  process.stdout.write(`${c}[${name}]${COLORS.RESET} ${line}\n`);
+}
+
+function err(name, line) {
+  const c = COLORS[name] || '';
+  process.stderr.write(`${c}[${name}]${COLORS.RESET} ${line}\n`);
+}
+
+const QR_CHARS = /[\u2588\u2580\u2584]/;
+
+function handleOutput(name, isErr, data) {
+  const raw = data.toString().replace(/\x1b\[2J/g, '').replace(/\x1b\[H/g, '').replace(/\x1b\[3J/g, '');
+  const lines = raw.split('\n');
+  const c = COLORS[name] || '';
+
+  let inQR = false;
+  const qrLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line && !inQR) continue;
+
+    if (QR_CHARS.test(line)) {
+      inQR = true;
+      qrLines.push(line);
+    } else {
+      if (inQR) {
+        process.stdout.write(`\n${c}[${name} — QR Code]${COLORS.RESET}\n`);
+        process.stdout.write(qrLines.join('\n') + '\n\n');
+        qrLines.length = 0;
+        inQR = false;
+      }
+      if (line.trim()) {
+        if (isErr) process.stderr.write(`${c}[${name}]${COLORS.RESET} ${line}\n`);
+        else process.stdout.write(`${c}[${name}]${COLORS.RESET} ${line}\n`);
+      }
+    }
+  }
+
+  if (inQR && qrLines.length) {
+    process.stdout.write(`\n${c}[${name} — QR Code]${COLORS.RESET}\n`);
+    process.stdout.write(qrLines.join('\n') + '\n\n');
+  }
+}
+
+function spawnService({ name, cmd, args: cmdArgs, cwd }) {
+  log('SYSTEM', `Starting ${name}...`);
+  const child = spawn(cmd, cmdArgs, { cwd, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  child.stdout.on('data', (d) => handleOutput(name, false, d));
+  child.stderr.on('data', (d) => handleOutput(name, true, d));
+  child.on('exit', (code) => log('SYSTEM', `${name} exited (code ${code})`));
+  return child;
+}
+
+async function main() {
+  const currentIP = getLocalIP();
+  if (currentIP) updateIP(currentIP);
+
+  const active = [];
+  let cleaning = false;
+  const cleanup = () => {
+    if (cleaning) return;
+    cleaning = true;
+    log('SYSTEM', '🛑 Stopping all processes...');
+    for (const { child, name } of active) {
+      try { process.kill(child.pid, 'SIGTERM'); } catch (_) { }
+      log('SYSTEM', `✅ ${name} stopped`);
+    }
+    log('SYSTEM', '👋 Goodbye!');
+    process.exit(0);
+  };
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+  process.on('SIGHUP', cleanup);
+
+  if (await portOpen(localDbPort)) {
+    log('SYSTEM', `✅ DB tunnel already up on :${localDbPort} — skipping`);
+  } else {
+    log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
+    const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
+    tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
+    tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
+    active.push({ child: tunnel, name: 'Tunnel' });
+
+    log('SYSTEM', 'Waiting for tunnel to be ready...');
+    let ready = false;
+    for (let i = 0; i < 20; i++) {
+      await delay(1000);
+      if (await portOpen(localDbPort)) { ready = true; break; }
+    }
+    if (!ready) log('SYSTEM', '⚠️  Tunnel port never opened. Check SSH access to uib-server. Continuing anyway...');
+    else log('SYSTEM', `✅ Tunnel ready on :${localDbPort}`);
+  }
+
+  await delay(1500);
+  const backend = spawnService({ name: 'Backend', cmd: 'npm', args: ['start'], cwd: path.join(root, 'backend') });
+  active.push({ child: backend, name: 'Backend' });
+
+  const frontend = spawnService({ name: 'Frontend', cmd: 'npm', args: ['run', 'dev'], cwd: root });
+  active.push({ child: frontend, name: 'Frontend' });
+
+  const mobile = spawnService({ name: 'Mobile', cmd: 'npm', args: ['start'], cwd: path.join(root, 'mobile') });
+  active.push({ child: mobile, name: 'Mobile' });
+
+  log('SYSTEM', '✨ All services starting. Press Ctrl+C to stop everything.\n');
+
+  setInterval(() => {
+    const statuses = active.map(({ child, name }) => {
+      const alive = (child.exitCode === null || child.exitCode === undefined);
+      const s = alive ? '\x1b[32mRUNNING\x1b[0m' : `\x1b[31mEXITED(${child.exitCode})\x1b[0m`;
+      return `${name}:${s}`;
+    }).join('  ');
+    process.stdout.write(`\x1b[34m[HEALTH]\x1b[0m ${statuses}\n`);
+  }, 30_000);
+
+  setInterval(() => {}, 1_000);
+}
+
+main().catch((e) => {
+  console.error('[SYSTEM] Fatal:', e.message || e);
+  process.exit(1);
+});
