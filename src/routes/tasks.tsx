@@ -214,7 +214,7 @@ function TasksPage() {
                 <span className={`size-1.5 rounded-full bg-gradient-to-br ${activeProject?.color} shrink-0`} />
                 {activeProject?.name} Tasks
               </div>
-              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Project Tasks & Epic Explorer</h1>
+              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Project Tasks Explorer</h1>
               <p className="text-sm text-slate-400 mt-1">
                 {stats.total} total items (including nested subtasks) · {stats.done} completed
               </p>

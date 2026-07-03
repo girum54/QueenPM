@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { CallsService } from './calls.service';
 import { CallsController } from './calls.controller';
-import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [ConfigModule],
   providers: [CallsService],
   controllers: [CallsController],
   exports: [CallsService],
