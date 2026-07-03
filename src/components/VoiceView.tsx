@@ -8,7 +8,7 @@ import { Track } from "livekit-client";
 import { useStore } from "@/lib/queen-store";
 import { useLivekit } from "@/lib/livekit-provider";
 import { ParticipantTile } from "./call/ParticipantTile";
-import { useLocalParticipant, useParticipants, useTracks } from "@livekit/components-react";
+import { useLocalParticipant, useParticipants, useTracks, isTrackReference } from "@livekit/components-react";
 
 export interface VoiceViewProps {
   channelName?: string;
@@ -68,8 +68,11 @@ function ConnectedCallView({
     if (!localParticipant) return;
     setIsMicOn(localParticipant.isMicrophoneEnabled());
     setIsCameraOn(localParticipant.isCameraEnabled());
-    setIsScreenSharing(localParticipant.isScreenShareEnabled());
-  }, [localParticipant?.identity]); // only re-run when the participant itself changes
+    // isScreenShareEnabled exists on LocalParticipant but not on the base Participant type
+    if (typeof (localParticipant as any).isScreenShareEnabled === "function") {
+      setIsScreenSharing((localParticipant as any).isScreenShareEnabled());
+    }
+  }, [localParticipant?.identity]); // identity string is safe in dep array
 
   // Call timer
   useEffect(() => {
@@ -176,7 +179,7 @@ function ConnectedCallView({
               <>
                 <ParticipantTile
                   participant={focusedParticipant}
-                  tracks={allTracks.filter((t) => t.participant.identity === focusedParticipant.identity)}
+                  tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === focusedParticipant.identity)}
                   large
                 />
                 <div className="grid grid-cols-1 auto-rows-[120px] gap-2 overflow-y-auto pr-1">
@@ -184,7 +187,7 @@ function ConnectedCallView({
                     <ParticipantTile
                       key={p.identity}
                       participant={p}
-                      tracks={allTracks.filter((t) => t.participant.identity === p.identity)}
+                      tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
                       small
                       onClick={() => setFocusId(p.identity)}
                     />
@@ -202,7 +205,7 @@ function ConnectedCallView({
                   <ParticipantTile
                     key={p.identity}
                     participant={p}
-                    tracks={allTracks.filter((t) => t.participant.identity === p.identity)}
+                    tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
                     onClick={() => setFocusId(p.identity)}
                   />
                 ))}
