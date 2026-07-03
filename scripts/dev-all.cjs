@@ -187,26 +187,37 @@ async function main() {
   process.on('SIGHUP', cleanup);
 
   if (isRemote) {
-    // ── Remote mode: tunnel port 3001 and start frontend pointed at localhost:3001 ──
+    // ── Remote mode: tunnel port 3001 and 7880, start frontend pointed at localhost:3001 ──
     const localBackendPort = '3001';
-    if (await portOpen(localBackendPort)) {
-      log('SYSTEM', `✅ Backend tunnel already up on :${localBackendPort} — skipping`);
+    const localLivekitPort = '7880';
+    
+    // Check if either port is already in use
+    const backendInUse = await portOpen(localBackendPort);
+    const livekitInUse = await portOpen(localLivekitPort);
+    
+    if (backendInUse && livekitInUse) {
+      log('SYSTEM', `✅ Backend and LiveKit tunnels already up — skipping tunnel startup`);
     } else {
-      log('SYSTEM', `Opening Backend tunnel 127.0.0.1:${localBackendPort} → ${sshHost}:3001`);
-      const tunnel = spawn('ssh', ['-N', '-L', `${localBackendPort}:127.0.0.1:3001`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      log('SYSTEM', `Opening SSH tunnel: local :3001 -> ${sshHost}:3001, local :7880 -> ${sshHost}:7880`);
+      const tunnel = spawn('ssh', [
+        '-N',
+        '-L', `${localBackendPort}:127.0.0.1:3001`,
+        '-L', `${localLivekitPort}:127.0.0.1:7880`,
+        sshHost
+      ], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
       tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
       tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
       tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
       active.push({ child: tunnel, name: 'Tunnel' });
 
-      log('SYSTEM', 'Waiting for backend tunnel to be ready...');
+      log('SYSTEM', 'Waiting for tunnels to be ready...');
       let ready = false;
       for (let i = 0; i < 20; i++) {
         await delay(1000);
-        if (await portOpen(localBackendPort)) { ready = true; break; }
+        if ((await portOpen(localBackendPort)) && (await portOpen(localLivekitPort))) { ready = true; break; }
       }
-      if (!ready) log('SYSTEM', '⚠️ Tunnel port never opened. Check SSH access to uib-server. Continuing anyway...');
-      else log('SYSTEM', `✅ Backend tunnel ready on :${localBackendPort}`);
+      if (!ready) log('SYSTEM', '⚠️ Tunnel ports never fully opened. Check SSH access to uib-server. Continuing anyway...');
+      else log('SYSTEM', `✅ SSH tunnels ready (Backend :3001, LiveKit :7880)`);
     }
 
     const remoteApiUrl = 'http://localhost:3001';
