@@ -2,21 +2,19 @@
  * livekit-provider.tsx
  *
  * Manages the full LiveKit room lifecycle:
- *   idle → connecting (token fetch) → ready (token+url available, LiveKitRoom mounts) → connected → idle
+ *   idle → connecting (token fetch) → connected → idle
  *
- * The "room guard" is the `status` field:
- *   - 'idle'       : no active call, LiveKitRoom is NOT mounted
- *   - 'connecting' : token is being fetched from the backend
- *   - 'ready'      : token received, LiveKitRoom is mounted & attempting WebSocket connect
- *   - 'connected'  : LiveKit room reports it is fully connected
- *   - 'error'      : something went wrong; `error` holds the message
+ * KEY DESIGN DECISION:
+ *   We use `RoomContext.Provider` directly instead of `<LiveKitRoom>`.
+ *   `<LiveKitRoom>` calls room.disconnect() whenever its `room` prop changes
+ *   or when it unmounts — which causes the immediate-disconnect bug.
+ *   `RoomContext.Provider` is a plain React context and has zero side-effects.
  *
- * Components that use livekit hooks (useLocalParticipant, useParticipants, etc.)
- * MUST be rendered as children of this provider AND only when status === 'connected' | 'ready',
- * because those hooks require the <LiveKitRoom> context to exist.
+ * All @livekit/components-react hooks (useLocalParticipant, useParticipants,
+ * useTracks, etc.) read from RoomContext, so they work perfectly fine.
  */
 
-import { LiveKitRoom } from '@livekit/components-react';
+import { RoomContext } from '@livekit/components-react';
 import { Room, RoomEvent, RoomOptions } from 'livekit-client';
 import {
   createContext,
@@ -30,7 +28,7 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type LivekitStatus = 'idle' | 'connecting' | 'ready' | 'connected' | 'error';
+export type LivekitStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
 export interface LivekitContextType {
   /** The livekit-client Room instance (null when idle/connecting) */
@@ -47,7 +45,7 @@ export interface LivekitContextType {
   isConnecting: boolean;
   /** Human-readable error message (null when no error) */
   error: string | null;
-  /** Fetch a token and mount <LiveKitRoom> for the given room slug */
+  /** Fetch a token and connect to LiveKit for the given room slug */
   connect: (roomName: string) => Promise<void>;
   /** Disconnect and return to idle state */
   disconnect: () => Promise<void>;
@@ -85,12 +83,12 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
   const roomRef = useRef<Room | null>(null);
 
   const isConnected = status === 'connected';
-  const isConnecting = status === 'connecting' || status === 'ready';
+  const isConnecting = status === 'connecting';
 
   // ── connect ────────────────────────────────────────────────────────────────
   const connect = useCallback(async (roomName: string) => {
     // Guard: don't allow a second connect() while already active
-    if (status === 'connecting' || status === 'ready' || status === 'connected') return;
+    if (status === 'connecting' || status === 'connected') return;
 
     setStatus('connecting');
     setError(null);
@@ -115,14 +113,12 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
         throw new Error('Backend returned an invalid token response (missing token or url).');
       }
 
-      // 2. Build the Room instance and attach event listeners BEFORE connecting
+      // 2. Build the Room instance and attach event listeners BEFORE connecting.
+      //    We create the Room ourselves so WE control its full lifecycle.
       const newRoom = new Room(ROOM_OPTIONS);
 
-      newRoom.on(RoomEvent.Connected, () => {
-        setStatus('connected');
-      });
-
       newRoom.on(RoomEvent.Disconnected, () => {
+        console.log('[LiveKit] Room disconnected — resetting state');
         setStatus('idle');
         setRoom(null);
         setToken(null);
@@ -131,24 +127,25 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
       });
 
       newRoom.on(RoomEvent.Reconnecting, () => {
-        // Stay in 'connected' visually but could surface a toast here
         console.warn('[LiveKit] Reconnecting…');
       });
 
       newRoom.on(RoomEvent.Reconnected, () => {
+        console.log('[LiveKit] Reconnected');
         setStatus('connected');
       });
 
-      // 3. Initiate the WebSocket connection
-      //    Do this before setting state so the 'connected' event can fire naturally.
+      // 3. Initiate the WebSocket connection.
+      //    await resolves only after the room is fully connected.
       await newRoom.connect(livekitUrl, newToken);
+      console.log('[LiveKit] Room connected successfully');
 
-      // 4. Persist state so <LiveKitRoom> renders with the already-connected room.
-      //    Status will have been set to 'connected' by the RoomEvent.Connected listener.
+      // 4. Commit all state in one batch so React renders once.
       roomRef.current = newRoom;
       setRoom(newRoom);
       setToken(newToken);
       setUrl(livekitUrl);
+      setStatus('connected');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unknown error connecting to LiveKit.';
@@ -162,10 +159,10 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(async () => {
     const activeRoom = roomRef.current;
     if (activeRoom) {
+      // This triggers RoomEvent.Disconnected, which resets all state above.
       await activeRoom.disconnect(true);
-      // RoomEvent.Disconnected listener above will reset all state
     } else {
-      // If we're stuck in connecting/error, just reset
+      // Stuck in connecting/error — just reset manually.
       setStatus('idle');
       setRoom(null);
       setToken(null);
@@ -201,22 +198,18 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
   return (
     <LivekitContext.Provider value={value}>
       {/*
-       * Room Guard: <LiveKitRoom> is ONLY mounted when we have a valid token
-       * and room instance (status is 'ready' or 'connected').
+       * RoomContext.Provider — NOT <LiveKitRoom>.
        *
-       * This prevents livekit hooks (useLocalParticipant, useParticipants, etc.)
-       * from crashing when there's no active call.
+       * <LiveKitRoom> calls room.disconnect() whenever the `room` prop changes
+       * or when the component unmounts, causing the immediate-disconnect bug.
        *
-       * We pass `connect={false}` because we manage the Room.connect() lifecycle
-       * ourselves via the Room instance; LiveKitRoom just needs the context.
+       * RoomContext.Provider is a plain React context with zero side-effects.
+       * All @livekit/components-react hooks (useLocalParticipant, useParticipants,
+       * useTracks, etc.) read from this context, so they work perfectly fine.
        */}
-      {room && token && url ? (
-        <LiveKitRoom room={room} token={token} serverUrl={url} connect={false}>
-          {children}
-        </LiveKitRoom>
-      ) : (
-        children
-      )}
+      <RoomContext.Provider value={room ?? undefined}>
+        {children}
+      </RoomContext.Provider>
     </LivekitContext.Provider>
   );
 }
