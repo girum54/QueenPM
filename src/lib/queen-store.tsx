@@ -198,6 +198,51 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Real-time board sync via SSE broadcast events
+  useEffect(() => {
+    const handleTaskSync = (e: Event) => {
+      const { action, task, taskId } = (e as CustomEvent<{
+        action: 'create' | 'update' | 'delete';
+        task?: Record<string, any>;
+        taskId?: string;
+      }>).detail;
+
+      const mapTask = (t: Record<string, any>): Task => ({
+        id: t.id,
+        title: t.title,
+        description: t.description ?? undefined,
+        assigneeId: t.assigneeId,
+        priority: t.priority as Priority,
+        column: t.column as ColumnId,
+        createdBy: t.createdBy as CreatedBy,
+        originMessageId: t.originMessageId,
+        originChannelId: t.originChannelId,
+        sprintId: t.sprintId,
+        createdAt: t.createdAt ? Date.parse(t.createdAt) : Date.now(),
+        completedAt: t.completedAt ? Date.parse(t.completedAt) : null,
+        deadline: t.deadline,
+        estimateDays: t.estimateDays,
+        projectId: t.projectId,
+        parentId: t.parentId,
+      });
+
+      if (action === 'create' && task) {
+        setTasks((prev) =>
+          prev.some((t) => t.id === task.id) ? prev : [mapTask(task), ...prev]
+        );
+      } else if (action === 'update' && task) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? mapTask(task) : t))
+        );
+      } else if (action === 'delete' && taskId) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      }
+    };
+
+    window.addEventListener('queen:task-sync', handleTaskSync);
+    return () => window.removeEventListener('queen:task-sync', handleTaskSync);
+  }, []);
+
   // Fetch users on mount
   useEffect(() => {
     async function loadUsers() {

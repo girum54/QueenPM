@@ -69,10 +69,26 @@ export class NotificationsService {
     this.events$.next(notif as NotificationPayload);
   }
 
+  /** In-memory broadcast of an event to all users without database persistence */
+  broadcast(type: NotificationType, title: string, body: string, projectId?: string | null) {
+    this.events$.next({
+      id: Math.random().toString(),
+      recipientId: 'all',
+      actorId: null,
+      type,
+      title,
+      body,
+      projectId: projectId || null,
+      taskId: null,
+      read: false,
+      createdAt: new Date(),
+    });
+  }
+
   /** Get SSE stream for a specific user */
   streamForUser(userId: string) {
     return this.events$.pipe(
-      filter((n) => n.recipientId === userId),
+      filter((n) => n.recipientId === userId || n.recipientId === 'all'),
       map((n) => ({ data: n })),
     );
   }

@@ -41,6 +41,15 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       try {
         const newNotif = JSON.parse(event.data) as ApiNotification;
         setNotifications((prev) => {
+          // ── Broadcast task-sync events (not stored in DB, sent to all) ──────
+          if ((newNotif as any).recipientId === 'all') {
+            try {
+              const detail = JSON.parse(newNotif.body || '{}');
+              window.dispatchEvent(new CustomEvent('queen:task-sync', { detail }));
+            } catch {/* ignore parse errors */}
+            return prev; // do NOT add to notification bell
+          }
+
           if (prev.some((n) => n.id === newNotif.id)) return prev;
 
           // Parse body — call invites carry JSON with channelId
@@ -78,6 +87,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       } catch (err) {
         console.error("Failed to parse notification SSE", err);
       }
+
     };
 
     eventSource.onerror = (err) => {

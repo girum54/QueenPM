@@ -114,6 +114,14 @@ export class TasksService {
       });
     }
 
+    // Broadcast task creation for real-time board synchronization
+    this.notificationsService.broadcast(
+      'task_added',
+      'Task Created',
+      JSON.stringify({ action: 'create', task }),
+      task.projectId,
+    );
+
     return task;
   }
 
@@ -184,12 +192,29 @@ export class TasksService {
       });
     }
 
+    // Broadcast task update for real-time board synchronization
+    this.notificationsService.broadcast(
+      'task_moved',
+      'Task Updated',
+      JSON.stringify({ action: 'update', task: updated }),
+      updated.projectId,
+    );
+
     return updated;
   }
 
   async remove(id: string) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     await this.db.delete(schema.tasks).where(eq(schema.tasks.id, id));
+
+    // Broadcast task deletion for real-time board synchronization
+    this.notificationsService.broadcast(
+      'task_moved',
+      'Task Deleted',
+      JSON.stringify({ action: 'delete', taskId: id }),
+      existing.projectId,
+    );
+
     return { deleted: id };
   }
 }
