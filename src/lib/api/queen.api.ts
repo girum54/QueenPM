@@ -277,3 +277,18 @@ export const notificationsApi = {
   markAllRead: () => request<any>("/notifications/read-all", { method: "PATCH" }),
   delete: (id: string) => request<{ deleted: string }>(`/notifications/${id}`, { method: "DELETE" }),
 };
+
+// ─── Calls ────────────────────────────────────────────────────────────────────
+
+export interface ApiActiveCall {
+  roomName: string;
+  participants: {
+    identity: string;
+    name: string;
+  }[];
+}
+
+export const callsApi = {
+  getActive: () => request<ApiActiveCall[]>("/calls/active"),
+};
+
