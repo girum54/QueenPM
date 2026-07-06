@@ -419,7 +419,7 @@ function ConnectedMusicView() {
     let dbId: string | undefined;
     try {
       const saved = await playlistApi.addTrack({
-        channelId: PLAYLIST_CHANNEL_ID,
+        channelId: playlistChannelId,
         videoId: meta.videoId,
         title: meta.title,
         author: meta.author,
@@ -928,7 +928,7 @@ function ConnectedMusicView() {
                       let dbId: string | undefined;
                       try {
                         const saved = await playlistApi.addTrack({
-                          channelId: PLAYLIST_CHANNEL_ID,
+                          channelId: playlistChannelId,
                           videoId: current.videoId,
                           title: current.title,
                           author: current.author,
