@@ -53,6 +53,8 @@ export interface LivekitContextType {
   disconnect: () => Promise<void>;
   /** Clear the error and return to idle */
   clearError: () => void;
+  /** Force offline mode for UI testing without a server */
+  enableOfflineMode: () => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
     try {
       // 1. Fetch token + LiveKit WebSocket URL from the backend (auth-guarded)
       const response = await fetch(
-        `${API_BASE_URL}/api/calls/token/${encodeURIComponent(roomName)}`,
+        `${API_BASE_URL}/calls/token/${encodeURIComponent(roomName)}`,
         { credentials: 'include' },
       );
 
@@ -181,6 +183,17 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
     setStatus('idle');
   }, []);
 
+  // ── enableOfflineMode ──────────────────────────────────────────────────────
+  const enableOfflineMode = useCallback(() => {
+    const fakeRoom = new Room(ROOM_OPTIONS);
+    roomRef.current = fakeRoom;
+    setRoom(fakeRoom);
+    setToken('offline-mode');
+    setUrl('ws://offline');
+    setStatus('connected');
+    setError(null);
+  }, []);
+
   // ─── Context value (memoized to prevent unnecessary re-renders) ─────────────
   const value = useMemo<LivekitContextType>(
     () => ({
@@ -194,8 +207,9 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
       connect,
       disconnect,
       clearError,
+      enableOfflineMode,
     }),
-    [room, token, url, status, isConnected, isConnecting, error, connect, disconnect, clearError],
+    [room, token, url, status, isConnected, isConnecting, error, connect, disconnect, clearError, enableOfflineMode],
   );
 
   return (

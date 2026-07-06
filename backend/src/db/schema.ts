@@ -16,6 +16,22 @@ export const notificationTypeEnum = pgEnum("notification_type", [
 ]);
 export const userRoleEnum = pgEnum("user_role", ["developer", "stakeholder"]);
 
+// ─── Playlist Tracks ──────────────────────────────────────────────────────────
+
+export const playlistTracks = pgTable("playlist_tracks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channelId: uuid("channel_id")
+    .notNull()
+    .references(() => channels.id, { onDelete: "cascade" }),
+  videoId: text("video_id").notNull(),
+  title: text("title").notNull(),
+  author: text("author").notNull(),
+  thumbnail: text("thumbnail").notNull(),
+  addedBy: text("added_by").notNull().default("Unknown"),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ─── Better Auth Tables ───────────────────────────────────────────────────────
 
 export const user = pgTable("user", {
@@ -360,5 +376,12 @@ export const notificationRelations = relations(notifications, ({ one }) => ({
   project: one(projects, {
     fields: [notifications.projectId],
     references: [projects.id],
+  }),
+}));
+
+export const playlistTrackRelations = relations(playlistTracks, ({ one }) => ({
+  channel: one(channels, {
+    fields: [playlistTracks.channelId],
+    references: [channels.id],
   }),
 }));

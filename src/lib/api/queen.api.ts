@@ -277,3 +277,32 @@ export const notificationsApi = {
   markAllRead: () => request<any>("/notifications/read-all", { method: "PATCH" }),
   delete: (id: string) => request<{ deleted: string }>(`/notifications/${id}`, { method: "DELETE" }),
 };
+
+// ─── Music Playlist ───────────────────────────────────────────────────────────
+
+export interface ApiPlaylistTrack {
+  id: string;
+  channelId: string;
+  videoId: string;
+  title: string;
+  author: string;
+  thumbnail: string;
+  addedBy: string;
+  position: number;
+  createdAt: string;
+}
+
+export const playlistApi = {
+  getByChannel: (channelId: string) =>
+    request<ApiPlaylistTrack[]>(`/music/playlist?channelId=${channelId}`),
+  addTrack: (data: {
+    channelId: string;
+    videoId: string;
+    title: string;
+    author: string;
+    thumbnail: string;
+    addedBy: string;
+  }) => request<ApiPlaylistTrack>("/music/playlist", { method: "POST", body: JSON.stringify(data) }),
+  removeTrack: (id: string) =>
+    request<{ deleted: string }>(`/music/playlist/${id}`, { method: "DELETE" }),
+};

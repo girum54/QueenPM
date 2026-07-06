@@ -16,6 +16,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { UsersModule } from './users/users.module';
 import { CallsModule } from './calls/calls.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { MusicModule } from './music/music.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     CallsModule,
     NotificationsModule,
+    MusicModule,
   ],
   controllers: [AppController],
   providers: [
