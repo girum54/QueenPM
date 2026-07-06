@@ -155,8 +155,12 @@ function ConnectedMusicView() {
   });
 
   const broadcast = useCallback((msg: MusicMsg) => {
-    const encoded = new TextEncoder().encode(JSON.stringify(msg));
-    send(encoded, { reliable: true });
+    try {
+      const encoded = new TextEncoder().encode(JSON.stringify(msg));
+      send(encoded, { reliable: true });
+    } catch (e) {
+      console.warn("LiveKit broadcast failed (disconnected/offline):", e);
+    }
   }, [send]);
 
   // ── Handle incoming sync messages ─────────────────────────────────────
