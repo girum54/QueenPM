@@ -10,10 +10,14 @@ type Db = NodePgDatabase<typeof schema>;
 export class DashboardService {
   constructor(@Inject(DRIZZLE) private readonly db: Db) {}
 
-  async getStats(projectId?: string) {
-    const where = projectId ? eq(schema.tasks.projectId, projectId) : undefined;
+  async getStats(projectId?: string, sprintId?: string) {
+    const where = sprintId
+      ? eq(schema.tasks.sprintId, sprintId)
+      : projectId
+        ? eq(schema.tasks.projectId, projectId)
+        : undefined;
 
-    // ── All tasks for project ─────────────────────────────────────────────────
+    // ── All tasks for project/sprint ──────────────────────────────────────────
     const tasks = await this.db.query.tasks.findMany({
       where,
       with: { assignee: true },

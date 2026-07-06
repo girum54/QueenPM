@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { activeProjectId, projectTabs } = useStore();
+  const { activeProjectId, activeSprintId, projectTabs } = useStore();
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,11 +31,11 @@ function DashboardPage() {
     if (!activeProjectId) return;
     setLoading(true);
     dashboardApi
-      .getStats(activeProjectId)
+      .getStats(activeProjectId, activeSprintId ?? undefined)
       .then(setStats)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [activeProjectId]);
+  }, [activeProjectId, activeSprintId]);
 
   // Fallback empty metrics while loading
   const metrics: DashboardStats = stats ?? {

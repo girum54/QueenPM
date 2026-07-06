@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 
 @Injectable()
 export class CallsService {
@@ -35,6 +35,33 @@ export class CallsService {
     });
 
     return await at.toJwt();
+  }
+
+  async getActiveCalls() {
+    try {
+      const httpUrl = this.livekitUrl
+        .replace('ws://', 'http://')
+        .replace('wss://', 'https://');
+      const roomService = new RoomServiceClient(httpUrl, this.apiKey, this.apiSecret);
+      const rooms = await roomService.listRooms();
+      const active = [];
+      for (const room of rooms) {
+        if (room.numParticipants > 0) {
+          const participants = await roomService.listParticipants(room.name);
+          active.push({
+            roomName: room.name,
+            participants: participants.map((p) => ({
+              identity: p.identity,
+              name: p.name,
+            })),
+          });
+        }
+      }
+      return active;
+    } catch (err) {
+      console.error('[LiveKit] listRooms failed:', err);
+      return [];
+    }
   }
 
   getLivekitUrl(): string {

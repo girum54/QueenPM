@@ -232,9 +232,12 @@ export interface DashboardStats {
 }
 
 export const dashboardApi = {
-  getStats: (projectId?: string) => {
-    const params = projectId ? `?projectId=${projectId}` : "";
-    return request<DashboardStats>(`/dashboard/stats${params}`);
+  getStats: (projectId?: string, sprintId?: string) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("projectId", projectId);
+    if (sprintId) params.set("sprintId", sprintId);
+    const qs = params.toString();
+    return request<DashboardStats>(`/dashboard/stats${qs ? `?${qs}` : ""}`);
   },
 };
 
@@ -305,4 +308,18 @@ export const playlistApi = {
   }) => request<ApiPlaylistTrack>("/music/playlist", { method: "POST", body: JSON.stringify(data) }),
   removeTrack: (id: string) =>
     request<{ deleted: string }>(`/music/playlist/${id}`, { method: "DELETE" }),
+};
+
+// ─── Calls ────────────────────────────────────────────────────────────────────
+
+export interface ApiActiveCall {
+  roomName: string;
+  participants: {
+    identity: string;
+    name: string;
+  }[];
+}
+
+export const callsApi = {
+  getActive: () => request<ApiActiveCall[]>("/calls/active"),
 };

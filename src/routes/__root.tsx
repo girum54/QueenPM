@@ -16,6 +16,7 @@ import { QueenStoreProvider } from "../lib/queen-store";
 import { AuthProvider } from "../lib/auth-store";
 import { NotificationsProvider } from "../lib/notifications-store";
 import { LivekitProvider } from "../lib/livekit-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -145,6 +146,7 @@ function RootComponent() {
           <LivekitProvider>
             <QueenStoreProvider>
               <Outlet />
+              <Toaster position="top-right" richColors theme="dark" />
             </QueenStoreProvider>
           </LivekitProvider>
         </NotificationsProvider>

@@ -48,10 +48,18 @@ export function ParticipantTile({ participant, tracks, large, small, onClick }: 
   const videoTrack = screenShareTrack ?? cameraTrack;
 
   return (
-    <button
+    <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={[
-        "relative rounded-xl overflow-hidden border bg-slate-900 group w-full transition-all",
+        "relative rounded-xl overflow-hidden border bg-slate-900 group w-full transition-all cursor-pointer",
         small ? "h-[120px]" : large ? "h-full min-h-[300px]" : "h-full min-h-[100px]",
         isSpeaking
           ? "border-fuchsia-500/70 shadow-[0_0_14px_rgba(217,70,239,0.25)]"
@@ -124,6 +132,6 @@ export function ParticipantTile({ participant, tracks, large, small, onClick }: 
           <Maximize2 className="size-3 text-white" />
         </button>
       )}
-    </button>
+    </div>
   );
 }

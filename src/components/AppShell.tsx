@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     projectTabs, addProjectTab, closeProjectTab,
     channels, activeChannelId, setActiveChannelId,
     sidebarCollapsed, setSidebarCollapsed,
-    isInCall, callParticipants,
+    isInCall, callParticipants, activeCalls,
   } = useStore();
 
   const { user, loading, signOut } = useAuth();
@@ -384,22 +384,55 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="mt-0.5 ml-3 pl-2.5 border-l border-slate-800/60 space-y-px pb-1">
                 {channels.map((ch) => {
                   const isActive = ch.id === activeChannelId && pathname.startsWith("/channels");
+                  const chRoomName = `channel-${ch.name.replace(/\s+/g, "-").toLowerCase()}`;
+                  const activeCall = activeCalls.find((c) => c.roomName === chRoomName);
                   return (
-                    <button
-                      key={ch.id}
-                      onClick={() => handleChannelClick(ch.id)}
-                      className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-[11px] transition ${
-                        isActive
-                          ? "bg-slate-800/80 text-slate-100"
-                          : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
-                      }`}
-                    >
-                      <Hash className="size-3 shrink-0 text-slate-600" />
-                      <span className="flex-1 text-left truncate">{ch.name}</span>
-                      {ch.aiActive && (
-                        <Bot className="size-3 text-fuchsia-500/60 shrink-0" />
+                    <div key={ch.id}>
+                      <button
+                        onClick={() => handleChannelClick(ch.id)}
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-[11px] transition ${
+                          isActive
+                            ? "bg-slate-800/80 text-slate-100"
+                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                        }`}
+                      >
+                        <Hash className="size-3 shrink-0 text-slate-600" />
+                        <span className="flex-1 text-left truncate">{ch.name}</span>
+                        {activeCall && (
+                          <span className="flex items-center gap-0.5">
+                            <span className="relative flex size-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full size-1.5 bg-emerald-400" />
+                            </span>
+                          </span>
+                        )}
+                        {!activeCall && ch.aiActive && (
+                          <Bot className="size-3 text-fuchsia-500/60 shrink-0" />
+                        )}
+                      </button>
+                      {/* Live participants nested under channel — Discord-style */}
+                      {activeCall && activeCall.participants.length > 0 && (
+                        <div className="mt-0.5 ml-5 space-y-px">
+                          {activeCall.participants.map((p) => (
+                            <button
+                              key={p.identity}
+                              onClick={() => {
+                                setActiveChannelId(ch.id);
+                                window.history.pushState({}, "", "/channels?mode=voice");
+                                navigate({ to: "/channels" });
+                              }}
+                              className="w-full flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[10px] text-emerald-400 hover:bg-emerald-500/10 transition"
+                            >
+                              <PhoneCall className="size-2.5 shrink-0" />
+                              <div className="size-3.5 rounded-full bg-emerald-500/20 text-[8px] font-bold text-emerald-300 grid place-items-center shrink-0 uppercase">
+                                {p.name[0]}
+                              </div>
+                              <span className="truncate">{p.name}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -538,34 +571,54 @@ export function AppShell({ children }: { children: ReactNode }) {
                       No notifications yet
                     </div>
                   ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => {
-                          if (!n.read) markRead(n.id);
-                        }}
-                        className={`group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition ${
-                          n.read
-                            ? "hover:bg-slate-800/50"
-                            : "bg-slate-800/80 hover:bg-slate-800"
-                        }`}
-                      >
-                        <div className={`mt-0.5 size-2 rounded-full shrink-0 ${n.read ? 'bg-transparent' : 'bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.6)]'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium truncate ${n.read ? 'text-slate-300' : 'text-slate-100'}`}>
-                            {n.title}
-                          </p>
-                          {n.body && (
-                            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-snug">
-                              {n.body}
+                    notifications.map((n) => {
+                      // Parse JSON body if it's a call invite (contains channelId)
+                      let callMeta: { channelId?: string; channelName?: string; text?: string } | null = null;
+                      try { callMeta = n.body ? JSON.parse(n.body) : null; } catch {}
+                      const displayBody = callMeta?.text ?? n.body;
+                      const isCallInvite = !!callMeta?.channelId;
+
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (!n.read) markRead(n.id);
+                            if (isCallInvite && callMeta?.channelId) {
+                              setActiveChannelId(callMeta.channelId);
+                              setShowNotifications(false);
+                              window.history.pushState({}, "", "/channels?mode=voice");
+                              navigate({ to: "/channels" });
+                            }
+                          }}
+                          className={`group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition ${
+                            n.read
+                              ? "hover:bg-slate-800/50"
+                              : "bg-slate-800/80 hover:bg-slate-800"
+                          }`}
+                        >
+                          <div className={`mt-0.5 size-2 rounded-full shrink-0 ${n.read ? 'bg-transparent' : isCallInvite ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]' : 'bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.6)]'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium truncate ${n.read ? 'text-slate-300' : 'text-slate-100'}`}>
+                              {isCallInvite && <PhoneCall className="inline size-3 text-emerald-400 mr-1 mb-0.5" />}
+                              {n.title}
                             </p>
-                          )}
-                          <span className="block mt-1.5 text-[9px] text-slate-600 font-medium uppercase tracking-wider">
-                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                          </span>
+                            {displayBody && (
+                              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-snug">
+                                {displayBody}
+                              </p>
+                            )}
+                            {isCallInvite && (
+                              <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-[9px] text-emerald-400 font-semibold">
+                                Tap to join call
+                              </span>
+                            )}
+                            <span className="block mt-1.5 text-[9px] text-slate-600 font-medium uppercase tracking-wider">
+                              {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users, ListTodo,
-  Video, Music
+  Video, Music, PhoneIncoming,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
 import { channelsApi } from "@/lib/api/queen.api";
+import { useNotifications } from "@/lib/notifications-store";
 import {
   CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand,
   titleFromMessage,
@@ -74,6 +75,55 @@ function ChannelsPage() {
   const [spawningTask, setSpawningTask] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"chat" | "voice" | "music">("chat");
+
+  // ── Call invite banner ────────────────────────────────────────────────────
+  const { markRead, notifications } = useNotifications();
+  const [callInvite, setCallInvite] = useState<{ channelId: string; channelName: string } | null>(null);
+
+  // On mount: check sessionStorage for a pending invite (set by the toast action)
+  useEffect(() => {
+    const pending = sessionStorage.getItem("pending_call_channel_id");
+    if (pending) {
+      sessionStorage.removeItem("pending_call_channel_id");
+      const ch = channels.find((c) => c.id === pending);
+      if (ch) {
+        setActiveChannelId(pending);
+        setCallInvite({ channelId: pending, channelName: ch.name });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Live: listen for the queen:call-invite custom event fired by the toast action
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { channelId, channelName } = (e as CustomEvent).detail;
+      setCallInvite({ channelId, channelName });
+      setActiveChannelId(channelId);
+    };
+    window.addEventListener("queen:call-invite", handler);
+    return () => window.removeEventListener("queen:call-invite", handler);
+  }, [setActiveChannelId]);
+
+  // Auto-dismiss invite banner when user switches away from that channel
+  useEffect(() => {
+    if (callInvite && activeChannelId && callInvite.channelId !== activeChannelId) {
+      setCallInvite(null);
+    }
+  }, [activeChannelId, callInvite]);
+
+  const handleJoinFromInvite = () => {
+    // Mark the notification read
+    const n = notifications.find((n) => {
+      try {
+        const m = JSON.parse(n.body || "");
+        return m?.channelId === callInvite?.channelId;
+      } catch { return false; }
+    });
+    if (n && !n.read) markRead(n.id);
+    setCallInvite(null);
+    handleModeChange("voice");
+  };
 
   // Sync mode state with search parameters on activeChannelId change
   useEffect(() => {
@@ -383,6 +433,33 @@ function ChannelsPage() {
               </div>
             </div>
           </header>
+
+          {/* ── Call invite banner ─────────────────────────────────── */}
+          {callInvite && callInvite.channelId === activeChannelId && mode !== "voice" && (
+            <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 ring-1 ring-emerald-400/20 shadow-lg shadow-emerald-500/10 animate-fade-in">
+              <span className="relative flex size-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-3 bg-emerald-400" />
+              </span>
+              <PhoneIncoming className="size-4 text-emerald-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-emerald-200">You're invited to a voice call</p>
+                <p className="text-xs text-emerald-400/70">in #{callInvite.channelName} — tap to join</p>
+              </div>
+              <button
+                onClick={handleJoinFromInvite}
+                className="shrink-0 h-8 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold transition shadow-md shadow-emerald-500/30"
+              >
+                Join Now
+              </button>
+              <button
+                onClick={() => setCallInvite(null)}
+                className="shrink-0 size-7 grid place-items-center rounded-lg hover:bg-emerald-500/20 text-emerald-400/60 hover:text-emerald-300 transition"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Conditional Views based on mode */}
           {mode === "chat" ? (

@@ -153,11 +153,12 @@ interface StoreShape {
   setIsInCall: (inCall: boolean) => void;
   callParticipants: string[];
   setCallParticipants: (participants: string[]) => void;
+  activeCalls: ApiActiveCall[];
 }
 
 const StoreCtx = createContext<StoreShape | null>(null);
 
-import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi } from "./api/queen.api";
+import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi, callsApi, type ApiActiveCall } from "./api/queen.api";
 import { useEffect } from "react";
 
 
@@ -175,7 +176,72 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
   const [isInCall, setIsInCall] = useState<boolean>(false);
   const [callParticipants, setCallParticipants] = useState<string[]>([]);
+  const [activeCalls, setActiveCalls] = useState<ApiActiveCall[]>([]);
   const consumed = useRef(false);
+
+  // Poll active calls every 5 seconds
+  useEffect(() => {
+    let active = true;
+    async function loadActiveCalls() {
+      try {
+        const data = await callsApi.getActive();
+        if (active) setActiveCalls(data);
+      } catch (e) {
+        // Silently catch in-flight errors to prevent noise
+      }
+    }
+    loadActiveCalls();
+    const interval = setInterval(loadActiveCalls, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Real-time board sync via SSE broadcast events
+  useEffect(() => {
+    const handleTaskSync = (e: Event) => {
+      const { action, task, taskId } = (e as CustomEvent<{
+        action: 'create' | 'update' | 'delete';
+        task?: Record<string, any>;
+        taskId?: string;
+      }>).detail;
+
+      const mapTask = (t: Record<string, any>): Task => ({
+        id: t.id,
+        title: t.title,
+        description: t.description ?? undefined,
+        assigneeId: t.assigneeId,
+        priority: t.priority as Priority,
+        column: t.column as ColumnId,
+        createdBy: t.createdBy as CreatedBy,
+        originMessageId: t.originMessageId,
+        originChannelId: t.originChannelId,
+        sprintId: t.sprintId,
+        createdAt: t.createdAt ? Date.parse(t.createdAt) : Date.now(),
+        completedAt: t.completedAt ? Date.parse(t.completedAt) : null,
+        deadline: t.deadline,
+        estimateDays: t.estimateDays,
+        projectId: t.projectId,
+        parentId: t.parentId,
+      });
+
+      if (action === 'create' && task) {
+        setTasks((prev) =>
+          prev.some((t) => t.id === task.id) ? prev : [mapTask(task), ...prev]
+        );
+      } else if (action === 'update' && task) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === task.id ? mapTask(task) : t))
+        );
+      } else if (action === 'delete' && taskId) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      }
+    };
+
+    window.addEventListener('queen:task-sync', handleTaskSync);
+    return () => window.removeEventListener('queen:task-sync', handleTaskSync);
+  }, []);
 
   // Fetch users on mount
   useEffect(() => {
@@ -546,8 +612,9 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       setIsInCall,
       callParticipants,
       setCallParticipants,
+      activeCalls,
     }),
-    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, isInCall, callParticipants]
+    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, isInCall, callParticipants, activeCalls]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
