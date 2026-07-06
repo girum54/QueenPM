@@ -136,6 +136,14 @@ export class TasksService {
       );
     }
 
+    // Auto-stamp completedAt when moving to 'deployed', clear it when moving back
+    const columnCompletedAt =
+      dto.column === 'deployed' && existing.column !== 'deployed'
+        ? new Date()
+        : dto.column !== undefined && dto.column !== 'deployed' && existing.column === 'deployed'
+          ? null
+          : undefined; // no change — leave existing value
+
     const [updated] = await this.db
       .update(schema.tasks)
       .set({
@@ -146,9 +154,10 @@ export class TasksService {
         ...(dto.column !== undefined && { column: dto.column }),
         ...(dto.createdBy !== undefined && { createdBy: dto.createdBy }),
         ...(dto.sprintId !== undefined && { sprintId: dto.sprintId }),
-        ...(dto.completedAt !== undefined && {
-          completedAt: dto.completedAt ? new Date(dto.completedAt) : null,
-        }),
+        // Use auto-derived value if column changed, otherwise honour explicit client value
+        ...(columnCompletedAt !== undefined
+          ? { completedAt: columnCompletedAt }
+          : dto.completedAt !== undefined && { completedAt: dto.completedAt ? new Date(dto.completedAt) : null }),
         ...(dto.deadline !== undefined && {
           deadline: dto.deadline ? new Date(dto.deadline) : null,
         }),
@@ -156,6 +165,7 @@ export class TasksService {
       })
       .where(eq(schema.tasks.id, id))
       .returning();
+
 
     // Notify on assignee change
     if (

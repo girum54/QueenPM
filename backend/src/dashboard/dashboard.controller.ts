@@ -6,8 +6,11 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
-  getStats(@Query('projectId') projectId?: string) {
-    return this.dashboardService.getStats(projectId);
+  getStats(
+    @Query('projectId') projectId?: string,
+    @Query('sprintId') sprintId?: string,
+  ) {
+    return this.dashboardService.getStats(projectId, sprintId);
   }
 
   @Get('sprint/:sprintId')

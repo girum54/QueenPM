@@ -232,9 +232,12 @@ export interface DashboardStats {
 }
 
 export const dashboardApi = {
-  getStats: (projectId?: string) => {
-    const params = projectId ? `?projectId=${projectId}` : "";
-    return request<DashboardStats>(`/dashboard/stats${params}`);
+  getStats: (projectId?: string, sprintId?: string) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("projectId", projectId);
+    if (sprintId) params.set("sprintId", sprintId);
+    const qs = params.toString();
+    return request<DashboardStats>(`/dashboard/stats${qs ? `?${qs}` : ""}`);
   },
 };
 
