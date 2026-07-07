@@ -177,12 +177,12 @@ function StakeholderDashboardPage() {
 
               <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
                 <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-5">
-                  <TrendingUp className="size-4 text-fuchsia-400" /> Velocity & Efficiency
+                  <TrendingUp className="size-4 text-fuchsia-400" /> Completion pace & efficiency
                 </h3>
                 <div className="mb-5">
                   <div className="flex justify-between items-end mb-2">
-                    <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold">Shipping Speed</span>
-                    <span className="text-2xl font-bold text-slate-50">{globalVelocity}<span className="text-sm font-normal text-slate-500"> pts/wk</span></span>
+                    <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold">Weekly throughput</span>
+                    <span className="text-2xl font-bold text-slate-50">{globalVelocity.toFixed(1)}<span className="text-sm font-normal text-slate-500"> tasks/wk</span></span>
                   </div>
                   <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
                     <div className="h-full bg-fuchsia-500 transition-all" style={{ width: `${Math.min(100, (globalVelocity / 100) * 100)}%` }} />

@@ -32,20 +32,20 @@ export class DashboardService {
       if (t.column in byCol) byCol[t.column as keyof typeof byCol]++;
     });
 
-    const getCompletedAt = (t: typeof tasks[number]) =>
-      t.completedAt ?? (t.column === 'deployed' ? t.createdAt : null);
+    const getCompletedAt = (t: typeof tasks[number]) => {
+      if (t.completedAt) return t.completedAt;
+      return t.column === 'deployed' ? t.createdAt : null;
+    };
 
-    const completedTasks = tasks.filter((t) => t.column === 'deployed' || t.completedAt);
+    const completedTasks = tasks.filter((t) => Boolean(getCompletedAt(t)));
     const avgCompletionDays =
       completedTasks.length === 0
         ? 0
-        : completedTasks.reduce(
-            (acc, t) => {
-              const completedAt = getCompletedAt(t);
-              return acc + (completedAt!.getTime() - t.createdAt.getTime()) / 86400000;
-            },
-            0,
-          ) / completedTasks.length;
+        : completedTasks.reduce((acc, t) => {
+            const completedAt = getCompletedAt(t);
+            if (!completedAt) return acc;
+            return acc + (completedAt.getTime() - t.createdAt.getTime()) / 86400000;
+          }, 0) / completedTasks.length;
 
     // ── Automation breakdown ──────────────────────────────────────────────────
     const aiCount = tasks.filter((t) => t.createdBy === 'ai').length;
@@ -96,9 +96,10 @@ export class DashboardService {
       entry.total++;
       if (t.column === 'deployed' || t.completedAt) {
         entry.done++;
-        if (t.completedAt) {
+        const completedAt = getCompletedAt(t);
+        if (completedAt) {
           entry.doneWithTime++;
-          entry.totalDays += (t.completedAt.getTime() - t.createdAt.getTime()) / 86400000;
+          entry.totalDays += (completedAt.getTime() - t.createdAt.getTime()) / 86400000;
         }
       }
     });

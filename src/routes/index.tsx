@@ -210,9 +210,9 @@ function VelocityCard({ velocity, movingAvg }: { velocity: number[]; movingAvg: 
       <div className="size-8 rounded-md grid place-items-center ring-1 mb-4 bg-fuchsia-500/10 ring-fuchsia-500/30">
         <TrendingUp className="size-4 text-fuchsia-300" />
       </div>
-      <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Velocity</div>
+      <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Completion pace</div>
       <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">{movingAvg.toFixed(1)}</div>
-      <div className="text-[11px] text-slate-500 mt-1">Moving avg / week</div>
+      <div className="text-[11px] text-slate-500 mt-1">Completed tasks / week</div>
       <div className="mt-3 flex items-end gap-1 h-10">
         {velocity.map((v, i) => (
           <div

@@ -64,10 +64,10 @@ function ReportsPage() {
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
               <BarChart3 className="size-3.5 text-amber-400" />
-              <span className="text-amber-400 font-medium tracking-wide">REPORTS & VELOCITY</span>
+              <span className="text-amber-400 font-medium tracking-wide">REPORTS & COMPLETION PACE</span>
             </div>
             <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Team Performance</h1>
-            <p className="text-sm text-slate-400 mt-1">Cross-project task completion and team velocity from live data.</p>
+            <p className="text-sm text-slate-400 mt-1">Cross-project completion rates and weekly throughput from live data.</p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -99,9 +99,9 @@ function ReportsPage() {
               <div className="size-8 rounded-lg grid place-items-center mb-3 bg-amber-500/10 ring-1 ring-amber-500/30">
                 <TrendingUp className="size-4 text-amber-300" />
               </div>
-              <div className="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Global Velocity</div>
-              <div className="text-2xl font-bold text-slate-50 mt-1">{globalStats?.movingAvg ?? 0}</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">pts/week avg</div>
+              <div className="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">Average completion pace</div>
+              <div className="text-2xl font-bold text-slate-50 mt-1">{(globalStats?.movingAvg ?? 0).toFixed(1)}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Completed tasks / week</div>
             </div>
           </div>
 
@@ -140,7 +140,7 @@ function ReportsPage() {
 
             <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
               <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2 mb-5">
-                <TrendingUp className="size-4 text-sky-400" /> Velocity by Project
+                <TrendingUp className="size-4 text-sky-400" /> Weekly throughput by project
               </h3>
               <div className="space-y-4">
                 {projects.map((p, idx) => {
@@ -156,7 +156,7 @@ function ReportsPage() {
                           {p.name}
                           <ExternalLink className="size-3 text-slate-650 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
                         </span>
-                        <span className="text-slate-400">{velocity} pts/wk</span>
+                        <span className="text-slate-400">{velocity.toFixed(1)} tasks/wk</span>
                       </div>
                       <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
                         <div className={`h-full ${BAR_COLORS[idx % BAR_COLORS.length]} transition-all duration-700`} style={{ width: `${Math.min(100, (velocity / 100) * 100)}%` }} />
@@ -180,7 +180,7 @@ function ReportsPage() {
                       <th className="pb-3 font-semibold">Member</th>
                       <th className="pb-3 font-semibold text-center">Assigned</th>
                       <th className="pb-3 font-semibold text-center">Completed</th>
-                      <th className="pb-3 font-semibold text-right">Avg. Days</th>
+                      <th className="pb-3 font-semibold text-right">Avg. days to ship</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/40">
