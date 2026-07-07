@@ -32,16 +32,16 @@ export class DashboardService {
       if (t.column in byCol) byCol[t.column as keyof typeof byCol]++;
     });
 
-    // ── Avg completion time (deployed tasks with completedAt) ─────────────────
-    const deployedTasks = tasks.filter((t) => t.column === 'deployed' && t.completedAt);
+    // ── Avg completion time (tasks with completedAt) ────────────────────────
+    const completedTasks = tasks.filter((t) => t.completedAt);
     const avgCompletionDays =
-      deployedTasks.length === 0
+      completedTasks.length === 0
         ? 0
-        : deployedTasks.reduce(
+        : completedTasks.reduce(
             (acc, t) =>
               acc + (t.completedAt!.getTime() - t.createdAt.getTime()) / 86400000,
             0,
-          ) / deployedTasks.length;
+          ) / completedTasks.length;
 
     // ── Automation breakdown ──────────────────────────────────────────────────
     const aiCount = tasks.filter((t) => t.createdBy === 'ai').length;
@@ -49,7 +49,7 @@ export class DashboardService {
     const uiCount = tasks.filter((t) => t.createdBy === 'ui').length;
     const autoRatio = total === 0 ? 0 : Math.round(((aiCount + slashCount) / total) * 100);
 
-    // ── Weekly velocity (last 7 full weeks of deployed tasks + current week) ──
+    // ── Weekly velocity (last 7 full weeks of completed tasks + current week) ──
     const now = Date.now();
     const WEEK = 7 * 86400000;
     const velocity: number[] = [];
@@ -57,7 +57,7 @@ export class DashboardService {
       const weekStart = now - (i + 1) * WEEK;
       const weekEnd = now - i * WEEK;
       velocity.push(
-        deployedTasks.filter((t) => {
+        completedTasks.filter((t) => {
           const ts = t.completedAt!.getTime();
           return ts >= weekStart && ts < weekEnd;
         }).length,
@@ -88,7 +88,7 @@ export class DashboardService {
       }
       const entry = userMap.get(u.id)!;
       entry.total++;
-      if (t.column === 'deployed') {
+      if (t.column === 'deployed' || t.completedAt) {
         entry.done++;
         if (t.completedAt) {
           entry.doneWithTime++;
@@ -159,17 +159,17 @@ export class DashboardService {
       if (t.column in byCol) byCol[t.column as keyof typeof byCol]++;
     });
 
-    const deployedTasks = tasks.filter((t) => t.column === 'deployed' && t.completedAt);
-    const completionRate = total === 0 ? 0 : Math.round((deployedTasks.length / total) * 100);
+    const completedTasks = tasks.filter((t) => t.completedAt);
+    const completionRate = total === 0 ? 0 : Math.round((completedTasks.length / total) * 100);
 
     const avgCompletionDays =
-      deployedTasks.length === 0
+      completedTasks.length === 0
         ? 0
-        : deployedTasks.reduce(
+        : completedTasks.reduce(
             (acc, t) =>
               acc + (t.completedAt!.getTime() - t.createdAt.getTime()) / 86400000,
             0,
-          ) / deployedTasks.length;
+          ) / completedTasks.length;
 
     const priorityCounts = {
       low: tasks.filter((t) => t.priority === 'low').length,
@@ -182,7 +182,7 @@ export class DashboardService {
       sprintId,
       sprintName: sprint.name,
       total,
-      completed: deployedTasks.length,
+      completed: completedTasks.length,
       completionRate,
       byCol,
       priorityCounts,
@@ -200,20 +200,20 @@ export class DashboardService {
     });
 
     const total = userTasks.length;
-    const completed = userTasks.filter((t) => t.column === 'deployed').length;
+    const completed = userTasks.filter((t) => t.completedAt).length;
     const inProgress = userTasks.filter((t) => t.column === 'active').length;
     const pending = userTasks.filter((t) => t.column === 'new').length;
     const inStaging = userTasks.filter((t) => t.column === 'staging').length;
 
-    const deployedTasks = userTasks.filter((t) => t.column === 'deployed' && t.completedAt);
+    const completedTasks = userTasks.filter((t) => t.completedAt);
     const avgCompletionDays =
-      deployedTasks.length === 0
+      completedTasks.length === 0
         ? 0
-        : deployedTasks.reduce(
+        : completedTasks.reduce(
             (acc, t) =>
               acc + (t.completedAt!.getTime() - t.createdAt.getTime()) / 86400000,
             0,
-          ) / deployedTasks.length;
+          ) / completedTasks.length;
 
     const creationBreakdown = {
       ui: userTasks.filter((t) => t.createdBy === 'ui').length,
@@ -396,7 +396,7 @@ export class DashboardService {
       }
       const stats = userStats.get(t.assigneeId!)!;
       stats.taskCount++;
-      if (t.column === 'deployed') stats.completedCount++;
+      if (t.completedAt) stats.completedCount++;
       if (t.column === 'active') stats.activeCount++;
     });
 
@@ -405,7 +405,7 @@ export class DashboardService {
     return {
       teamSize: team.length,
       totalTasks: tasks.length,
-      totalCompleted: tasks.filter((t) => t.column === 'deployed').length,
+      totalCompleted: tasks.filter((t) => t.completedAt).length,
       totalActive: tasks.filter((t) => t.column === 'active').length,
       team,
     };
