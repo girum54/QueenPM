@@ -7,7 +7,7 @@ import { useStore } from "@/lib/queen-store";
 
 export const Route = createFileRoute("/executive-reports")({
   head: () => ({
-    meta: [{ title: "Reports & Velocity — Queen PM Executive" }],
+    meta: [{ title: "Team Performance — Queen PM Executive" }],
   }),
   component: ReportsPage,
 });
@@ -32,10 +32,10 @@ function ReportsPage() {
       setProjects(projs);
       const smap: Record<string, DashboardStats> = {};
       for (const p of projs) {
-        try { smap[p.id] = await dashboardApi.getStats(p.id); } catch {}
+        try { smap[p.id] = await dashboardApi.getStats(p.id); } catch { }
       }
       setStatsMap(smap);
-      try { setGlobalStats(await dashboardApi.getStats()); } catch {}
+      try { setGlobalStats(await dashboardApi.getStats()); } catch { }
       setLoading(false);
     }
     load().catch(console.error);

@@ -20,7 +20,7 @@ export class SprintsService {
   async findAllByProject(projectId: string) {
     return this.db.query.sprints.findMany({
       where: eq(schema.sprints.projectId, projectId),
-      with: { deliverables: true, board: true },
+      with: { deliverables: true, board: true, tasks: true },
       orderBy: (sprints, { desc }) => [desc(sprints.createdAt)],
     });
   }
@@ -40,7 +40,7 @@ export class SprintsService {
         eq(schema.sprints.projectId, projectId),
         eq(schema.sprints.isActive, true),
       ),
-      with: { deliverables: true, board: true },
+      with: { deliverables: true, board: true, tasks: true },
     });
     if (!sprint) throw new NotFoundException('No active sprint for this project');
     return sprint;

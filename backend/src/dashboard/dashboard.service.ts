@@ -68,7 +68,7 @@ export class DashboardService {
     // ── Per-user efficiency ───────────────────────────────────────────────────
     const userMap = new Map<
       string,
-      { userId: string; name: string; color: string; isAi: boolean; total: number; done: number; totalDays: number }
+      { userId: string; name: string; color: string; isAi: boolean; total: number; done: number; doneWithTime: number; totalDays: number }
     >();
 
     tasks.forEach((t) => {
@@ -82,14 +82,18 @@ export class DashboardService {
           isAi: u.isAi ?? false,
           total: 0,
           done: 0,
+          doneWithTime: 0,
           totalDays: 0,
         });
       }
       const entry = userMap.get(u.id)!;
       entry.total++;
-      if (t.column === 'deployed' && t.completedAt) {
+      if (t.column === 'deployed') {
         entry.done++;
-        entry.totalDays += (t.completedAt.getTime() - t.createdAt.getTime()) / 86400000;
+        if (t.completedAt) {
+          entry.doneWithTime++;
+          entry.totalDays += (t.completedAt.getTime() - t.createdAt.getTime()) / 86400000;
+        }
       }
     });
 
@@ -102,7 +106,7 @@ export class DashboardService {
         isAi: r.isAi,
         total: r.total,
         done: r.done,
-        avgDays: r.done > 0 ? r.totalDays / r.done : null,
+        avgDays: r.doneWithTime > 0 ? r.totalDays / r.doneWithTime : null,
       }));
 
     // ── Recent activity (last 10 tasks created/updated) ───────────────────────

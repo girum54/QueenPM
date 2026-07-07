@@ -13,10 +13,10 @@ const EXEC_NAV: {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
 }[] = [
-  { to: "/executive", label: "Portfolio Overview", icon: LayoutDashboard, exact: true },
-  { to: "/executive.roadmap", label: "Strategic Roadmap", icon: Map },
-  { to: "/executive.reports", label: "Reports & Velocity", icon: BarChart3 },
-];
+    { to: "/executive", label: "Overview", icon: LayoutDashboard, exact: true },
+    { to: "/executive.roadmap", label: "Roadmap", icon: Map },
+    { to: "/executive.reports", label: "Team Performance", icon: BarChart3 },
+  ];
 
 export function ExecutiveShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -86,16 +86,14 @@ export function ExecutiveShell({ children }: { children: ReactNode }) {
       {/* ═══════════ EXECUTIVE SIDEBAR ═══════════ */}
       <aside
         onClick={collapsed ? () => setSidebarCollapsed(false) : undefined}
-        className={`relative shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-50 transition-all duration-200 ${
-          collapsed ? "w-[64px] cursor-pointer hover:bg-slate-900/10" : "w-[220px]"
-        }`}
+        className={`relative shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-50 transition-all duration-200 ${collapsed ? "w-[64px] cursor-pointer hover:bg-slate-900/10" : "w-[220px]"
+          }`}
       >
         {/* Brand + Collapse */}
         <div
           onClick={(e) => { if (!collapsed) { e.stopPropagation(); setSidebarCollapsed(true); } }}
-          className={`flex items-center h-14 border-b border-slate-900 shrink-0 cursor-pointer hover:bg-slate-900/20 transition ${
-            collapsed ? "justify-center px-0" : "px-3 gap-2"
-          }`}
+          className={`flex items-center h-14 border-b border-slate-900 shrink-0 cursor-pointer hover:bg-slate-900/20 transition ${collapsed ? "justify-center px-0" : "px-3 gap-2"
+            }`}
         >
           {!collapsed && (
             <>
@@ -161,13 +159,11 @@ export function ExecutiveShell({ children }: { children: ReactNode }) {
                 key={n.to}
                 to={n.to}
                 title={collapsed ? n.label : undefined}
-                className={`relative flex items-center rounded-lg text-[12px] font-medium transition-all group ${
-                  collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 h-9"
-                } ${
-                  active
+                className={`relative flex items-center rounded-lg text-[12px] font-medium transition-all group ${collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 h-9"
+                  } ${active
                     ? "bg-slate-900 border border-slate-800/80 text-slate-100"
                     : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
-                }`}
+                  }`}
               >
                 {active && !collapsed && (
                   <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-amber-500 shadow-sm shadow-amber-500/60" />
