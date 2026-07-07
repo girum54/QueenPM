@@ -57,7 +57,15 @@ export class MusicService {
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`oEmbed responded with status ${response.status}`);
+        // oEmbed failed (private video, embeds disabled, rate-limited, etc.)
+        // Fall back to minimal metadata we can derive from the video ID itself
+        console.warn(`oEmbed responded with status ${response.status} for videoId ${videoId} — using fallback metadata`);
+        return {
+          videoId,
+          title: 'YouTube Video',
+          author: 'Unknown Artist',
+          thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+        };
       }
       const data = await response.json();
       return {
@@ -68,10 +76,13 @@ export class MusicService {
       };
     } catch (error) {
       console.error('Failed to fetch YouTube oEmbed info:', error);
-      throw new HttpException(
-        'Failed to fetch track info from YouTube',
-        HttpStatus.BAD_GATEWAY,
-      );
+      // Network error — still return fallback metadata so the frontend can proceed
+      return {
+        videoId,
+        title: 'YouTube Video',
+        author: 'Unknown Artist',
+        thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+      };
     }
   }
 
