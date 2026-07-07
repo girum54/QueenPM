@@ -98,6 +98,7 @@ export class TasksService {
         parentId: dto.parentId ?? null,
         deadline: dto.deadline ? new Date(dto.deadline) : null,
         estimateDays: dto.estimateDays ?? null,
+        ...(dto.column === 'deployed' ? { completedAt: new Date() } : {}),
       })
       .returning();
 
