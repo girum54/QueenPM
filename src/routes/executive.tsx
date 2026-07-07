@@ -80,15 +80,22 @@ function ExecutiveDashboardPage() {
     let isAtRisk = false;
 
     if (activeSprint) {
-      const deliverables = activeSprint.deliverables || [];
-      const done = deliverables.filter(d => d.done).length;
-      progress = deliverables.length > 0 ? Math.round((done / deliverables.length) * 100) : 0;
+      const sprintTasks = activeSprint.tasks || [];
+      if (sprintTasks.length > 0) {
+        const completed = sprintTasks.filter(t => t.column === "deployed").length;
+        progress = Math.round((completed / sprintTasks.length) * 100);
+      } else {
+        const deliverables = activeSprint.deliverables || [];
+        const done = deliverables.filter(d => d.done).length;
+        progress = deliverables.length > 0 ? Math.round((done / deliverables.length) * 100) : 0;
+      }
       const startDate = new Date(activeSprint.startDate);
       const endDate = new Date(startDate.getTime() + activeSprint.durationWeeks * 7 * 24 * 60 * 60 * 1000);
       deadline = endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       const now = new Date();
       const timeProgress = Math.max(0, Math.min(100, ((now.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100));
-      if (timeProgress > progress + 20) { healthStatus = "Delayed"; isAtRisk = true; }
+      const isOverdue = now > endDate;
+      if (isOverdue && progress < 100) { healthStatus = "Delayed"; isAtRisk = true; }
       else if (timeProgress > progress + 10) { healthStatus = "At Risk"; isAtRisk = true; }
       roadmapItems.push({ id: p.id, sector: p.name, feature: activeSprint.name, status: healthStatus, progress, deadline, theme });
     }
@@ -99,7 +106,18 @@ function ExecutiveDashboardPage() {
   const allOkay = projects.length > 0 && onTrackCount === projects.length;
   let totalDeliverables = 0, completedDeliverables = 0;
   Object.values(sprintsMap).flat().forEach(s => {
-    (s.deliverables || []).forEach(d => { totalDeliverables++; if (d.done) completedDeliverables++; });
+    const sprintTasks = s.tasks || [];
+    if (sprintTasks.length > 0) {
+      sprintTasks.forEach(t => {
+        totalDeliverables++;
+        if (t.column === "deployed") completedDeliverables++;
+      });
+    } else {
+      (s.deliverables || []).forEach(d => {
+        totalDeliverables++;
+        if (d.done) completedDeliverables++;
+      });
+    }
   });
   const milestoneCompletionRate = totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0;
 

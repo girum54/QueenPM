@@ -96,6 +96,7 @@ export interface ApiSprint {
   createdAt: string;
   deliverables?: ApiSprintDeliverable[];
   board?: ApiBoard;
+  tasks?: Task[];
 }
 
 export interface ApiSprintDeliverable {

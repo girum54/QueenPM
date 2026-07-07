@@ -73,7 +73,7 @@ function DashboardPage() {
                 </span>
               </div>
               <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
-                Hello {user?.name ?? "there"}, your dashboard is ready.
+                Hello {user?.name ?? "there"}.
               </h1>
               <p className="text-sm text-slate-400 mt-1">
                 {metrics.byCol.active} tasks active · {metrics.byCol.staging} in staging · {metrics.byCol.deployed} deployed this cycle

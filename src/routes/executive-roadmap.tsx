@@ -93,15 +93,30 @@ function RoadmapPage() {
                   <div className="space-y-4">
                     {sprints.map((sprint) => {
                       const deliverables = sprint.deliverables || [];
-                      const done = deliverables.filter(d => d.done).length;
-                      const progress = deliverables.length > 0 ? Math.round((done / deliverables.length) * 100) : 0;
+                      const sprintTasks = sprint.tasks || [];
+                      let progress = 0;
+                      let doneCount = 0;
+                      let totalCount = 0;
+                      let isTaskBased = false;
+
+                      if (sprintTasks.length > 0) {
+                        doneCount = sprintTasks.filter(t => t.column === "deployed").length;
+                        totalCount = sprintTasks.length;
+                        progress = Math.round((doneCount / totalCount) * 100);
+                        isTaskBased = true;
+                      } else {
+                        doneCount = deliverables.filter(d => d.done).length;
+                        totalCount = deliverables.length;
+                        progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                      }
                       const startDate = new Date(sprint.startDate);
                       const endDate = new Date(startDate.getTime() + sprint.durationWeeks * 7 * 24 * 60 * 60 * 1000);
                       const now = new Date();
                       const timeProgress = endDate > startDate ? Math.max(0, Math.min(100, ((now.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100)) : 0;
                       let healthStatus = "On Track";
+                      const isOverdue = now > endDate;
                       if (sprint.completedAt) healthStatus = "Completed";
-                      else if (timeProgress > progress + 20) healthStatus = "Delayed";
+                      else if (isOverdue && progress < 100) healthStatus = "Delayed";
                       else if (timeProgress > progress + 10) healthStatus = "At Risk";
 
                       return (
@@ -138,7 +153,7 @@ function RoadmapPage() {
                             <div className="flex-1 h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
                               <div className={`h-full ${theme.bg} transition-all duration-700`} style={{ width: `${progress}%` }} />
                             </div>
-                            <span className="text-xs font-semibold text-slate-400 tabular-nums">{done}/{deliverables.length} done</span>
+                            <span className="text-xs font-semibold text-slate-400 tabular-nums">{doneCount}/{totalCount} {isTaskBased ? "tasks" : "deliverables"} done</span>
                           </div>
 
                           {deliverables.length > 0 && (
