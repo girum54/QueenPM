@@ -113,6 +113,7 @@ function ConnectedMusicView() {
 
   // ── State ────────────────────────────────────────────────────────────────
   const [queue, setQueue] = useState<QueueTrack[]>([]);
+  const [savedPlaylist, setSavedPlaylist] = useState<QueueTrack[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -247,19 +248,17 @@ function ConnectedMusicView() {
     setPlaylistLoading(true);
     playlistApi.getByChannel(playlistChannelId)
       .then(tracks => {
-        if (tracks.length > 0) {
-          setQueue(tracks.map(t => ({
-            videoId: t.videoId,
-            title: t.title,
-            author: t.author,
-            thumbnail: t.thumbnail,
-            addedBy: t.addedBy,
-            votes: 1,
-            dbId: t.id,
-          })));
-        } else {
-          setQueue([]);
-        }
+        const formatted = tracks.map(t => ({
+          videoId: t.videoId,
+          title: t.title,
+          author: t.author,
+          thumbnail: t.thumbnail,
+          addedBy: t.addedBy,
+          votes: 1,
+          dbId: t.id,
+        }));
+        setSavedPlaylist(formatted);
+        setQueue(formatted);
       })
       .catch(err => console.error('Failed to load playlist:', err))
       .finally(() => setPlaylistLoading(false));
@@ -437,6 +436,7 @@ function ConnectedMusicView() {
 
     const track: QueueTrack = { ...meta, addedBy: user?.name ?? "You", votes: 1, dbId };
     setQueue(q => [...q, track]);
+    setSavedPlaylist(sp => [...sp, track]);
     setSearchResults(res => res.filter(r => r.videoId !== meta.videoId));
     setUrlInput("");
 
@@ -478,6 +478,8 @@ function ConnectedMusicView() {
       
       return newQueue;
     });
+
+    setSavedPlaylist(sp => sp.filter(t => t.videoId !== track.videoId));
   };
 
   /** Play a track immediately without adding it to the queue permanently. */
@@ -508,6 +510,21 @@ function ConnectedMusicView() {
       broadcast({ type: "PLAY", videoId: meta.videoId, timestamp: 0 });
       broadcast({ type: "PARTY_START", trackTitle: meta.title, startedBy: user?.name ?? "Someone" });
     }
+  };
+
+  const handleLoadPlaylist = () => {
+    if (savedPlaylist.length === 0) return;
+    setQueue(savedPlaylist);
+    setCurrentIdx(0);
+    setProgress(0);
+    setPlaying(true);
+    
+    if (partyMode && savedPlaylist[0]) {
+      broadcast({ type: "SET_QUEUE", tracks: savedPlaylist, stationName: "Saved Playlist" });
+      broadcast({ type: "PARTY_START", trackTitle: savedPlaylist[0].title, startedBy: user?.name ?? "Someone" });
+    }
+    setTab("queue");
+    pushNotif("📁 Loaded Channel Playlist Queue", "🎵");
   };
 
   const handleStartRadio = async (genre: string, stationName: string) => {
@@ -732,7 +749,7 @@ function ConnectedMusicView() {
                 <div className="space-y-2 mt-4">
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Results</h3>
                   {searchResults.map(res => (
-                    <div key={res.videoId} className="flex items-center gap-3 p-2 rounded-lg border border-slate-800 bg-slate-900/30 hover:bg-slate-900/60 transition">
+                    <div key={`search-${res.videoId}`} className="flex items-center gap-3 p-2 rounded-lg border border-slate-800 bg-slate-900/30 hover:bg-slate-900/60 transition">
                       <img src={res.thumbnail} alt={res.title} className="size-12 rounded object-cover shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-slate-200 truncate">{res.title}</div>
@@ -769,7 +786,7 @@ function ConnectedMusicView() {
                   </div>
                 ) : (
                   queue.map((t, i) => (
-                    <div key={t.videoId} className={`flex items-center gap-2 p-2.5 rounded-lg border transition ${i === currentIdx ? "border-fuchsia-500/30 bg-fuchsia-500/5" : "border-slate-900 bg-slate-900/20 hover:bg-slate-900/40"}`}>
+                    <div key={t.dbId ?? `queue-${t.videoId}-${i}`} className={`flex items-center gap-2 p-2.5 rounded-lg border transition ${i === currentIdx ? "border-fuchsia-500/30 bg-fuchsia-500/5" : "border-slate-900 bg-slate-900/20 hover:bg-slate-900/40"}`}>
                       <img src={t.thumbnail} alt={t.title} className="size-10 rounded object-cover shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className={`text-xs font-medium truncate ${i === currentIdx ? "text-fuchsia-300" : "text-slate-200"}`}>{t.title}</div>
@@ -800,6 +817,26 @@ function ConnectedMusicView() {
               <p className="text-xs text-slate-400">Queen DJ 🤖 will load a curated playlist so the music never stops.</p>
               
               <div className="grid grid-cols-1 gap-2 mt-4">
+                {/* Channel Playlist Option */}
+                <button 
+                  onClick={handleLoadPlaylist}
+                  disabled={savedPlaylist.length === 0}
+                  className="text-left p-3 rounded-lg border border-fuchsia-500/20 bg-slate-900/30 hover:bg-slate-900/60 hover:border-fuchsia-500/50 transition relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-500/10 to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative text-sm font-medium text-slate-200 mb-0.5 flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      📁 Channel Playlist
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-fuchsia-500/10 text-fuchsia-300 font-mono font-medium">
+                      {savedPlaylist.length} tracks
+                    </span>
+                  </div>
+                  <div className="relative text-xs text-slate-500">Play custom tracks curated by members of this channel</div>
+                </button>
+
+                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-2 mb-1">Radio Stations</div>
+
                 <button onClick={() => handleStartRadio('focus', 'Deep Focus')} disabled={radioLoading} className="text-left p-3 rounded-lg border border-slate-800 bg-slate-900/30 hover:bg-slate-900/60 hover:border-fuchsia-500/50 transition relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative text-sm font-medium text-slate-200 mb-0.5 flex items-center gap-2">
@@ -853,7 +890,7 @@ function ConnectedMusicView() {
                     const isCurrent = currentIdx === queue.indexOf(t);
                     return (
                       <tr
-                        key={t.videoId}
+                        key={t.dbId ?? `filtered-${t.videoId}-${i}`}
                         onDoubleClick={() => playTrack(queue.indexOf(t))}
                         className={`group border-b border-slate-950 hover:bg-slate-900/40 cursor-pointer ${isCurrent ? "bg-fuchsia-500/5" : ""}`}
                       >
@@ -946,6 +983,14 @@ function ConnectedMusicView() {
                       setQueue(q => q.map(t =>
                         t.videoId === current.videoId ? { ...t, dbId: dbId ?? t.dbId } : t
                       ));
+                      setSavedPlaylist(sp => {
+                        const existing = sp.find(t => t.videoId === current.videoId);
+                        if (existing) {
+                          return sp.map(t => t.videoId === current.videoId ? { ...t, dbId: dbId ?? t.dbId } : t);
+                        }
+                        const newTrack: QueueTrack = { ...current, dbId, votes: 1, addedBy: user?.name ?? "Unknown" };
+                        return [...sp, newTrack];
+                      });
                     }
                   }}
                   className={`flex items-center gap-1 px-2 h-6 rounded text-[10px] font-medium border transition ${
@@ -1073,7 +1118,7 @@ function ConnectedMusicView() {
               const isPast = i < currentIdx;
               return (
                 <button
-                  key={t.videoId}
+                  key={t.dbId ?? `upnext-${t.videoId}-${i}`}
                   onClick={() => playTrack(i)}
                   className={`w-full flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-900/30 text-left ${isCurrent ? "bg-fuchsia-500/10" : ""} ${isPast ? "opacity-40" : ""}`}
                 >
