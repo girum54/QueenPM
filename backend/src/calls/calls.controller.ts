@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CallsService } from './calls.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -20,12 +20,16 @@ export class CallsController {
   @Get('token/:roomName')
   async getAccessToken(
     @Param('roomName') roomName: string,
+    @Query('identity') identity: string | undefined,
+    @Query('name') name: string | undefined,
     @CurrentUser() user: any,
   ) {
     const token = await this.callsService.generateAccessToken(
       roomName,
       user.id,
       user.name,
+      identity,
+      name,
     );
     return {
       token,

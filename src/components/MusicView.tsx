@@ -66,7 +66,7 @@ const MUSIC_ROOM = "music-lounge";
 // ─── Outer Component (Handles Connection) ────────────────────────────────────
 
 export function MusicView() {
-  const { connect, disconnect, status, enableOfflineMode } = useLivekit();
+  const { connect, disconnect, status, enableOfflineMode, offlineMode } = useLivekit();
 
   useEffect(() => {
     connect(MUSIC_ROOM);
@@ -74,7 +74,13 @@ export function MusicView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (status !== "ready" && status !== "connected") {
+  useEffect(() => {
+    if (status === 'error' && !offlineMode) {
+      enableOfflineMode();
+    }
+  }, [status, offlineMode, enableOfflineMode]);
+
+  if (status === "connecting") {
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-3">
@@ -580,7 +586,18 @@ function ConnectedMusicView() {
     [search, queue]
   );
 
-  const allParticipants = localParticipant ? [localParticipant, ...participants] : participants;
+  const allParticipants = useMemo(() => {
+    const map = new Map<string, typeof localParticipant | (typeof participants)[number]>();
+    if (localParticipant) {
+      map.set(localParticipant.identity, localParticipant);
+    }
+    participants.forEach((p) => {
+      if (!map.has(p.identity)) {
+        map.set(p.identity, p);
+      }
+    });
+    return Array.from(map.values());
+  }, [localParticipant, participants]);
 
   // ── Loading state ─────────────────────────────────────────────────────
 

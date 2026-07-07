@@ -43,6 +43,8 @@ export interface LivekitContextType {
   isConnected: boolean;
   /** True while fetching the token OR while the room is connecting */
   isConnecting: boolean;
+  /** True when LiveKit is intentionally running in offline fallback mode */
+  offlineMode: boolean;
   /** Human-readable error message (null when no error) */
   error: string | null;
   /** Fetch a token and connect to LiveKit for the given room slug */
@@ -79,12 +81,13 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<LivekitStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [offlineMode, setOfflineMode] = useState(false);
 
   // Keep a ref so disconnect() can always reach the current room
   // even inside stale closures.
   const roomRef = useRef<Room | null>(null);
 
-  const isConnected = status === 'connected';
+  const isConnected = status === 'connected' && !offlineMode;
   const isConnecting = status === 'connecting';
 
   // ── connect ────────────────────────────────────────────────────────────────
@@ -94,6 +97,7 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
 
     setStatus('connecting');
     setError(null);
+    setOfflineMode(false);
 
     try {
       // 1. Fetch token + LiveKit WebSocket URL from the backend (auth-guarded)
@@ -170,6 +174,7 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setUrl(null);
       setError(null);
+      setOfflineMode(false);
       roomRef.current = null;
     }
   }, []);
@@ -188,6 +193,7 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
     setToken('offline-mode');
     setUrl('ws://offline');
     setStatus('connected');
+    setOfflineMode(true);
     setError(null);
   }, []);
 
@@ -200,13 +206,14 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
       status,
       isConnected,
       isConnecting,
+      offlineMode,
       error,
       connect,
       disconnect,
       clearError,
       enableOfflineMode,
     }),
-    [room, token, url, status, isConnected, isConnecting, error, connect, disconnect, clearError, enableOfflineMode],
+    [room, token, url, status, isConnected, isConnecting, error, offlineMode, connect, disconnect, clearError, enableOfflineMode],
   );
 
   return (

@@ -18,6 +18,46 @@ export function isQueenCommand(input: string): boolean {
   return input.trim().toLowerCase().startsWith("@queen");
 }
 
+export type ParsedQueenDjCommand =
+  | { type: "play"; query: string }
+  | { type: "play_playlist"; playlistName?: string }
+  | { type: "skip" }
+  | { type: "pause" }
+  | { type: "resume" }
+  | { type: "clear" };
+
+export function isQueenDjCommand(input: string): boolean {
+  const trimmed = input.trim().toLowerCase();
+  return trimmed.startsWith("!play") || 
+         trimmed === "!skip" || 
+         trimmed === "!pause" || 
+         trimmed === "!resume" || 
+         trimmed === "!clear";
+}
+
+export function parseQueenDjCommand(input: string): ParsedQueenDjCommand | null {
+  const trimmed = input.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (lower === "!skip") return { type: "skip" };
+  if (lower === "!pause") return { type: "pause" };
+  if (lower === "!resume") return { type: "resume" };
+  if (lower === "!clear") return { type: "clear" };
+
+  if (!lower.startsWith("!play")) return null;
+  const rest = trimmed.slice(5).trim();
+  if (!rest) {
+    return { type: "play", query: "" };
+  }
+
+  if (lower.startsWith("playlist")) {
+    const playlistName = rest.slice("playlist".length).trim();
+    return { type: "play_playlist", playlistName: playlistName || undefined };
+  }
+
+  return { type: "play", query: rest };
+}
+
 export function parseCreateTaskCommand(input: string): ParsedCreateTask | null {
   const trimmed = input.trim();
   const lower = trimmed.toLowerCase();
@@ -74,5 +114,17 @@ export const CHAT_QUICK_ACTIONS = [
     example: "@queen scope the auth middleware migration",
     desc: "Queen PM will handle this later — creates a tracked task for now",
     icon: "crown" as const,
+  },
+  {
+    cmd: "!play",
+    example: "!play lofi beats",
+    desc: "QueenDJ plays a track from YouTube or your playlist",
+    icon: "music" as const,
+  },
+  {
+    cmd: "!play playlist",
+    example: "!play playlist",
+    desc: "QueenDJ plays your channel's playlist",
+    icon: "list-music" as const,
   },
 ] as const;

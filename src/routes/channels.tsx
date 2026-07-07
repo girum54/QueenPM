@@ -13,12 +13,12 @@ import { useAuth } from "@/lib/auth-store";
 import { channelsApi } from "@/lib/api/queen.api";
 import { useNotifications } from "@/lib/notifications-store";
 import {
-  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand,
+  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand, parseQueenDjCommand,
   titleFromMessage,
 } from "@/lib/chat-commands";
 import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
 import { VoiceView } from "@/components/VoiceView";
-import { MusicView } from "@/components/MusicView";
+import { useQueenDjCommandHandler } from "@/lib/queendj-commands";
 
 export const Route = createFileRoute("/channels")({
   head: () => ({
@@ -37,6 +37,9 @@ function ChannelsPage() {
     addMessage, addTask, updateTask, consumeJump,
     activeProjectId, projectTabs, activeSprintId, isInCall,
   } = useStore();
+
+  // Enable QueenDJ command handling
+  useQueenDjCommandHandler();
 
   const activeProject = useMemo(() => {
     return projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
@@ -74,7 +77,7 @@ function ChannelsPage() {
   const [assignModalSubtitle, setAssignModalSubtitle] = useState<string | undefined>();
   const [spawningTask, setSpawningTask] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<"chat" | "voice" | "music">("chat");
+  const [mode, setMode] = useState<"chat" | "voice">("chat");
 
   // ── Call invite banner ────────────────────────────────────────────────────
   const { markRead, notifications } = useNotifications();
@@ -134,15 +137,15 @@ function ChannelsPage() {
       // If in a call, prioritize voice mode
       if (isInCall) {
         setMode("voice");
-      } else if (qMode === "voice" || qMode === "music") {
-        setMode(qMode as "voice" | "music");
+      } else if (qMode === "voice") {
+        setMode("voice");
       } else {
         setMode("chat");
       }
     }
   }, [activeChannelId, isInCall]);
 
-  const handleModeChange = (newMode: "chat" | "voice" | "music") => {
+  const handleModeChange = (newMode: "chat" | "voice") => {
     setMode(newMode);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -310,6 +313,7 @@ function ChannelsPage() {
     if (!v || spawningTask) return;
 
     const createCmd = parseCreateTaskCommand(v);
+    const queenDjCmd = parseQueenDjCommand(v);
     const queenCmd = parseQueenCommand(v);
 
     if (createCmd) {
@@ -321,6 +325,20 @@ function ChannelsPage() {
         sourceText: v,
         modalSubtitle: "Created via slash command",
       });
+    } else if (queenDjCmd) {
+      await addMessage({
+        authorId: currentUser?.id || "me",
+        channelId: activeChannelId,
+        text: v,
+      });
+      scrollToBottom();
+      window.dispatchEvent(new CustomEvent("queen:dj-command", {
+        detail: {
+          channelId: activeChannelId,
+          command: queenDjCmd,
+          requestedBy: currentUser?.name ?? "You",
+        },
+      }));
     } else if (queenCmd) {
       await createTaskFromChat({
         title: queenCmd.title,
@@ -397,16 +415,20 @@ function ChannelsPage() {
                 <Video className="size-3.5" />
                 <span>Voice & Video</span>
               </button>
-              <button
-                onClick={() => handleModeChange("music")}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition ${mode === "music"
-                    ? "bg-slate-850 text-fuchsia-300 shadow-sm border border-fuchsia-500/20"
-                    : "text-slate-450 hover:text-slate-200"
-                  }`}
+              <a
+                href="/music"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition text-slate-450 hover:text-slate-200 hover:bg-slate-900/60`}
               >
                 <Music className="size-3.5" />
-                <span>Music Lounge</span>
-              </button>
+                <span>Playlists</span>
+              </a>
+              <a
+                href="/queendj"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition text-slate-450 hover:text-slate-200 hover:bg-slate-900/60`}
+              >
+                <Crown className="size-3.5" />
+                <span>QueenDJ</span>
+              </a>
             </div>
 
             {/* Header controls */}
@@ -624,11 +646,7 @@ function ChannelsPage() {
             <div className="flex-1 min-h-0">
               <VoiceView channelName={activeChannel?.name || "Voice Lounge"} onLeave={() => handleModeChange("chat")} />
             </div>
-          ) : (
-            <div className="flex-1 min-h-0">
-              <MusicView />
-            </div>
-          )}
+          ) : null}
         </section>
 
         {/* RIGHT SIDE PANEL: Details, Pins & Members */}

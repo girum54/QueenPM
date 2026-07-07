@@ -18,10 +18,12 @@ export class CallsService {
     roomName: string,
     userId: string,
     userName: string,
+    identity?: string,
+    name?: string,
   ): Promise<string> {
     const at = new AccessToken(this.apiKey, this.apiSecret, {
-      identity: userId,
-      name: userName,
+      identity: identity ?? userId,
+      name: name ?? userName,
       // Token expires in 6 hours
       ttl: '6h',
     });

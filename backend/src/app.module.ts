@@ -17,6 +17,7 @@ import { UsersModule } from './users/users.module';
 import { CallsModule } from './calls/calls.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MusicModule } from './music/music.module';
+import { QueenDjModule } from './queendj/queendj.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { MusicModule } from './music/music.module';
     CallsModule,
     NotificationsModule,
     MusicModule,
+    QueenDjModule,
   ],
   controllers: [AppController],
   providers: [

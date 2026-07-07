@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, PhoneOff,
   Users, MessageSquare, MoreHorizontal, Plus, Send, Hash, Loader2,
-  AlertCircle, RefreshCw, UserPlus, Bell, Check, Search,
+  AlertCircle, RefreshCw, UserPlus, Bell, Check, Search, Crown,
 } from "lucide-react";
 import { Track } from "livekit-client";
 import { useStore } from "@/lib/queen-store";
@@ -64,6 +64,7 @@ function ConnectedCallView({
   const [inviteSearch, setInviteSearch] = useState("");
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
   const [sendingTo, setSendingTo] = useState<string | null>(null);
+  const [queenDjInCall, setQueenDjInCall] = useState(false);
 
   // Project members not already in the call
   const { users, activeProjectId, activeChannelId } = useStore();
@@ -80,6 +81,45 @@ function ConnectedCallView({
     typeof window !== "undefined"
       ? (import.meta.env.VITE_API_URL ?? "http://localhost:3001")
       : "http://localhost:3001";
+
+  // Check if QueenDJ is in the call
+  useEffect(() => {
+    const queenDjParticipant = allParticipants.find(p => p.identity === 'queendj');
+    setQueenDjInCall(!!queenDjParticipant);
+  }, [allParticipants]);
+
+  // Invite QueenDJ to the call
+  const handleInviteQueenDj = async () => {
+    if (queenDjInCall) return;
+    
+    try {
+      const roomName = `channel-${channelName.replace(/\s+/g, "-").toLowerCase()}`;
+      await fetch(`${API_BASE_URL}/queendj/join`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomName }),
+      });
+      setQueenDjInCall(true);
+    } catch (err) {
+      console.error('Failed to invite QueenDJ:', err);
+    }
+  };
+
+  // Remove QueenDJ from the call
+  const handleRemoveQueenDj = async () => {
+    if (!queenDjInCall) return;
+    
+    try {
+      await fetch(`${API_BASE_URL}/queendj/leave`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setQueenDjInCall(false);
+    } catch (err) {
+      console.error('Failed to remove QueenDJ:', err);
+    }
+  };
 
   const handleSendInvite = async (userId: string) => {
     setSendingTo(userId);
@@ -337,6 +377,18 @@ function ConnectedCallView({
               className="w-full mt-1 h-8 rounded-md border border-dashed border-slate-700 text-[11px] text-fuchsia-400 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/40 flex items-center justify-center gap-1.5 transition"
             >
               <UserPlus className="size-3" /> Invite someone
+            </button>
+
+            {/* QueenDJ button */}
+            <button
+              onClick={queenDjInCall ? handleRemoveQueenDj : handleInviteQueenDj}
+              className={`w-full mt-1 h-8 rounded-md border text-[11px] flex items-center justify-center gap-1.5 transition ${
+                queenDjInCall
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                  : "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 hover:bg-fuchsia-500/20"
+              }`}
+            >
+              <Crown className="size-3" /> {queenDjInCall ? "Remove QueenDJ" : "Add QueenDJ"}
             </button>
 
             {/* Member picker panel */}
