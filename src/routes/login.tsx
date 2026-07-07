@@ -40,7 +40,7 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const getDestination = (u?: any) =>
-    u?.role === "stakeholder" ? "/executive" : "/";
+    u?.role === "stakeholder" ? "/stakeholder" : "/";
 
   // If already logged in, redirect to appropriate dashboard
   useEffect(() => {

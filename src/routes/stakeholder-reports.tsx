@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, BarChart3, TrendingUp, Users, CheckCircle2, Clock, ExternalLink } from "lucide-react";
-import { ExecutiveShell } from "@/components/ExecutiveShell";
+import { StakeholderShell } from "@/components/StakeholderShell";
 import { dashboardApi, projectsApi, type ApiProject, type DashboardStats } from "@/lib/api/queen.api";
 import { useStore } from "@/lib/queen-store";
 
-export const Route = createFileRoute("/executive-reports")({
+export const Route = createFileRoute("/stakeholder-reports")({
   head: () => ({
-    meta: [{ title: "Team Performance — Queen PM Executive" }],
+    meta: [{ title: "Team Performance — Queen PM Stakeholder" }],
   }),
   component: ReportsPage,
 });
@@ -43,11 +43,11 @@ function ReportsPage() {
 
   if (loading) {
     return (
-      <ExecutiveShell>
+      <StakeholderShell>
         <div className="h-full flex items-center justify-center">
           <Loader2 className="size-8 text-amber-400 animate-spin" />
         </div>
-      </ExecutiveShell>
+      </StakeholderShell>
     );
   }
 
@@ -58,7 +58,7 @@ function ReportsPage() {
   const BAR_COLORS = ["bg-fuchsia-500", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-indigo-500"];
 
   return (
-    <ExecutiveShell>
+    <StakeholderShell>
       <div className="h-full overflow-y-auto">
         <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
           <div>
@@ -214,6 +214,6 @@ function ReportsPage() {
           )}
         </div>
       </div>
-    </ExecutiveShell>
+    </StakeholderShell>
   );
 }

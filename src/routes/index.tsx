@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — Queen PM" },
-      { name: "description", content: "Executive command center: velocity, AI automation ratio, sprint health." },
+      { name: "description", content: "Stakeholder command center: velocity, AI automation ratio, sprint health." },
     ],
   }),
   component: DashboardPage,

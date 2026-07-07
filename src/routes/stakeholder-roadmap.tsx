@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, Map, CheckCircle2, AlertTriangle, AlertCircle, ExternalLink } from "lucide-react";
-import { ExecutiveShell } from "@/components/ExecutiveShell";
+import { StakeholderShell } from "@/components/StakeholderShell";
 import { projectsApi, sprintsApi, type ApiProject, type ApiSprint } from "@/lib/api/queen.api";
 import { useStore } from "@/lib/queen-store";
 
-export const Route = createFileRoute("/executive-roadmap")({
+export const Route = createFileRoute("/stakeholder-roadmap")({
   head: () => ({
-    meta: [{ title: "Strategic Roadmap — Queen PM Executive" }],
+    meta: [{ title: "Strategic Roadmap — Queen PM Stakeholder" }],
   }),
   component: RoadmapPage,
 });
@@ -47,16 +47,16 @@ function RoadmapPage() {
 
   if (loading) {
     return (
-      <ExecutiveShell>
+      <StakeholderShell>
         <div className="h-full flex items-center justify-center">
           <Loader2 className="size-8 text-amber-400 animate-spin" />
         </div>
-      </ExecutiveShell>
+      </StakeholderShell>
     );
   }
 
   return (
-    <ExecutiveShell>
+    <StakeholderShell>
       <div className="h-full overflow-y-auto">
         <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
           <div>
@@ -181,6 +181,6 @@ function RoadmapPage() {
           </div>
         </div>
       </div>
-    </ExecutiveShell>
+    </StakeholderShell>
   );
 }

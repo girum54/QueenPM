@@ -11,14 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as StakeholderRoadmapRouteImport } from './routes/stakeholder-roadmap'
+import { Route as StakeholderReportsRouteImport } from './routes/stakeholder-reports'
+import { Route as StakeholderRouteImport } from './routes/stakeholder'
 import { Route as SprintConfigRouteImport } from './routes/sprint-config'
 import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as MusicRouteImport } from './routes/music'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ExecutiveRoadmapRouteImport } from './routes/executive-roadmap'
-import { Route as ExecutiveReportsRouteImport } from './routes/executive-reports'
-import { Route as ExecutiveRouteImport } from './routes/executive'
 import { Route as ChannelsConfigRouteImport } from './routes/channels-config'
 import { Route as ChannelsRouteImport } from './routes/channels'
 import { Route as BoardRouteImport } from './routes/board'
@@ -32,6 +32,21 @@ const VoiceRoute = VoiceRouteImport.update({
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StakeholderRoadmapRoute = StakeholderRoadmapRouteImport.update({
+  id: '/stakeholder-roadmap',
+  path: '/stakeholder-roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StakeholderReportsRoute = StakeholderReportsRouteImport.update({
+  id: '/stakeholder-reports',
+  path: '/stakeholder-reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StakeholderRoute = StakeholderRouteImport.update({
+  id: '/stakeholder',
+  path: '/stakeholder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SprintConfigRoute = SprintConfigRouteImport.update({
@@ -57,21 +72,6 @@ const MusicRoute = MusicRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExecutiveRoadmapRoute = ExecutiveRoadmapRouteImport.update({
-  id: '/executive-roadmap',
-  path: '/executive-roadmap',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExecutiveReportsRoute = ExecutiveReportsRouteImport.update({
-  id: '/executive-reports',
-  path: '/executive-reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExecutiveRoute = ExecutiveRouteImport.update({
-  id: '/executive',
-  path: '/executive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelsConfigRoute = ChannelsConfigRouteImport.update({
@@ -100,14 +100,14 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
-  '/executive': typeof ExecutiveRoute
-  '/executive-reports': typeof ExecutiveReportsRoute
-  '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
   '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
+  '/stakeholder': typeof StakeholderRoute
+  '/stakeholder-reports': typeof StakeholderReportsRoute
+  '/stakeholder-roadmap': typeof StakeholderRoadmapRoute
   '/tasks': typeof TasksRoute
   '/voice': typeof VoiceRoute
 }
@@ -116,14 +116,14 @@ export interface FileRoutesByTo {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
-  '/executive': typeof ExecutiveRoute
-  '/executive-reports': typeof ExecutiveReportsRoute
-  '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
   '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
+  '/stakeholder': typeof StakeholderRoute
+  '/stakeholder-reports': typeof StakeholderReportsRoute
+  '/stakeholder-roadmap': typeof StakeholderRoadmapRoute
   '/tasks': typeof TasksRoute
   '/voice': typeof VoiceRoute
 }
@@ -133,14 +133,14 @@ export interface FileRoutesById {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
-  '/executive': typeof ExecutiveRoute
-  '/executive-reports': typeof ExecutiveReportsRoute
-  '/executive-roadmap': typeof ExecutiveRoadmapRoute
   '/login': typeof LoginRoute
   '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
   '/sprint': typeof SprintRoute
   '/sprint-config': typeof SprintConfigRoute
+  '/stakeholder': typeof StakeholderRoute
+  '/stakeholder-reports': typeof StakeholderReportsRoute
+  '/stakeholder-roadmap': typeof StakeholderRoadmapRoute
   '/tasks': typeof TasksRoute
   '/voice': typeof VoiceRoute
 }
@@ -151,14 +151,14 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
-    | '/executive'
-    | '/executive-reports'
-    | '/executive-roadmap'
     | '/login'
     | '/music'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
+    | '/stakeholder'
+    | '/stakeholder-reports'
+    | '/stakeholder-roadmap'
     | '/tasks'
     | '/voice'
   fileRoutesByTo: FileRoutesByTo
@@ -167,14 +167,14 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
-    | '/executive'
-    | '/executive-reports'
-    | '/executive-roadmap'
     | '/login'
     | '/music'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
+    | '/stakeholder'
+    | '/stakeholder-reports'
+    | '/stakeholder-roadmap'
     | '/tasks'
     | '/voice'
   id:
@@ -183,14 +183,14 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
-    | '/executive'
-    | '/executive-reports'
-    | '/executive-roadmap'
     | '/login'
     | '/music'
     | '/projects'
     | '/sprint'
     | '/sprint-config'
+    | '/stakeholder'
+    | '/stakeholder-reports'
+    | '/stakeholder-roadmap'
     | '/tasks'
     | '/voice'
   fileRoutesById: FileRoutesById
@@ -200,14 +200,14 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRoute
   ChannelsRoute: typeof ChannelsRoute
   ChannelsConfigRoute: typeof ChannelsConfigRoute
-  ExecutiveRoute: typeof ExecutiveRoute
-  ExecutiveReportsRoute: typeof ExecutiveReportsRoute
-  ExecutiveRoadmapRoute: typeof ExecutiveRoadmapRoute
   LoginRoute: typeof LoginRoute
   MusicRoute: typeof MusicRoute
   ProjectsRoute: typeof ProjectsRoute
   SprintRoute: typeof SprintRoute
   SprintConfigRoute: typeof SprintConfigRoute
+  StakeholderRoute: typeof StakeholderRoute
+  StakeholderReportsRoute: typeof StakeholderReportsRoute
+  StakeholderRoadmapRoute: typeof StakeholderRoadmapRoute
   TasksRoute: typeof TasksRoute
   VoiceRoute: typeof VoiceRoute
 }
@@ -226,6 +226,27 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stakeholder-roadmap': {
+      id: '/stakeholder-roadmap'
+      path: '/stakeholder-roadmap'
+      fullPath: '/stakeholder-roadmap'
+      preLoaderRoute: typeof StakeholderRoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stakeholder-reports': {
+      id: '/stakeholder-reports'
+      path: '/stakeholder-reports'
+      fullPath: '/stakeholder-reports'
+      preLoaderRoute: typeof StakeholderReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stakeholder': {
+      id: '/stakeholder'
+      path: '/stakeholder'
+      fullPath: '/stakeholder'
+      preLoaderRoute: typeof StakeholderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sprint-config': {
@@ -261,27 +282,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/executive-roadmap': {
-      id: '/executive-roadmap'
-      path: '/executive-roadmap'
-      fullPath: '/executive-roadmap'
-      preLoaderRoute: typeof ExecutiveRoadmapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/executive-reports': {
-      id: '/executive-reports'
-      path: '/executive-reports'
-      fullPath: '/executive-reports'
-      preLoaderRoute: typeof ExecutiveReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/executive': {
-      id: '/executive'
-      path: '/executive'
-      fullPath: '/executive'
-      preLoaderRoute: typeof ExecutiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channels-config': {
@@ -320,14 +320,14 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRoute,
   ChannelsRoute: ChannelsRoute,
   ChannelsConfigRoute: ChannelsConfigRoute,
-  ExecutiveRoute: ExecutiveRoute,
-  ExecutiveReportsRoute: ExecutiveReportsRoute,
-  ExecutiveRoadmapRoute: ExecutiveRoadmapRoute,
   LoginRoute: LoginRoute,
   MusicRoute: MusicRoute,
   ProjectsRoute: ProjectsRoute,
   SprintRoute: SprintRoute,
   SprintConfigRoute: SprintConfigRoute,
+  StakeholderRoute: StakeholderRoute,
+  StakeholderReportsRoute: StakeholderReportsRoute,
+  StakeholderRoadmapRoute: StakeholderRoadmapRoute,
   TasksRoute: TasksRoute,
   VoiceRoute: VoiceRoute,
 }

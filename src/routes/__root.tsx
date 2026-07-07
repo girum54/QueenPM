@@ -82,12 +82,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   beforeLoad: ({ location }) => {
     if (location.pathname === "/executive.roadmap") {
       throw redirect({
-        to: "/executive-roadmap",
+        to: "/stakeholder-roadmap",
       });
     }
     if (location.pathname === "/executive.reports") {
       throw redirect({
-        to: "/executive-reports",
+        to: "/stakeholder-reports",
       });
     }
   },

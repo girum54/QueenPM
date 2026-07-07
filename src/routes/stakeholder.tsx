@@ -2,17 +2,17 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Activity, Calendar, Crown, CheckCircle2, TrendingUp, Clock, AlertTriangle, AlertCircle, Briefcase, ChevronRight, Loader2, ExternalLink } from "lucide-react";
 import { useStore } from "@/lib/queen-store";
-import { ExecutiveShell } from "@/components/ExecutiveShell";
+import { StakeholderShell } from "@/components/StakeholderShell";
 import { dashboardApi, projectsApi, sprintsApi, type ApiProject, type ApiSprint } from "@/lib/api/queen.api";
 
-export const Route = createFileRoute("/executive")({
+export const Route = createFileRoute("/stakeholder")({
   head: () => ({
     meta: [
-      { title: "Executive Dashboard — Queen PM" },
+      { title: "Stakeholder Dashboard — Queen PM" },
       { name: "description", content: "Portfolio-level overview for Top-Level stakeholders." },
     ],
   }),
-  component: ExecutiveDashboardPage,
+  component: StakeholderDashboardPage,
 });
 
 const THEME_COLORS = [
@@ -24,7 +24,7 @@ const THEME_COLORS = [
   { bg: "bg-indigo-500", text: "text-indigo-400", light: "bg-indigo-500/10" },
 ];
 
-function ExecutiveDashboardPage() {
+function StakeholderDashboardPage() {
   const { setActiveProjectId } = useStore();
   const navigate = useNavigate();
   const handleProjectClick = (id: string) => {
@@ -48,7 +48,7 @@ function ExecutiveDashboardPage() {
         const stats = await dashboardApi.getStats();
         setGlobalVelocity(stats.movingAvg || 0);
       } catch (err) {
-        console.error("Failed to load executive data:", err);
+        console.error("Failed to load stakeholder data:", err);
       } finally {
         setLoading(false);
       }
@@ -58,11 +58,11 @@ function ExecutiveDashboardPage() {
 
   if (loading) {
     return (
-      <ExecutiveShell>
+      <StakeholderShell>
         <div className="h-full flex items-center justify-center">
           <Loader2 className="size-8 text-amber-400 animate-spin" />
         </div>
-      </ExecutiveShell>
+      </StakeholderShell>
     );
   }
 
@@ -122,7 +122,7 @@ function ExecutiveDashboardPage() {
   const milestoneCompletionRate = totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0;
 
   return (
-    <ExecutiveShell>
+    <StakeholderShell>
       <div className="h-full overflow-y-auto">
         <div className="max-w-[1300px] mx-auto px-8 py-8 space-y-8">
           <div>
@@ -254,6 +254,6 @@ function ExecutiveDashboardPage() {
           </div>
         </div>
       </div>
-    </ExecutiveShell>
+    </StakeholderShell>
   );
 }

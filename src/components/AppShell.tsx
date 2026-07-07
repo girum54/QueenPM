@@ -216,7 +216,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {isStakeholder && (
           <div className={`px-2.5 pt-3 ${collapsed ? "flex justify-center" : ""}`}>
             <Link
-              to="/executive"
+              to="/stakeholder"
               title={collapsed ? "Portfolio Overview" : undefined}
               className={`w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 transition ${
                 collapsed ? "size-9 p-0" : "text-[12px] font-semibold"

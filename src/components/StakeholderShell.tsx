@@ -7,18 +7,18 @@ import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
 
-const EXEC_NAV: {
+const STAKEHOLDER_NAV: {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
 }[] = [
-    { to: "/executive", label: "Overview", icon: LayoutDashboard, exact: true },
-    { to: "/executive.roadmap", label: "Roadmap", icon: Map },
-    { to: "/executive.reports", label: "Team Performance", icon: BarChart3 },
+    { to: "/stakeholder", label: "Overview", icon: LayoutDashboard, exact: true },
+    { to: "/stakeholder-roadmap", label: "Roadmap", icon: Map },
+    { to: "/stakeholder-reports", label: "Team Performance", icon: BarChart3 },
   ];
 
-export function ExecutiveShell({ children }: { children: ReactNode }) {
+export function StakeholderShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
@@ -83,7 +83,7 @@ export function ExecutiveShell({ children }: { children: ReactNode }) {
   return (
     <div className="h-screen w-screen overflow-hidden flex bg-slate-950 text-slate-200 font-sans antialiased selection:bg-fuchsia-500/30">
 
-      {/* ═══════════ EXECUTIVE SIDEBAR ═══════════ */}
+      {/* ═══════════ STAKEHOLDER SIDEBAR ═══════════ */}
       <aside
         onClick={collapsed ? () => setSidebarCollapsed(false) : undefined}
         className={`relative shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-50 transition-all duration-200 ${collapsed ? "w-[64px] cursor-pointer hover:bg-slate-900/10" : "w-[220px]"
@@ -100,7 +100,7 @@ export function ExecutiveShell({ children }: { children: ReactNode }) {
               <div className="size-7 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 grid place-items-center shadow-lg shadow-amber-500/20 shrink-0">
                 <Crown className="size-3.5 text-white" />
               </div>
-              <span className="text-sm font-semibold tracking-tight text-slate-100 flex-1">Executive</span>
+              <span className="text-sm font-semibold tracking-tight text-slate-100 flex-1">Stakeholder</span>
               <button
                 onClick={(e) => { e.stopPropagation(); setSidebarCollapsed(true); }}
                 className="size-7 rounded-md grid place-items-center text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0"
@@ -149,9 +149,9 @@ export function ExecutiveShell({ children }: { children: ReactNode }) {
 
         <div className={`h-px bg-slate-900 ${collapsed ? "mx-2" : "mx-2.5"} mb-1`} />
 
-        {/* Executive Nav */}
+        {/* Stakeholder Nav */}
         <nav className={`flex-1 overflow-y-auto space-y-px ${collapsed ? "px-1.5 pt-1" : "px-2 pt-1"}`}>
-          {EXEC_NAV.map((n) => {
+          {STAKEHOLDER_NAV.map((n) => {
             const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
             const Icon = n.icon;
             return (
@@ -197,7 +197,7 @@ export function ExecutiveShell({ children }: { children: ReactNode }) {
                   {user ? user.name[0].toUpperCase() : "?"}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-medium text-slate-200 truncate">{user?.name ?? "Executive"}</div>
+                  <div className="text-[12px] font-medium text-slate-200 truncate">{user?.name ?? "Stakeholder"}</div>
                   <div className="text-[10px] text-slate-500 truncate">{user?.email ?? ""}</div>
                 </div>
                 <ChevronDown className={`size-3 text-slate-600 transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
