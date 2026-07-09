@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Crown, Play, Pause, SkipForward, Users, Music, Sparkles,
-  Loader2, Phone, PhoneOff, Plus, Trash2, ListMusic,
+  Loader2, Phone, PhoneOff, Plus, Trash2, ListMusic, X,
 } from "lucide-react";
 import { useStore } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
@@ -39,7 +39,7 @@ interface QueenDjState {
 
 export function QueenDjView() {
   const { user } = useAuth();
-  const { channels, activeChannelId, isInCall, callParticipants } = useStore();
+  const { channels, activeChannelId, isInCall, callParticipants, queendjPanelOpen, setQueendjPanelOpen } = useStore();
   const playlistChannelId = activeChannelId || channels[0]?.id || 'c4452bb1-4694-415d-8919-e48de2cfaed2';
 
   const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -53,7 +53,7 @@ export function QueenDjView() {
   });
   const [loading, setLoading] = useState(false);
   const [commandInput, setCommandInput] = useState("");
-  const [commandHistory, setCommandHistory] = useState<Array<{ text: string; response: string; time: string }>>([]);
+  const [commandHistory, setCommandHistory] = useState<Array<{ text: string; response: string; time: string; type: "success" | "error" | "info" }>>([]);
 
   // ── Fetch QueenDJ state ─────────────────────────────────────────────────
   const fetchState = useCallback(async () => {
@@ -235,6 +235,7 @@ export function QueenDjView() {
         text: commandInput,
         response,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type,
       },
     ]);
     setCommandInput("");
@@ -269,8 +270,10 @@ export function QueenDjView() {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
+  if (!queendjPanelOpen) return null;
+
   return (
-    <div className="h-full flex flex-col min-h-0 bg-slate-950">
+    <div className="fixed inset-y-0 right-0 w-96 bg-slate-950 border-l border-slate-900 shadow-2xl z-50 flex flex-col">
 
       {/* Header */}
       <div className="shrink-0 border-b border-slate-900 px-6 py-4">
@@ -284,14 +287,12 @@ export function QueenDjView() {
               {state.currentRoom ? `Playing in: ${state.currentRoom}` : "Not in a call"}
             </p>
           </div>
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-            state.currentRoom
-              ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-              : "bg-slate-800 text-slate-400 border border-slate-700"
-          }`}>
-            <span className={`size-2 rounded-full ${state.currentRoom ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
-            {state.currentRoom ? "Active" : "Idle"}
-          </div>
+          <button
+            onClick={() => setQueendjPanelOpen(false)}
+            className="size-8 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition grid place-items-center"
+          >
+            <X className="size-4" />
+          </button>
         </div>
       </div>
 
@@ -346,7 +347,7 @@ export function QueenDjView() {
             <div className="text-center py-12 text-slate-600">
               <ListMusic className="size-12 mx-auto mb-3 opacity-40" />
               <p className="text-sm">Queue is empty</p>
-              <p className="text-xs mt-1">Use !play to add tracks</p>
+              <p className="text-xs mt-1">Use the playlist to add tracks</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -372,80 +373,6 @@ export function QueenDjView() {
                   {state.currentTrack?.videoId === track.videoId && state.isPlaying && (
                     <Music className="size-4 text-fuchsia-400 animate-pulse" />
                   )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Command Input */}
-        <div className="shrink-0 border-t border-slate-900 p-4 space-y-3">
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900/40 focus-within:border-fuchsia-500/50 transition">
-              <Sparkles className="size-4 text-fuchsia-400 shrink-0" />
-              <input
-                value={commandInput}
-                onChange={e => setCommandInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleSendCommand()}
-                placeholder="Type a command... (e.g., !play lofi beats)"
-                className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 outline-none"
-              />
-            </div>
-            <button
-              onClick={handleSendCommand}
-              disabled={!commandInput.trim() || loading}
-              className="h-10 px-5 rounded-lg bg-fuchsia-500 hover:bg-fuchsia-400 disabled:bg-slate-800 disabled:text-slate-500 text-white text-sm font-semibold transition"
-            >
-              Send
-            </button>
-          </div>
-
-          {/* Quick Commands */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setCommandInput("!play ")}
-              className="px-3 py-1.5 rounded-md bg-slate-900/50 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition"
-            >
-              !play
-            </button>
-            <button
-              onClick={() => setCommandInput("!play playlist ")}
-              className="px-3 py-1.5 rounded-md bg-slate-900/50 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition"
-            >
-              !play playlist
-            </button>
-            <button
-              onClick={() => setCommandInput("!skip")}
-              className="px-3 py-1.5 rounded-md bg-slate-900/50 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition"
-            >
-              !skip
-            </button>
-            <button
-              onClick={() => setCommandInput("!pause")}
-              className="px-3 py-1.5 rounded-md bg-slate-900/50 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition"
-            >
-              !pause
-            </button>
-            <button
-              onClick={() => setCommandInput("!resume")}
-              className="px-3 py-1.5 rounded-md bg-slate-900/50 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition"
-            >
-              !resume
-            </button>
-          </div>
-
-          {/* Command History */}
-          {commandHistory.length > 0 && (
-            <div className="max-h-32 overflow-y-auto space-y-1.5">
-              {commandHistory.slice().reverse().map((cmd, idx) => (
-                <div key={idx} className="text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 font-mono">{cmd.time}</span>
-                    <span className="text-fuchsia-300">{cmd.text}</span>
-                  </div>
-                  <div className={`ml-4 ${cmd.type === "error" ? "text-rose-400" : cmd.type === "success" ? "text-emerald-400" : "text-slate-400"}`}>
-                    {cmd.response}
-                  </div>
                 </div>
               ))}
             </div>

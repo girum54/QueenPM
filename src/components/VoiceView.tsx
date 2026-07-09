@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, PhoneOff,
-  Users, MessageSquare, MoreHorizontal, Plus, Send, Hash, Loader2,
-  AlertCircle, RefreshCw, UserPlus, Bell, Check, Search, Crown,
+  Users, MoreHorizontal, Plus, Send, Hash, Loader2,
+  AlertCircle, RefreshCw, UserPlus, Bell, Check, Search, Crown, MessageSquare,
 } from "lucide-react";
 import { Track } from "livekit-client";
 import { useStore } from "@/lib/queen-store";
@@ -249,12 +249,6 @@ function ConnectedCallView({
           </span>
           <span className="text-[11px] text-slate-500">{allParticipants.length} in call</span>
           <div className="ml-auto flex items-center gap-1">
-            <button
-              onClick={() => setChatOpen((v) => !v)}
-              className={`h-7 px-2 rounded text-[11px] flex items-center gap-1.5 ${chatOpen ? "text-fuchsia-400 bg-slate-900" : "text-slate-300 hover:bg-slate-800"}`}
-            >
-              <MessageSquare className="size-3.5" /> Chat
-            </button>
             <button className="size-7 grid place-items-center rounded hover:bg-slate-800 text-slate-400">
               <MoreHorizontal className="size-4" />
             </button>
@@ -350,146 +344,144 @@ function ConnectedCallView({
       </main>
 
       {/* RIGHT: participants + chat */}
-      {chatOpen && (
-        <aside className="border-l border-slate-900 bg-slate-950/20 flex flex-col min-h-0">
-          <div className="p-3 border-b border-slate-900 flex items-center gap-2">
-            <Users className="size-4 text-slate-400" />
-            <div className="text-sm font-semibold text-slate-200">Participants</div>
-            <span className="ml-auto text-[10px] text-slate-500 font-mono">{allParticipants.length}</span>
-          </div>
-          <div className="overflow-y-auto max-h-[40%] p-2 space-y-1 border-b border-slate-900">
-            {allParticipants.map((p) => (
-              <div
-                key={p.identity}
-                onClick={() => setFocusId(p.identity)}
-                className="flex items-center gap-2 p-1.5 rounded hover:bg-slate-900/30 cursor-pointer text-xs text-slate-300 transition"
-              >
-                <div className="size-6 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-                  {(p.name || p.identity || "?")[0]?.toUpperCase() || "?"}
-                </div>
-                <span className="truncate flex-1">{p.name || p.identity}</span>
+      <aside className="border-l border-slate-900 bg-slate-950/20 flex flex-col min-h-0">
+        <div className="p-3 border-b border-slate-900 flex items-center gap-2">
+          <Users className="size-4 text-slate-400" />
+          <div className="text-sm font-semibold text-slate-200">Participants</div>
+          <span className="ml-auto text-[10px] text-slate-500 font-mono">{allParticipants.length}</span>
+        </div>
+        <div className="overflow-y-auto max-h-[40%] p-2 space-y-1 border-b border-slate-900">
+          {allParticipants.map((p) => (
+            <div
+              key={p.identity}
+              onClick={() => setFocusId(p.identity)}
+              className="flex items-center gap-2 p-1.5 rounded hover:bg-slate-900/30 cursor-pointer text-xs text-slate-300 transition"
+            >
+              <div className="size-6 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                {(p.name || p.identity || "?")[0]?.toUpperCase() || "?"}
               </div>
-            ))}
+              <span className="truncate flex-1">{p.name || p.identity}</span>
+            </div>
+          ))}
 
-            {/* Invite button */}
-            <button
-              onClick={() => { setShowInvite((v) => !v); setInviteSearch(""); }}
-              className="w-full mt-1 h-8 rounded-md border border-dashed border-slate-700 text-[11px] text-fuchsia-400 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/40 flex items-center justify-center gap-1.5 transition"
-            >
-              <UserPlus className="size-3" /> Invite someone
-            </button>
+          {/* Invite button */}
+          <button
+            onClick={() => { setShowInvite((v) => !v); setInviteSearch(""); }}
+            className="w-full mt-1 h-8 rounded-md border border-dashed border-slate-700 text-[11px] text-fuchsia-400 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/40 flex items-center justify-center gap-1.5 transition"
+          >
+            <UserPlus className="size-3" /> Invite someone
+          </button>
 
-            {/* QueenDJ button */}
-            <button
-              onClick={queenDjInCall ? handleRemoveQueenDj : handleInviteQueenDj}
-              className={`w-full mt-1 h-8 rounded-md border text-[11px] flex items-center justify-center gap-1.5 transition ${
-                queenDjInCall
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-                  : "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 hover:bg-fuchsia-500/20"
-              }`}
-            >
-              <Crown className="size-3" /> {queenDjInCall ? "Remove QueenDJ" : "Add QueenDJ"}
-            </button>
+          {/* QueenDJ button */}
+          <button
+            onClick={queenDjInCall ? handleRemoveQueenDj : handleInviteQueenDj}
+            className={`w-full mt-1 h-8 rounded-md border text-[11px] flex items-center justify-center gap-1.5 transition ${
+              queenDjInCall
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                : "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 hover:bg-fuchsia-500/20"
+            }`}
+          >
+            <Crown className="size-3" /> {queenDjInCall ? "Remove QueenDJ" : "Add QueenDJ"}
+          </button>
 
-            {/* Member picker panel */}
-            {showInvite && (
-              <div className="mt-1 rounded-lg border border-slate-800 bg-slate-900/80 overflow-hidden">
-                {/* Search */}
-                <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-800">
-                  <Search className="size-3 text-slate-500 shrink-0" />
-                  <input
-                    autoFocus
-                    value={inviteSearch}
-                    onChange={(e) => setInviteSearch(e.target.value)}
-                    placeholder="Search members…"
-                    className="flex-1 bg-transparent outline-none text-[11px] text-slate-200 placeholder:text-slate-500"
-                  />
-                </div>
-                {/* Member list */}
-                <div className="max-h-40 overflow-y-auto">
-                  {inviteableMembers.length === 0 ? (
-                    <p className="text-center text-[11px] text-slate-500 py-3">
-                      {inviteSearch ? "No match" : "Everyone's already in the call"}
-                    </p>
-                  ) : (
-                    inviteableMembers.map((u) => {
-                      const sent = sentTo.has(u.id);
-                      const sending = sendingTo === u.id;
-                      return (
-                        <div
-                          key={u.id}
-                          className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800/40 transition"
-                        >
-                          <div className={`size-6 rounded-full ${u.color || "bg-slate-600"} grid place-items-center text-[10px] font-bold text-white shrink-0`}>
-                            {u.name[0]?.toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[11px] font-medium text-slate-200 truncate">{u.name}</div>
-                            <div className="text-[9px] text-slate-500 truncate">{u.handle}</div>
-                          </div>
-                          <button
-                            disabled={sent || sending}
-                            onClick={() => handleSendInvite(u.id)}
-                            className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition ${
-                              sent
-                                ? "bg-emerald-500/15 text-emerald-300 cursor-default"
-                                : "bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30"
-                            }`}
-                          >
-                            {sent ? <Check className="size-3" /> : <Bell className="size-3" />}
-                            {sent ? "Sent" : sending ? "…" : "Invite"}
-                          </button>
+          {/* Member picker panel */}
+          {showInvite && (
+            <div className="mt-1 rounded-lg border border-slate-800 bg-slate-900/80 overflow-hidden">
+              {/* Search */}
+              <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-800">
+                <Search className="size-3 text-slate-500 shrink-0" />
+                <input
+                  autoFocus
+                  value={inviteSearch}
+                  onChange={(e) => setInviteSearch(e.target.value)}
+                  placeholder="Search members…"
+                  className="flex-1 bg-transparent outline-none text-[11px] text-slate-200 placeholder:text-slate-500"
+                />
+              </div>
+              {/* Member list */}
+              <div className="max-h-40 overflow-y-auto">
+                {inviteableMembers.length === 0 ? (
+                  <p className="text-center text-[11px] text-slate-500 py-3">
+                    {inviteSearch ? "No match" : "Everyone's already in the call"}
+                  </p>
+                ) : (
+                  inviteableMembers.map((u) => {
+                    const sent = sentTo.has(u.id);
+                    const sending = sendingTo === u.id;
+                    return (
+                      <div
+                        key={u.id}
+                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-800/40 transition"
+                      >
+                        <div className={`size-6 rounded-full ${u.color || "bg-slate-600"} grid place-items-center text-[10px] font-bold text-white shrink-0`}>
+                          {u.name[0]?.toUpperCase()}
                         </div>
-                      );
-                    })
-                  )}
-                </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-medium text-slate-200 truncate">{u.name}</div>
+                          <div className="text-[9px] text-slate-500 truncate">{u.handle}</div>
+                        </div>
+                        <button
+                          disabled={sent || sending}
+                          onClick={() => handleSendInvite(u.id)}
+                          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition ${
+                            sent
+                              ? "bg-emerald-500/15 text-emerald-300 cursor-default"
+                              : "bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30"
+                          }`}
+                        >
+                          {sent ? <Check className="size-3" /> : <Bell className="size-3" />}
+                          {sent ? "Sent" : sending ? "…" : "Invite"}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-            )}
-          </div>
-          <div className="p-3 border-b border-slate-900 flex items-center gap-2">
-            <MessageSquare className="size-4 text-slate-400" />
-            <div className="text-sm font-semibold text-slate-200">Chat</div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
-            {chat.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">Call chat starts here</div>
-            ) : (
-              chat.map((c) => (
-                <div key={c.id} className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-slate-200">{c.who}</span>
-                    <span className="text-slate-600 text-[9px]">{c.t}</span>
-                  </div>
-                  <div className="text-slate-300 leading-relaxed break-words">{c.text}</div>
+            </div>
+          )}
+        </div>
+        <div className="p-3 border-b border-slate-900 flex items-center gap-2">
+          <MessageSquare className="size-4 text-slate-400" />
+          <div className="text-sm font-semibold text-slate-200">Chat</div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
+          {chat.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">Call chat starts here</div>
+          ) : (
+            chat.map((c) => (
+              <div key={c.id} className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-200">{c.who}</span>
+                  <span className="text-slate-600 text-[9px]">{c.t}</span>
                 </div>
-              ))
-            )}
-          </div>
-          <div className="p-3 border-t border-slate-900 space-y-1.5">
-            <input
-              type="text"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendChat();
-                }
-              }}
-              placeholder="Say something..."
-              className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-slate-700 transition"
-            />
-            <button
-              onClick={handleSendChat}
-              disabled={!draft.trim()}
-              className="w-full h-7 rounded-lg text-xs font-medium bg-fuchsia-500 hover:bg-fuchsia-600 disabled:bg-slate-800 disabled:text-slate-600 text-white flex items-center justify-center gap-1 transition"
-            >
-              <Send className="size-3" /> Send
-            </button>
-          </div>
-        </aside>
-      )}
+                <div className="text-slate-300 leading-relaxed break-words">{c.text}</div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="p-3 border-t border-slate-900 space-y-1.5">
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendChat();
+              }
+            }}
+            placeholder="Say something..."
+            className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-slate-700 transition"
+          />
+          <button
+            onClick={handleSendChat}
+            disabled={!draft.trim()}
+            className="w-full h-7 rounded-lg text-xs font-medium bg-fuchsia-500 hover:bg-fuchsia-600 disabled:bg-slate-800 disabled:text-slate-600 text-white flex items-center justify-center gap-1 transition"
+          >
+            <Send className="size-3" /> Send
+          </button>
+        </div>
+      </aside>
     </div>
   );
 }

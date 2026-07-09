@@ -24,15 +24,21 @@ export type ParsedQueenDjCommand =
   | { type: "skip" }
   | { type: "pause" }
   | { type: "resume" }
-  | { type: "clear" };
+  | { type: "clear" }
+  | { type: "add_playlist"; url: string }
+  | { type: "remove_playlist"; videoId: string }
+  | { type: "show_playlist" };
 
 export function isQueenDjCommand(input: string): boolean {
   const trimmed = input.trim().toLowerCase();
-  return trimmed.startsWith("!play") || 
-         trimmed === "!skip" || 
-         trimmed === "!pause" || 
-         trimmed === "!resume" || 
-         trimmed === "!clear";
+  return trimmed.startsWith("!play") ||
+         trimmed === "!skip" ||
+         trimmed === "!pause" ||
+         trimmed === "!resume" ||
+         trimmed === "!clear" ||
+         trimmed.startsWith("!add") ||
+         trimmed.startsWith("!remove") ||
+         trimmed === "!playlist";
 }
 
 export function parseQueenDjCommand(input: string): ParsedQueenDjCommand | null {
@@ -43,6 +49,21 @@ export function parseQueenDjCommand(input: string): ParsedQueenDjCommand | null 
   if (lower === "!pause") return { type: "pause" };
   if (lower === "!resume") return { type: "resume" };
   if (lower === "!clear") return { type: "clear" };
+  if (lower === "!playlist") return { type: "show_playlist" };
+
+  // Handle !add <url>
+  if (lower.startsWith("!add")) {
+    const url = trimmed.slice(4).trim();
+    if (url) return { type: "add_playlist", url };
+    return null;
+  }
+
+  // Handle !remove <video_id>
+  if (lower.startsWith("!remove")) {
+    const videoId = trimmed.slice(7).trim();
+    if (videoId) return { type: "remove_playlist", videoId };
+    return null;
+  }
 
   if (!lower.startsWith("!play")) return null;
   const rest = trimmed.slice(5).trim();
@@ -125,6 +146,18 @@ export const CHAT_QUICK_ACTIONS = [
     cmd: "!play playlist",
     example: "!play playlist",
     desc: "QueenDJ plays your channel's playlist",
+    icon: "list-music" as const,
+  },
+  {
+    cmd: "!add",
+    example: "!add https://youtube.com/watch?v=xyz",
+    desc: "Add a track to your channel's playlist",
+    icon: "plus" as const,
+  },
+  {
+    cmd: "!playlist",
+    example: "!playlist",
+    desc: "Show your channel's playlist",
     icon: "list-music" as const,
   },
 ] as const;

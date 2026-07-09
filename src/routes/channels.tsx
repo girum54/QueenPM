@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
+import { QueenDjView } from "@/components/QueenDjView";
 import {
   useStore, PRIORITY_STYLES, userById, CREATED_BY_META, type Priority, type Task, type CreatedBy,
 } from "@/lib/queen-store";
@@ -17,7 +18,6 @@ import {
   titleFromMessage,
 } from "@/lib/chat-commands";
 import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
-import { VoiceView } from "@/components/VoiceView";
 import { useQueenDjCommandHandler } from "@/lib/queendj-commands";
 
 export const Route = createFileRoute("/channels")({
@@ -77,7 +77,24 @@ function ChannelsPage() {
   const [assignModalSubtitle, setAssignModalSubtitle] = useState<string | undefined>();
   const [spawningTask, setSpawningTask] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<"chat" | "voice">("chat");
+  const { queendjPanelOpen, setQueendjPanelOpen, setIsInCall } = useStore();
+
+  // Persist isInCall to localStorage
+  const handleSetIsInCall = (inCall: boolean) => {
+    setIsInCall(inCall);
+    localStorage.setItem("queen_is_in_call", inCall.toString());
+  };
+
+  // Sync isInCall from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("queen_is_in_call");
+    if (saved === "true") {
+      setIsInCall(true);
+    } else if (saved === "false") {
+      setIsInCall(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Call invite banner ────────────────────────────────────────────────────
   const { markRead, notifications } = useNotifications();
@@ -125,37 +142,6 @@ function ChannelsPage() {
     });
     if (n && !n.read) markRead(n.id);
     setCallInvite(null);
-    handleModeChange("voice");
-  };
-
-  // Sync mode state with search parameters on activeChannelId change
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search);
-      const qMode = searchParams.get("mode");
-
-      // If in a call, prioritize voice mode
-      if (isInCall) {
-        setMode("voice");
-      } else if (qMode === "voice") {
-        setMode("voice");
-      } else {
-        setMode("chat");
-      }
-    }
-  }, [activeChannelId, isInCall]);
-
-  const handleModeChange = (newMode: "chat" | "voice") => {
-    setMode(newMode);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      if (newMode === "chat") {
-        url.searchParams.delete("mode");
-      } else {
-        url.searchParams.set("mode", newMode);
-      }
-      window.history.pushState({}, "", url.pathname + url.search);
-    }
   };
 
   // Fetch channel members when active channel changes
@@ -377,7 +363,7 @@ function ChannelsPage() {
   return (
     <AppShell>
       <div className="h-full flex overflow-hidden">
-        {/* CENTER: Chat container */}
+        {/* CENTER: Chat or Voice container */}
         <section className="flex-1 flex flex-col min-w-0 bg-slate-950 min-h-0">
           <header className="h-12 border-b border-slate-900 px-5 flex items-center gap-3 shrink-0">
             {activeChannel?.aiActive ? (
@@ -385,7 +371,11 @@ function ChannelsPage() {
             ) : (
               <Hash className="size-5 text-slate-500" />
             )}
-            <h1 className="text-base font-semibold text-slate-100">{activeChannel?.name}</h1>
+            <button
+              className="text-base font-semibold text-slate-100 hover:text-fuchsia-300 transition"
+            >
+              {activeChannel?.name}
+            </button>
             {activeChannel?.aiActive && (
               <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30 text-[10px] font-semibold text-emerald-300 tracking-wide">
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -393,55 +383,29 @@ function ChannelsPage() {
               </span>
             )}
 
-            {/* Segmented Mode Controls */}
-            <div className="flex items-center bg-slate-900/60 rounded-lg p-0.5 border border-slate-800/80 ml-4 shrink-0">
-              <button
-                onClick={() => handleModeChange("chat")}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition ${mode === "chat"
-                    ? "bg-slate-850 text-slate-100 shadow-sm border border-slate-700/30"
-                    : "text-slate-450 hover:text-slate-200"
-                  }`}
-              >
-                <MessageSquare className="size-3.5" />
-                <span>Chat</span>
-              </button>
-              <button
-                onClick={() => handleModeChange("voice")}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition ${mode === "voice"
-                    ? "bg-slate-850 text-fuchsia-300 shadow-sm border border-fuchsia-500/20"
-                    : "text-slate-450 hover:text-slate-200"
-                  }`}
-              >
-                <Video className="size-3.5" />
-                <span>Voice & Video</span>
-              </button>
-              <a
-                href="/music"
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition text-slate-450 hover:text-slate-200 hover:bg-slate-900/60`}
-              >
-                <Music className="size-3.5" />
-                <span>Playlists</span>
-              </a>
-              <a
-                href="/queendj"
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition text-slate-450 hover:text-slate-200 hover:bg-slate-900/60`}
-              >
-                <Crown className="size-3.5" />
-                <span>QueenDJ</span>
-              </a>
-            </div>
-
             {/* Header controls */}
             <div className="ml-auto flex items-center gap-3 text-slate-500">
-              {mode === "chat" && (
-                <button
-                  onClick={() => setRightPanelOpen(!rightPanelOpen)}
-                  className={`size-8 rounded-lg grid place-items-center transition ${rightPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-300 hover:bg-slate-900/60"}`}
-                  title="Toggle Channel Details"
-                >
-                  <Info className="size-4.5" />
-                </button>
-              )}
+              <button
+                onClick={() => setQueendjPanelOpen(!queendjPanelOpen)}
+                className={`size-8 rounded-lg grid place-items-center transition ${queendjPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-200 hover:bg-slate-900/60"}`}
+                title="QueenDJ"
+              >
+                <Crown className="size-4" />
+              </button>
+              <button
+                onClick={() => isInCall ? window.dispatchEvent(new CustomEvent('queen:show-voice')) : handleSetIsInCall(!isInCall)}
+                className={`size-8 rounded-lg grid place-items-center transition ${isInCall ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-200 hover:bg-slate-900/60"}`}
+                title={isInCall ? "Show Voice Call" : "Join Voice Call"}
+              >
+                <Video className="size-4" />
+              </button>
+              <button
+                onClick={() => setRightPanelOpen(!rightPanelOpen)}
+                className={`size-8 rounded-lg grid place-items-center transition ${rightPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-300 hover:bg-slate-900/60"}`}
+                title="Toggle Channel Details"
+              >
+                <Info className="size-4.5" />
+              </button>
               <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
                 <Bell className="size-4" />
               </button>
@@ -457,7 +421,7 @@ function ChannelsPage() {
           </header>
 
           {/* ── Call invite banner ─────────────────────────────────── */}
-          {callInvite && callInvite.channelId === activeChannelId && mode !== "voice" && (
+          {callInvite && callInvite.channelId === activeChannelId && (
             <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 ring-1 ring-emerald-400/20 shadow-lg shadow-emerald-500/10 animate-fade-in">
               <span className="relative flex size-3 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -483,11 +447,8 @@ function ChannelsPage() {
             </div>
           )}
 
-          {/* Conditional Views based on mode */}
-          {mode === "chat" ? (
-            <>
-              {/* Messages Stream */}
-              <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
+          {/* Messages Stream */}
+          <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
                 {channelMessages.map((m, idx) => {
                   const author = userById(m.authorId, users)!;
                   const prev = channelMessages[idx - 1];
@@ -641,16 +602,13 @@ function ChannelsPage() {
                   <span>Hover a message → Create task</span>
                 </div>
               </div>
-            </>
-          ) : mode === "voice" ? (
-            <div className="flex-1 min-h-0">
-              <VoiceView channelName={activeChannel?.name || "Voice Lounge"} onLeave={() => handleModeChange("chat")} />
-            </div>
-          ) : null}
         </section>
 
+        {/* QueenDJ Side Panel */}
+        <QueenDjView />
+
         {/* RIGHT SIDE PANEL: Details, Pins & Members */}
-        {mode === "chat" && rightPanelOpen && (
+        {rightPanelOpen && (
           <>
             <div
               onClick={() => setRightPanelOpen(false)}

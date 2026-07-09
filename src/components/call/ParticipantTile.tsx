@@ -124,10 +124,14 @@ export function ParticipantTile({ participant, tracks, large, small, onClick }: 
       </div>
 
       {/* ── Expand / focus button ────────────────────────────────────── */}
-      {!small && (
+      {!small && onClick && (
         <button
-          onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-          className="absolute top-2 right-2 size-6 rounded bg-black/50 hover:bg-black/70 grid place-items-center opacity-0 group-hover:opacity-100 transition"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          className="absolute top-2 right-2 size-6 rounded bg-black/50 hover:bg-black/70 grid place-items-center opacity-0 group-hover:opacity-100 transition z-10"
+          title="Expand to focus"
         >
           <Maximize2 className="size-3 text-white" />
         </button>

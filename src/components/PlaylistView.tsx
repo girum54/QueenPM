@@ -31,7 +31,7 @@ interface PlaylistTrack extends YouTubeMetadata {
 
 export function PlaylistView() {
   const { user } = useAuth();
-  const { channels, activeChannelId } = useStore();
+  const { channels, activeChannelId, playlistPanelOpen, setPlaylistPanelOpen } = useStore();
   const playlistChannelId = activeChannelId || channels[0]?.id || 'c4452bb1-4694-415d-8919-e48de2cfaed2';
 
   const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -155,9 +155,11 @@ export function PlaylistView() {
 
   // ── Loading state ─────────────────────────────────────────────────────
 
+  if (!playlistPanelOpen) return null;
+
   if (playlistLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-950">
+      <div className="fixed inset-y-0 right-0 w-96 bg-slate-950 border-l border-slate-900 shadow-2xl z-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="size-8 text-fuchsia-400 animate-spin" />
           <p className="text-slate-400 text-sm">Loading playlist…</p>
@@ -167,7 +169,7 @@ export function PlaylistView() {
   }
 
   return (
-    <div className="h-full flex flex-col min-h-0 bg-slate-950">
+    <div className="fixed inset-y-0 right-0 w-96 bg-slate-950 border-l border-slate-900 shadow-2xl z-50 flex flex-col">
 
       {/* Header */}
       <div className="shrink-0 border-b border-slate-900 px-6 py-4">
@@ -175,10 +177,16 @@ export function PlaylistView() {
           <div className="size-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center">
             <ListMusic className="size-5 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-slate-100">Playlist Manager</h1>
             <p className="text-xs text-slate-400">Search, save, and manage your channel playlists for QueenDJ</p>
           </div>
+          <button
+            onClick={() => setPlaylistPanelOpen(false)}
+            className="size-8 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition grid place-items-center"
+          >
+            <X className="size-4" />
+          </button>
         </div>
 
         {/* Search input */}

@@ -154,6 +154,11 @@ interface StoreShape {
   callParticipants: string[];
   setCallParticipants: (participants: string[]) => void;
   activeCalls: ApiActiveCall[];
+  // Side panels
+  playlistPanelOpen: boolean;
+  setPlaylistPanelOpen: (open: boolean) => void;
+  queendjPanelOpen: boolean;
+  setQueendjPanelOpen: (open: boolean) => void;
 }
 
 const StoreCtx = createContext<StoreShape | null>(null);
@@ -174,9 +179,17 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [activeSprintId, setActiveSprintId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
-  const [isInCall, setIsInCall] = useState<boolean>(false);
+  const [isInCall, setIsInCall] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("queen_is_in_call");
+      return saved === "true";
+    }
+    return false;
+  });
   const [callParticipants, setCallParticipants] = useState<string[]>([]);
   const [activeCalls, setActiveCalls] = useState<ApiActiveCall[]>([]);
+  const [playlistPanelOpen, setPlaylistPanelOpen] = useState<boolean>(false);
+  const [queendjPanelOpen, setQueendjPanelOpen] = useState<boolean>(false);
   const consumed = useRef(false);
 
   // Poll active calls every 5 seconds
@@ -613,8 +626,12 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       callParticipants,
       setCallParticipants,
       activeCalls,
+      playlistPanelOpen,
+      setPlaylistPanelOpen,
+      queendjPanelOpen,
+      setQueendjPanelOpen,
     }),
-    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, isInCall, callParticipants, activeCalls]
+    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, isInCall, callParticipants, activeCalls, playlistPanelOpen, queendjPanelOpen]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

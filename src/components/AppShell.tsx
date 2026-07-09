@@ -3,13 +3,17 @@ import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
   ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2, PieChart,
-  PhoneCall, Music
+  PhoneCall, Music, ListMusic, Maximize2, Minimize2, Video, Minus
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
 import { useNotifications } from "@/lib/notifications-store";
 import { formatDistanceToNow } from "date-fns";
+import { PlaylistView } from "@/components/PlaylistView";
+import { QueenDjView } from "@/components/QueenDjView";
+import { VoiceView } from "@/components/VoiceView";
+import { LivekitProvider } from "@/lib/livekit-provider";
 
 // ── Custom Sprint Icon ─────────────────────────────────────────
 function SprintIcon({ className }: { className?: string }) {
@@ -46,10 +50,60 @@ export function AppShell({ children }: { children: ReactNode }) {
   const {
     activeProjectId, setActiveProjectId,
     projectTabs, addProjectTab, closeProjectTab,
+    isInCall, callParticipants, activeCalls,
+    playlistPanelOpen, setPlaylistPanelOpen,
+    queendjPanelOpen, setQueendjPanelOpen,
     channels, activeChannelId, setActiveChannelId,
     sidebarCollapsed, setSidebarCollapsed,
-    isInCall, callParticipants, activeCalls,
+    users,
+    setIsInCall,
   } = useStore();
+
+  const [showLeaveCallWarning, setShowLeaveCallWarning] = useState(false);
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
+  const [voiceViewMaximized, setVoiceViewMaximized] = useState(false);
+  const [voiceViewVisible, setVoiceViewVisible] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("queen_is_in_call");
+      return saved === "true";
+    }
+    return true;
+  });
+
+  // Persist isInCall to localStorage
+  const handleSetIsInCall = (inCall: boolean) => {
+    setIsInCall(inCall);
+    localStorage.setItem("queen_is_in_call", inCall.toString());
+  };
+
+  // Handle playlist open event from chat commands
+  useEffect(() => {
+    const handleOpenPlaylist = () => {
+      setPlaylistPanelOpen(true);
+    };
+    window.addEventListener('queen:open-playlist', handleOpenPlaylist);
+    return () => window.removeEventListener('queen:open-playlist', handleOpenPlaylist);
+  }, [setPlaylistPanelOpen]);
+
+  // Handle show voice panel event
+  useEffect(() => {
+    const handleShowVoice = () => {
+      setVoiceViewVisible(true);
+    };
+    window.addEventListener('queen:show-voice', handleShowVoice);
+    return () => window.removeEventListener('queen:show-voice', handleShowVoice);
+  }, []);
+
+  // Sync isInCall from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("queen_is_in_call");
+    if (saved === "true") {
+      setIsInCall(true);
+    } else if (saved === "false") {
+      setIsInCall(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { user, loading, signOut } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
@@ -144,6 +198,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/channels" });
   };
 
+  // Handle project switch with call warning
+  const handleProjectSwitch = (projectId: string) => {
+    if (isInCall && projectId !== activeProjectId) {
+      setPendingProjectId(projectId);
+      setShowLeaveCallWarning(true);
+    } else {
+      setActiveProjectId(projectId);
+    }
+  };
+
+  const confirmProjectSwitch = () => {
+    if (pendingProjectId) {
+      setActiveProjectId(pendingProjectId);
+      setPendingProjectId(null);
+    }
+    setShowLeaveCallWarning(false);
+  };
+
+  const cancelProjectSwitch = () => {
+    setPendingProjectId(null);
+    setShowLeaveCallWarning(false);
+  };
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -164,7 +241,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = isMobile ? false : sidebarCollapsed;
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-slate-950 text-slate-200 font-sans antialiased selection:bg-fuchsia-500/30">
+    <LivekitProvider>
+      <div className="h-screen w-screen overflow-hidden flex bg-slate-950 text-slate-200 font-sans antialiased selection:bg-fuchsia-500/30">
 
       {/* ═══════════ LEFT SIDEBAR ═══════════ */}
       <aside
@@ -258,7 +336,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         className={`group/item flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] cursor-pointer transition ${
                           isActive ? "bg-slate-800 text-slate-100" : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
                         }`}
-                        onClick={() => { setActiveProjectId(p.id); setIsProjectDropdownOpen(false); }}
+                        onClick={() => { handleProjectSwitch(p.id); setIsProjectDropdownOpen(false); }}
                       >
                         <span className={`size-1.5 rounded-full bg-gradient-to-br ${p.color} shrink-0`} />
                         <span className="flex-1 truncate">{p.name}</span>
@@ -538,6 +616,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="ml-auto flex items-center gap-1 relative">
             <button
+              onClick={() => setPlaylistPanelOpen(!playlistPanelOpen)}
+              className={`relative size-8 grid place-items-center hover:text-slate-200 hover:bg-slate-900 rounded-lg transition ${
+                playlistPanelOpen ? "text-fuchsia-400" : "text-slate-500"
+              }`}
+              title="Playlist"
+            >
+              <ListMusic className="size-4" />
+            </button>
+            <button
+              onClick={() => setQueendjPanelOpen(!queendjPanelOpen)}
+              className={`relative size-8 grid place-items-center hover:text-slate-200 hover:bg-slate-900 rounded-lg transition ${
+                queendjPanelOpen ? "text-fuchsia-400" : "text-slate-500"
+              }`}
+              title="QueenDJ"
+            >
+              <Crown className="size-4" />
+            </button>
+            <button
               id="notif-btn"
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition"
@@ -636,6 +732,90 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
+      {/* Side Panels */}
+      <PlaylistView />
+
+      {/* Floating button to show VoiceView - always available when in call */}
+      {isInCall && (
+        <button
+          onClick={() => setVoiceViewVisible(true)}
+          className="fixed bottom-4 right-4 z-40 size-12 rounded-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-500/30 flex items-center justify-center transition"
+          title="Show Voice Call"
+        >
+          <Video className="size-5" />
+        </button>
+      )}
+
+      {/* VoiceView component - always rendered when in call to maintain connection */}
+      {isInCall && (
+        <div className={`fixed z-50 rounded-xl border border-slate-800 bg-slate-950 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
+          voiceViewVisible ? (voiceViewMaximized ? "inset-0" : "bottom-4 right-4 w-[600px] h-[500px]") : "opacity-0 pointer-events-none"
+        }`}>
+          <div className="h-10 border-b border-slate-900 px-3 flex items-center justify-between shrink-0 bg-slate-900">
+            <span className="text-xs font-semibold text-slate-200">Voice Call</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setVoiceViewMaximized(!voiceViewMaximized)}
+                className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
+                title={voiceViewMaximized ? "Minimize" : "Maximize"}
+              >
+                {voiceViewMaximized ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
+              </button>
+              <button
+                onClick={() => setVoiceViewVisible(false)}
+                className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
+                title="Hide"
+              >
+                <Minus className="size-3" />
+              </button>
+              <button
+                onClick={() => handleSetIsInCall(false)}
+                className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <VoiceView channelName={channels.find(c => c.id === activeChannelId)?.name || "Voice"} />
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ LEAVE CALL WARNING MODAL ═══════════ */}
+      {showLeaveCallWarning && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/60 p-5 space-y-4">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-800/80">
+              <div className="size-10 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
+                <PhoneCall className="size-5 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-100">Leave Call?</h3>
+                <p className="text-xs text-slate-400">You're currently in a voice call</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-300">
+              Switching projects will end your current voice call. Are you sure you want to continue?
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={cancelProjectSwitch}
+                className="flex-1 h-9 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+              >
+                Stay in Call
+              </button>
+              <button
+                onClick={confirmProjectSwitch}
+                className="flex-1 h-9 rounded-lg text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition"
+              >
+                Leave & Switch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════ NEW PROJECT MODAL ═══════════ */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
@@ -696,5 +876,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
     </div>
+    </LivekitProvider>
   );
 }

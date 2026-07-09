@@ -11,9 +11,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 export function useQueenDjCommandHandler() {
   useEffect(() => {
-    const handleQueenDjCommand = async (event: CustomEvent) => {
-      const { channelId, command, requestedBy } = event.detail;
-      
+    const handleQueenDjCommand = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { channelId, command, requestedBy } = customEvent.detail;
+
       try {
         let endpoint = '';
         let body: any = { channelId };
@@ -39,6 +40,18 @@ export function useQueenDjCommandHandler() {
           case 'clear':
             endpoint = '/queendj/clear';
             break;
+          case 'add_playlist':
+            endpoint = '/playlist/add';
+            body.url = command.url;
+            break;
+          case 'remove_playlist':
+            endpoint = '/playlist/remove';
+            body.videoId = command.videoId;
+            break;
+          case 'show_playlist':
+            // Open playlist panel via custom event
+            window.dispatchEvent(new CustomEvent('queen:open-playlist'));
+            return;
           default:
             console.warn('Unknown QueenDJ command type:', command);
             return;
@@ -52,7 +65,7 @@ export function useQueenDjCommandHandler() {
         });
 
         const data = await res.json();
-        
+
         if (!data.success) {
           console.error('QueenDJ command failed:', data.message);
         }
@@ -62,10 +75,10 @@ export function useQueenDjCommandHandler() {
     };
 
     // Listen for the custom event dispatched from chat
-    window.addEventListener('queen:dj-command', handleQueenDjCommand as EventListener);
+    window.addEventListener('queen:dj-command', handleQueenDjCommand);
 
     return () => {
-      window.removeEventListener('queen:dj-command', handleQueenDjCommand as EventListener);
+      window.removeEventListener('queen:dj-command', handleQueenDjCommand);
     };
   }, []);
 }
