@@ -490,13 +490,39 @@ function ConnectedCallView({
 // Handles status-based rendering: idle lobby → connecting spinner → error → call UI
 
 export function VoiceView({ channelName = "General", onLeave }: VoiceViewProps) {
-  const { status, error, connect, disconnect, clearError } = useLivekit();
+  const { status, error, connect, disconnect, clearError, room } = useLivekit();
 
   const roomName = `channel-${channelName.replace(/\s+/g, "-").toLowerCase()}`;
+
+  // Persist the last joined room name to localStorage
+  useEffect(() => {
+    if (status === 'connected') {
+      localStorage.setItem('queen_last_call_room', roomName);
+    }
+  }, [status, roomName]);
+
+  // Auto-reconnect if we were in a call but got disconnected (e.g., page navigation)
+  useEffect(() => {
+    const lastRoom = localStorage.getItem('queen_last_call_room');
+    const isInCall = localStorage.getItem('queen_is_in_call') === 'true';
+    
+    // If we have an active room in the provider but it's a different channel, disconnect first
+    if (room && lastRoom && lastRoom !== roomName && isInCall) {
+      console.log('[VoiceView] Different room, disconnecting from previous room');
+      disconnect();
+    }
+    
+    // If we were in a call for this room but status is idle, reconnect
+    if (status === 'idle' && lastRoom === roomName && isInCall) {
+      console.log('[VoiceView] Auto-reconnecting to room:', roomName);
+      connect(roomName);
+    }
+  }, [status, roomName, connect, disconnect, room]);
 
   const handleJoin = () => connect(roomName);
 
   const handleLeave = async () => {
+    localStorage.removeItem('queen_last_call_room');
     await disconnect();
     onLeave?.();
   };
