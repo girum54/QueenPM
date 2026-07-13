@@ -86,15 +86,22 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
   // Keep a ref so disconnect() can always reach the current room
   // even inside stale closures.
   const roomRef = useRef<Room | null>(null);
+  
+  // Track if we're currently in a connection attempt to prevent duplicates
+  const isConnectingRef = useRef(false);
 
   const isConnected = status === 'connected' && !offlineMode;
   const isConnecting = status === 'connecting';
 
   // ── connect ────────────────────────────────────────────────────────────────
   const connect = useCallback(async (roomName: string) => {
-    // Guard: don't allow a second connect() while already active
-    if (status === 'connecting' || status === 'connected') return;
+    // Guard: don't allow a second connect() while already active or already connecting
+    if (status === 'connecting' || status === 'connected' || isConnectingRef.current) {
+      console.log('[LiveKit] Connection already in progress, skipping duplicate request');
+      return;
+    }
 
+    isConnectingRef.current = true;
     setStatus('connecting');
     setError(null);
     setOfflineMode(false);
@@ -130,6 +137,7 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
         setToken(null);
         setUrl(null);
         roomRef.current = null;
+        isConnectingRef.current = false;
       });
 
       newRoom.on(RoomEvent.Reconnecting, () => {
@@ -152,11 +160,13 @@ export function LivekitProvider({ children }: { children: ReactNode }) {
       setToken(newToken);
       setUrl(livekitUrl);
       setStatus('connected');
+      isConnectingRef.current = false;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unknown error connecting to LiveKit.';
       setError(message);
       setStatus('error');
+      isConnectingRef.current = false;
       console.error('[LiveKit] connect() error:', err);
     }
   }, [status]);

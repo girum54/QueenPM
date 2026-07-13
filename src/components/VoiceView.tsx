@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, PhoneOff,
   Users, MoreHorizontal, Plus, Send, Hash, Loader2,
-  AlertCircle, RefreshCw, UserPlus, Bell, Check, Search, Crown, MessageSquare,
+  AlertCircle, RefreshCw, UserPlus, Bell, Check, Search, Crown, MessageSquare, X,
 } from "lucide-react";
 import { Track } from "livekit-client";
 import { useStore } from "@/lib/queen-store";
@@ -65,8 +65,14 @@ function ConnectedCallView({
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const [queenDjInCall, setQueenDjInCall] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Project members not already in the call
+  // Auto-collapse sidebar when screen sharing starts
+  useEffect(() => {
+    if (isScreenSharing && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [isScreenSharing]);
   const { users, activeProjectId, activeChannelId } = useStore();
   const alreadyInCall = new Set(allParticipants.map((p) => p.identity));
   const inviteableMembers = users.filter(
@@ -234,121 +240,151 @@ function ConnectedCallView({
     : allParticipants;
 
   return (
-    <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0 bg-slate-950">
+    <div className={`h-full grid min-h-0 bg-slate-950 relative ${
+      sidebarOpen ? 'grid-cols-1 lg:grid-cols-[1fr_320px]' : 'grid-cols-1'
+    }`}>
 
       {/* CENTER: stage */}
-      <main className="flex flex-col min-h-0">
-        {/* Topbar */}
-        <div className="h-12 shrink-0 border-b border-slate-900 flex items-center px-4 gap-3">
+      <main className="relative flex-1 min-h-0">
+        {/* Video content - takes full viewport */}
+        <div className={`absolute inset-0 grid gap-3 p-3 ${focusedParticipant && !isScreenSharing ? "grid-cols-[1fr_220px]" : ""}`}>
+          {focusedParticipant ? (
+            <>
+              <ParticipantTile
+                participant={focusedParticipant}
+                tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === focusedParticipant.identity)}
+                large
+              />
+              <div className="grid grid-cols-1 auto-rows-[120px] gap-2 overflow-y-auto pr-1">
+                {gridParticipants.map((p) => (
+                  <ParticipantTile
+                    key={p.identity}
+                    participant={p}
+                    tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
+                    small
+                    onClick={() => setFocusId(p.identity)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div
+              className="min-h-0 grid gap-3"
+              style={{
+                gridTemplateColumns: `repeat(${Math.min(3, Math.ceil(Math.sqrt(Math.max(1, allParticipants.length))))}, minmax(0, 1fr))`,
+              }}
+            >
+              {allParticipants.map((p) => (
+                <ParticipantTile
+                  key={p.identity}
+                  participant={p}
+                  tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
+                  onClick={() => setFocusId(p.identity)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Topbar - overlay */}
+        <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/60 to-transparent border-b border-slate-900/50 flex items-center px-4 gap-3 z-10">
           <div className="flex items-center gap-2">
             <Hash className="size-4 text-slate-500" />
-            <span className="font-semibold text-sm">{channelName}</span>
+            <span className="font-semibold text-sm text-white">{channelName}</span>
           </div>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono flex items-center gap-1">
             <span className="size-1.5 rounded-full bg-rose-400 animate-pulse" /> LIVE · {hhmmss}
           </span>
-          <span className="text-[11px] text-slate-500">{allParticipants.length} in call</span>
+          <span className="text-[11px] text-slate-300">{allParticipants.length} in call</span>
           <div className="ml-auto flex items-center gap-1">
-            <button className="size-7 grid place-items-center rounded hover:bg-slate-800 text-slate-400">
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="size-7 grid place-items-center rounded hover:bg-slate-800/60 text-slate-400 hover:text-slate-300 lg:hidden"
+              title="Toggle sidebar"
+            >
+              <Users className="size-4" />
+            </button>
+            <button className="size-7 grid place-items-center rounded hover:bg-slate-800/60 text-slate-400 hover:text-slate-300">
               <MoreHorizontal className="size-4" />
             </button>
           </div>
         </div>
 
-        {/* Stage area */}
-        <div className="flex-1 min-h-0 p-3 grid grid-rows-[1fr_auto] gap-3">
-          <div className={`min-h-0 grid gap-3 ${focusedParticipant ? "grid-cols-[1fr_220px]" : ""}`}>
-            {focusedParticipant ? (
-              <>
-                <ParticipantTile
-                  participant={focusedParticipant}
-                  tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === focusedParticipant.identity)}
-                  large
-                />
-                <div className="grid grid-cols-1 auto-rows-[120px] gap-2 overflow-y-auto pr-1">
-                  {gridParticipants.map((p) => (
-                    <ParticipantTile
-                      key={p.identity}
-                      participant={p}
-                      tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
-                      small
-                      onClick={() => setFocusId(p.identity)}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div
-                className="min-h-0 grid gap-3"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.min(3, Math.ceil(Math.sqrt(Math.max(1, allParticipants.length))))}, minmax(0, 1fr))`,
-                }}
-              >
-                {allParticipants.map((p) => (
-                  <ParticipantTile
-                    key={p.identity}
-                    participant={p}
-                    tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
-                    onClick={() => setFocusId(p.identity)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+        {/* Floating sidebar toggle button */}
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="absolute top-16 right-3 z-10 size-10 rounded-lg bg-slate-900/80 backdrop-blur border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-300 transition flex items-center justify-center shadow-lg"
+            title="Open sidebar"
+          >
+            <Users className="size-4" />
+          </button>
+        )}
 
-          {/* Control bar */}
-          <div className="rounded-xl border border-slate-900 bg-slate-900/40 backdrop-blur px-3 py-2.5 flex items-center justify-center gap-2">
+        {/* Control bar - overlay */}
+        <div className="absolute bottom-4 left-4 right-4 z-10">
+          <div className="rounded-xl border border-slate-900/50 bg-slate-900/60 backdrop-blur px-2 py-2 flex items-center justify-center gap-1.5 flex-wrap max-w-2xl mx-auto">
             <button
               id="voice-toggle-mic"
               onClick={toggleMic}
-              className={`h-9 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium transition ${isMicOn
+              className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium transition ${isMicOn
                   ? "bg-slate-800 text-slate-200 hover:bg-slate-700"
                   : "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
                 }`}
+              title={isMicOn ? "Mute" : "Unmute"}
             >
               {isMicOn ? <Mic className="size-4" /> : <MicOff className="size-4" />}
-              <span className="hidden sm:inline">{isMicOn ? "Mute" : "Unmute"}</span>
             </button>
             <button
               id="voice-toggle-camera"
               onClick={toggleCamera}
-              className={`h-9 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium transition ${isCameraOn
+              className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium transition ${isCameraOn
                   ? "bg-slate-800 text-slate-200 hover:bg-slate-700"
                   : "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
                 }`}
+              title={isCameraOn ? "Turn off camera" : "Turn on camera"}
             >
               {isCameraOn ? <Video className="size-4" /> : <VideoOff className="size-4" />}
-              <span className="hidden sm:inline">{isCameraOn ? "Camera" : "Off"}</span>
             </button>
             <button
               id="voice-toggle-screenshare"
               onClick={toggleScreenShare}
-              className={`h-9 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium transition ${isScreenSharing
+              className={`h-8 px-2 rounded-lg flex items-center gap-1 text-xs font-medium transition ${isScreenSharing
                   ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
                   : "bg-slate-800 text-slate-200 hover:bg-slate-700"
                 }`}
+              title={isScreenSharing ? "Stop sharing" : "Share screen"}
             >
               {isScreenSharing ? <ScreenShareOff className="size-4" /> : <ScreenShare className="size-4" />}
-              <span className="hidden sm:inline">Share</span>
             </button>
-            <div className="h-6 w-px bg-slate-800 mx-1" />
+            <div className="h-6 w-px bg-slate-800 mx-1 shrink-0" />
             <button
               id="voice-leave-call"
               onClick={handleLeave}
-              className="h-9 px-4 rounded-lg text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5"
+              className="h-8 px-3 rounded-lg text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5 shrink-0"
+              title="Leave call"
             >
-              <PhoneOff className="size-3.5" /> Leave
+              <PhoneOff className="size-3.5" /> <span className="hidden sm:inline">Leave</span>
             </button>
           </div>
         </div>
       </main>
 
       {/* RIGHT: participants + chat */}
-      <aside className="border-l border-slate-900 bg-slate-950/20 flex flex-col min-h-0">
+      <aside className={`border-l border-slate-900 bg-slate-950/20 flex flex-col min-h-0 transition-all duration-300 ${
+        sidebarOpen ? 'w-80' : 'w-0 overflow-hidden border-none'
+      }`}>
         <div className="p-3 border-b border-slate-900 flex items-center gap-2">
           <Users className="size-4 text-slate-400" />
           <div className="text-sm font-semibold text-slate-200">Participants</div>
           <span className="ml-auto text-[10px] text-slate-500 font-mono">{allParticipants.length}</span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="size-6 grid place-items-center rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition"
+            title="Close sidebar"
+          >
+            <X className="size-3" />
+          </button>
         </div>
         <div className="overflow-y-auto max-h-[40%] p-2 space-y-1 border-b border-slate-900">
           {allParticipants.map((p) => (
@@ -494,6 +530,9 @@ export function VoiceView({ channelName = "General", onLeave }: VoiceViewProps) 
 
   const roomName = `channel-${channelName.replace(/\s+/g, "-").toLowerCase()}`;
 
+  // Track if this is the initial mount to prevent auto-reconnect on fresh app load
+  const isInitialMount = useRef(true);
+
   // Persist the last joined room name to localStorage
   useEffect(() => {
     if (status === 'connected') {
@@ -506,23 +545,33 @@ export function VoiceView({ channelName = "General", onLeave }: VoiceViewProps) 
     const lastRoom = localStorage.getItem('queen_last_call_room');
     const isInCall = localStorage.getItem('queen_is_in_call') === 'true';
     
-    // If we have an active room in the provider but it's a different channel, disconnect first
-    if (room && lastRoom && lastRoom !== roomName && isInCall) {
-      console.log('[VoiceView] Different room, disconnecting from previous room');
-      disconnect();
-    }
-    
-    // If we were in a call for this room but status is idle, reconnect
-    if (status === 'idle' && lastRoom === roomName && isInCall) {
+    // Only auto-reconnect if we're idle, have a saved room for this channel, and are marked as in call
+    // Also ensure we're not already connecting or connected to prevent duplicate attempts
+    // Skip auto-reconnect on initial mount to prevent connecting on fresh app load with stale localStorage
+    if (!isInitialMount.current && status === 'idle' && lastRoom === roomName && isInCall && !room) {
       console.log('[VoiceView] Auto-reconnecting to room:', roomName);
       connect(roomName);
     }
-  }, [status, roomName, connect, disconnect, room]);
+    
+    // Clear initial mount flag after first render
+    isInitialMount.current = false;
+  }, [status, roomName, connect, room]);
+
+  // Clear room name when component unmounts if we're not in a call
+  useEffect(() => {
+    return () => {
+      const isInCall = localStorage.getItem('queen_is_in_call') === 'true';
+      if (!isInCall) {
+        localStorage.removeItem('queen_last_call_room');
+      }
+    };
+  }, []);
 
   const handleJoin = () => connect(roomName);
 
   const handleLeave = async () => {
     localStorage.removeItem('queen_last_call_room');
+    localStorage.setItem('queen_is_in_call', 'false');
     await disconnect();
     onLeave?.();
   };

@@ -69,7 +69,7 @@ export function ParticipantTile({ participant, tracks, large, small, onClick }: 
       {/* ── Video layer ─────────────────────────────────────────────────── */}
       {videoTrack && isTrackReference(videoTrack) ? (
         <div className="absolute inset-0">
-          <VideoTrack trackRef={videoTrack} className="w-full h-full object-cover" />
+          <VideoTrack trackRef={videoTrack} className={`w-full h-full ${isScreenSharing ? 'object-contain' : 'object-cover'}`} />
         </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 grid place-items-center">
@@ -99,29 +99,36 @@ export function ParticipantTile({ participant, tracks, large, small, onClick }: 
       )}
 
       {/* ── Name + status bar ────────────────────────────────────────── */}
-      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-center gap-2">
-        <span
-          className={[
-            "font-medium text-white truncate flex-1 text-left",
-            small ? "text-[10px]" : "text-xs",
-          ].join(" ")}
-        >
-          {name}
-          {isLocal && <span className="text-slate-400 ml-1">(You)</span>}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          {isMicOn ? (
-            <Mic className={`size-3 transition ${isSpeaking ? "text-fuchsia-400" : "text-slate-300"}`} />
-          ) : (
-            <MicOff className="size-3 text-rose-400" />
-          )}
-          {isCameraOn ? (
-            <Video className="size-3 text-slate-300" />
-          ) : (
-            <VideoOff className="size-3 text-slate-500" />
-          )}
+      {!small && (
+        <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-center gap-2">
+          <span className="font-medium text-white truncate flex-1 text-left text-xs">
+            {name}
+            {isLocal && <span className="text-slate-400 ml-1">(You)</span>}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            {isMicOn ? (
+              <Mic className={`size-3 transition ${isSpeaking ? "text-fuchsia-400" : "text-slate-300"}`} />
+            ) : (
+              <MicOff className="size-3 text-rose-400" />
+            )}
+            {isCameraOn ? (
+              <Video className="size-3 text-slate-300" />
+            ) : (
+              <VideoOff className="size-3 text-slate-500" />
+            )}
+          </div>
         </div>
-      </div>
+      )}
+      
+      {/* Simplified status for small tiles */}
+      {small && (
+        <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/70 to-transparent flex items-center justify-between">
+          <span className="text-[9px] font-medium text-white truncate flex-1">{name}</span>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {!isMicOn && <MicOff className="size-2 text-rose-400" />}
+          </div>
+        </div>
+      )}
 
       {/* ── Expand / focus button ────────────────────────────────────── */}
       {!small && onClick && (

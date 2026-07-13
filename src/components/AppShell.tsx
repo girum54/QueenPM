@@ -30,11 +30,12 @@ function SprintIcon({ className }: { className?: string }) {
 
 // ── Nav definition (Channels handled separately as accordion) ──
 const TOP_NAV: {
-  to: string;
+  to?: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   search?: Record<string, string>;
+  action?: () => void;
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
@@ -69,11 +70,61 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     return true;
   });
+  const [voiceViewPosition, setVoiceViewPosition] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("queen_voice_position");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return { x: 0, y: 0 };
+  });
+  const [isDragging, setIsDragging] = useState(false);
 
   // Persist isInCall to localStorage
   const handleSetIsInCall = (inCall: boolean) => {
     setIsInCall(inCall);
     localStorage.setItem("queen_is_in_call", inCall.toString());
+  };
+
+  // Persist voice view position to localStorage
+  useEffect(() => {
+    localStorage.setItem("queen_voice_position", JSON.stringify(voiceViewPosition));
+  }, [voiceViewPosition]);
+
+  // Drag handlers for voice view
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (voiceViewMaximized) return; // Don't drag when maximized
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  const handleDragMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const newX = e.movementX;
+    const newY = e.movementY;
+    
+    setVoiceViewPosition((prev: { x: number; y: number }) => ({
+      x: prev.x + newX,
+      y: prev.y + newY
+    }));
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Reset position when maximizing
+  const handleMaximize = () => {
+    setVoiceViewMaximized(true);
+    setVoiceViewPosition({ x: 0, y: 0 });
+  };
+
+  const handleMinimize = () => {
+    setVoiceViewMaximized(false);
   };
 
   // Handle playlist open event from chat commands
@@ -389,27 +440,48 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className={`flex-1 overflow-y-auto space-y-px ${collapsed ? "px-1.5 pt-1" : "px-2 pt-1"}`}>
           {/* Top nav items */}
           {TOP_NAV.map((n) => {
-            const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
+            const active = n.to ? (n.exact ? pathname === n.to : pathname.startsWith(n.to)) : false;
             const Icon = n.icon;
             return (
-              <Link
-                key={n.to}
-                to={n.to}
-                title={collapsed ? n.label : undefined}
-                className={`relative flex items-center rounded-lg text-[12px] font-medium transition-all group ${
-                  collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 h-9"
-                } ${
-                  active
-                    ? "bg-slate-900 border border-slate-800/80 text-slate-100"
-                    : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
-                }`}
-              >
-                {active && !collapsed && (
-                  <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-fuchsia-500 shadow-sm shadow-fuchsia-500/60" />
-                )}
-                <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${active ? "text-fuchsia-400" : "text-slate-500 group-hover:text-slate-400"}`} />
-                {!collapsed && <span>{n.label}</span>}
-              </Link>
+              n.action ? (
+                <button
+                  key={n.label}
+                  onClick={n.action}
+                  title={collapsed ? n.label : undefined}
+                  className={`relative w-full flex items-center rounded-lg text-[12px] font-medium transition-all group ${
+                    collapsed ? "justify-center h-9" : "gap-2.5 px-2.5 h-9"
+                  } ${
+                    isInCall
+                      ? "bg-slate-900 border border-slate-800/80 text-slate-100"
+                      : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
+                  }`}
+                >
+                  {isInCall && !collapsed && (
+                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-emerald-500 shadow-sm shadow-emerald-500/60" />
+                  )}
+                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${isInCall ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  {!collapsed && <span>{n.label}</span>}
+                </button>
+              ) : (
+                <Link
+                  key={n.to}
+                  to={n.to!}
+                  title={collapsed ? n.label : undefined}
+                  className={`relative flex items-center rounded-lg text-[12px] font-medium transition-all group ${
+                    collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 h-9"
+                  } ${
+                    active
+                      ? "bg-slate-900 border border-slate-800/80 text-slate-100"
+                      : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
+                  }`}
+                >
+                  {active && !collapsed && (
+                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-fuchsia-500 shadow-sm shadow-fuchsia-500/60" />
+                  )}
+                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${active ? "text-fuchsia-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  {!collapsed && <span>{n.label}</span>}
+                </Link>
+              )
             );
           })}
 
@@ -488,27 +560,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                           <Bot className="size-3 text-fuchsia-500/60 shrink-0" />
                         )}
                       </button>
-                      {/* Live participants nested under channel — Discord-style */}
-                      {activeCall && activeCall.participants.length > 0 && (
-                        <div className="mt-0.5 ml-5 space-y-px">
-                          {activeCall.participants.map((p) => (
-                            <button
-                              key={p.identity}
-                              onClick={() => {
-                                setActiveChannelId(ch.id);
-                                window.history.pushState({}, "", "/channels?mode=voice");
-                                navigate({ to: "/channels" });
-                              }}
-                              className="w-full flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[10px] text-emerald-400 hover:bg-emerald-500/10 transition"
-                            >
-                              <PhoneCall className="size-2.5 shrink-0" />
-                              <div className="size-3.5 rounded-full bg-emerald-500/20 text-[8px] font-bold text-emerald-300 grid place-items-center shrink-0 uppercase">
-                                {p.name[0]}
-                              </div>
-                              <span className="truncate">{p.name}</span>
-                            </button>
-                          ))}
-                        </div>
+                      {/* Call button - only shows when there's an active call in this channel */}
+                      {activeCall && (
+                        <button
+                          onClick={() => {
+                            setActiveChannelId(ch.id);
+                            setVoiceViewVisible(true);
+                          }}
+                          className="mt-0.5 ml-5 w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] text-emerald-400 hover:bg-emerald-500/10 transition"
+                        >
+                          <PhoneCall className="size-2.5 shrink-0" />
+                          <span className="truncate">Join call ({activeCall.participants.length})</span>
+                        </button>
                       )}
                     </div>
                   );
@@ -543,13 +606,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-semibold text-slate-200 truncate">{user?.name ?? "Guest"}</div>
                   <div className="text-[10px] text-slate-500 truncate">
-                    {isInCall ? (
-                      <span className="text-emerald-400 font-semibold">
-                        In call · {callParticipants.length} participant{callParticipants.length !== 1 ? 's' : ''}
-                      </span>
-                    ) : (
-                      user?.email ?? "Not signed in"
-                    )}
+                    {user?.email ?? "Not signed in"}
                   </div>
                 </div>
                 <Settings className="size-3.5 text-slate-600 group-hover:text-slate-400 transition shrink-0" />
@@ -748,14 +805,27 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* VoiceView component - always rendered when in call to maintain connection */}
       {isInCall && (
-        <div className={`fixed z-50 rounded-xl border border-slate-800 bg-slate-950 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
-          voiceViewVisible ? (voiceViewMaximized ? "inset-0" : "bottom-4 right-4 w-[600px] h-[500px]") : "opacity-0 pointer-events-none"
-        }`}>
-          <div className="h-10 border-b border-slate-900 px-3 flex items-center justify-between shrink-0 bg-slate-900">
+        <div 
+          className={`fixed z-50 rounded-xl border border-slate-800 bg-slate-950 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
+            voiceViewVisible ? (voiceViewMaximized ? "inset-0" : "bottom-4 right-4 w-[600px] h-[500px]") : "opacity-0 pointer-events-none"
+          }`}
+          style={!voiceViewMaximized ? {
+            transform: `translate(${voiceViewPosition.x}px, ${voiceViewPosition.y}px)`,
+          } : undefined}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+        >
+          <div 
+            className={`h-10 border-b border-slate-900 px-3 flex items-center justify-between shrink-0 bg-slate-900 select-none ${
+              !voiceViewMaximized ? 'cursor-grab' : ''
+            } ${isDragging ? 'cursor-grabbing' : ''}`}
+            onMouseDown={handleDragStart}
+          >
             <span className="text-xs font-semibold text-slate-200">Voice Call</span>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setVoiceViewMaximized(!voiceViewMaximized)}
+                onClick={voiceViewMaximized ? handleMinimize : handleMaximize}
                 className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
                 title={voiceViewMaximized ? "Minimize" : "Maximize"}
               >
