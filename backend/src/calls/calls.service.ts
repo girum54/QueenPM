@@ -111,6 +111,13 @@ export class CallsService {
   }
 
   async leaveCall(callId: string, userId: string): Promise<void> {
+    // Get call info to check if user is creator
+    const call = await this.getCallById(callId);
+    if (!call) {
+      throw new Error('Call not found');
+    }
+
+    // Mark user as left
     await this.db
       .update(schema.callParticipants)
       .set({ leftAt: new Date() })
@@ -122,6 +129,23 @@ export class CallsService {
       );
 
     this.logger.log(`User ${userId} left call ${callId}`);
+
+    // If creator left, end the call and delete the room
+    if (call.createdBy === userId) {
+      await this.endCall(callId);
+      await this.deleteRoom(call.roomName);
+      this.logger.log(`Creator left, ended call ${callId} and deleted room ${call.roomName}`);
+    }
+  }
+
+  async deleteRoom(roomName: string): Promise<void> {
+    try {
+      const roomService = this.getRoomService();
+      await roomService.deleteRoom(roomName);
+      this.logger.log(`Deleted LiveKit room ${roomName}`);
+    } catch (err) {
+      this.logger.error(`Failed to delete room ${roomName}:`, err);
+    }
   }
 
   async getCallParticipants(callId: string): Promise<typeof schema.callParticipants.$inferSelect[]> {

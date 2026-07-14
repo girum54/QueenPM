@@ -40,15 +40,9 @@ function ConferencingPage() {
       }
     }
 
+    // Always check on mount, regardless of store state
     checkForExistingCall();
   }, [activeProjectId]);
-
-  // Check if user should be in rejoin mode (has active call but not connected)
-  useEffect(() => {
-    if (activeCall && status === "idle") {
-      setIsRejoining(true);
-    }
-  }, [activeCall, status]);
 
   const handleJoin = async () => {
     if (!activeProjectId) return;

@@ -27,7 +27,7 @@ export function CallLobby({ projectName, callType, onJoin, onCancel, isRejoining
               <Globe className="size-6 text-emerald-400" />
             )}
             <h1 className="text-2xl font-bold text-slate-100">
-              {isLoading ? "Checking..." : isRejoining ? "Rejoin Call" : "Join Call"}
+              {isLoading ? "Checking for existing calls..." : isRejoining ? "Rejoin Call" : "Join Call"}
             </h1>
           </div>
           <p className="text-slate-400">{projectName}</p>
