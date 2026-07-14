@@ -57,13 +57,15 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
       const now = Date.now();
       const diff = now - serverStarted;
       
-      // If server time is within reasonable bounds (not more than 1 hour in future)
-      if (diff > -3600000) {
+      console.log("Server time check - startedAt:", call.startedAt, "serverStarted:", serverStarted, "now:", now, "diff:", diff);
+      
+      // Only use server time if it's in the past (diff > 0)
+      if (diff > 0) {
         startTime = serverStarted;
         useServerTime = true;
         console.log("Using server time:", call.startedAt, "diff:", diff);
       } else {
-        console.log("Server time is in future, using local join time");
+        console.log("Server time is in future or equal, using local join time");
         // Check if we have a stored local join time for this call
         const storedKey = `call_start_${call.id}`;
         const stored = localStorage.getItem(storedKey);

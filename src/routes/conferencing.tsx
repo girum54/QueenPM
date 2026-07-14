@@ -15,8 +15,33 @@ function ConferencingPage() {
   const { status, connect, disconnect } = useLivekit();
   const [showLobby, setShowLobby] = useState(true);
   const [isRejoining, setIsRejoining] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const activeProject = projectTabs.find((p: { id: string }) => p.id === activeProjectId);
+
+  // Check for existing call on mount
+  useEffect(() => {
+    async function checkForExistingCall() {
+      if (!activeProjectId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const callData = await callsApi.getForProject(activeProjectId);
+        if (callData) {
+          setActiveCall(callData);
+          setIsRejoining(true);
+        }
+      } catch (err) {
+        console.error("Failed to check for existing call:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    checkForExistingCall();
+  }, [activeProjectId]);
 
   // Check if user should be in rejoin mode (has active call but not connected)
   useEffect(() => {
@@ -73,6 +98,7 @@ function ConferencingPage() {
         onJoin={handleJoin}
         onCancel={handleCancel}
         isRejoining={isRejoining}
+        isLoading={isLoading}
       />
     );
   }

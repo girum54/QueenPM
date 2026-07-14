@@ -1,4 +1,4 @@
-import { Users, Lock, Globe } from "lucide-react";
+import { Users, Lock, Globe, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 
 interface CallLobbyProps {
@@ -7,9 +7,10 @@ interface CallLobbyProps {
   onJoin: () => void;
   onCancel: () => void;
   isRejoining?: boolean;
+  isLoading?: boolean;
 }
 
-export function CallLobby({ projectName, callType, onJoin, onCancel, isRejoining = false }: CallLobbyProps) {
+export function CallLobby({ projectName, callType, onJoin, onCancel, isRejoining = false, isLoading = false }: CallLobbyProps) {
   const { user } = useAuth();
 
   return (
@@ -18,13 +19,15 @@ export function CallLobby({ projectName, callType, onJoin, onCancel, isRejoining
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-4">
-            {callType === "invite_only" ? (
+            {isLoading ? (
+              <Loader2 className="size-6 text-fuchsia-400 animate-spin" />
+            ) : callType === "invite_only" ? (
               <Lock className="size-6 text-amber-400" />
             ) : (
               <Globe className="size-6 text-emerald-400" />
             )}
             <h1 className="text-2xl font-bold text-slate-100">
-              {isRejoining ? "Rejoin Call" : "Join Call"}
+              {isLoading ? "Checking..." : isRejoining ? "Rejoin Call" : "Join Call"}
             </h1>
           </div>
           <p className="text-slate-400">{projectName}</p>
@@ -52,16 +55,22 @@ export function CallLobby({ projectName, callType, onJoin, onCancel, isRejoining
         <div className="flex gap-2 pt-2">
           <button
             onClick={onCancel}
-            className="flex-1 h-10 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            disabled={isLoading}
+            className="flex-1 h-10 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={onJoin}
-            className="flex-1 h-10 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white flex items-center justify-center gap-2 transition shadow-lg shadow-fuchsia-500/20"
+            disabled={isLoading}
+            className="flex-1 h-10 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white flex items-center justify-center gap-2 transition shadow-lg shadow-fuchsia-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Users className="size-3.5" />
-            {isRejoining ? "Rejoin Call" : "Join Call"}
+            {isLoading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Users className="size-3.5" />
+            )}
+            {isLoading ? "Loading..." : isRejoining ? "Rejoin Call" : "Join Call"}
           </button>
         </div>
       </div>
