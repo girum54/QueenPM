@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VoiceRouteImport } from './routes/voice'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as StakeholderRoadmapRouteImport } from './routes/stakeholder-roadmap'
 import { Route as StakeholderReportsRouteImport } from './routes/stakeholder-reports'
@@ -19,16 +18,12 @@ import { Route as SprintRouteImport } from './routes/sprint'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as MusicRouteImport } from './routes/music'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ConferencingRouteImport } from './routes/conferencing'
 import { Route as ChannelsConfigRouteImport } from './routes/channels-config'
 import { Route as ChannelsRouteImport } from './routes/channels'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
 
-const VoiceRoute = VoiceRouteImport.update({
-  id: '/voice',
-  path: '/voice',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -74,6 +69,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConferencingRoute = ConferencingRouteImport.update({
+  id: '/conferencing',
+  path: '/conferencing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChannelsConfigRoute = ChannelsConfigRouteImport.update({
   id: '/channels-config',
   path: '/channels-config',
@@ -100,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/conferencing': typeof ConferencingRoute
   '/login': typeof LoginRoute
   '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
@@ -109,13 +110,13 @@ export interface FileRoutesByFullPath {
   '/stakeholder-reports': typeof StakeholderReportsRoute
   '/stakeholder-roadmap': typeof StakeholderRoadmapRoute
   '/tasks': typeof TasksRoute
-  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/conferencing': typeof ConferencingRoute
   '/login': typeof LoginRoute
   '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
@@ -125,7 +126,6 @@ export interface FileRoutesByTo {
   '/stakeholder-reports': typeof StakeholderReportsRoute
   '/stakeholder-roadmap': typeof StakeholderRoadmapRoute
   '/tasks': typeof TasksRoute
-  '/voice': typeof VoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,6 +133,7 @@ export interface FileRoutesById {
   '/board': typeof BoardRoute
   '/channels': typeof ChannelsRoute
   '/channels-config': typeof ChannelsConfigRoute
+  '/conferencing': typeof ConferencingRoute
   '/login': typeof LoginRoute
   '/music': typeof MusicRoute
   '/projects': typeof ProjectsRoute
@@ -142,7 +143,6 @@ export interface FileRoutesById {
   '/stakeholder-reports': typeof StakeholderReportsRoute
   '/stakeholder-roadmap': typeof StakeholderRoadmapRoute
   '/tasks': typeof TasksRoute
-  '/voice': typeof VoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +151,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/conferencing'
     | '/login'
     | '/music'
     | '/projects'
@@ -160,13 +161,13 @@ export interface FileRouteTypes {
     | '/stakeholder-reports'
     | '/stakeholder-roadmap'
     | '/tasks'
-    | '/voice'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/conferencing'
     | '/login'
     | '/music'
     | '/projects'
@@ -176,13 +177,13 @@ export interface FileRouteTypes {
     | '/stakeholder-reports'
     | '/stakeholder-roadmap'
     | '/tasks'
-    | '/voice'
   id:
     | '__root__'
     | '/'
     | '/board'
     | '/channels'
     | '/channels-config'
+    | '/conferencing'
     | '/login'
     | '/music'
     | '/projects'
@@ -192,7 +193,6 @@ export interface FileRouteTypes {
     | '/stakeholder-reports'
     | '/stakeholder-roadmap'
     | '/tasks'
-    | '/voice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,6 +200,7 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRoute
   ChannelsRoute: typeof ChannelsRoute
   ChannelsConfigRoute: typeof ChannelsConfigRoute
+  ConferencingRoute: typeof ConferencingRoute
   LoginRoute: typeof LoginRoute
   MusicRoute: typeof MusicRoute
   ProjectsRoute: typeof ProjectsRoute
@@ -209,18 +210,10 @@ export interface RootRouteChildren {
   StakeholderReportsRoute: typeof StakeholderReportsRoute
   StakeholderRoadmapRoute: typeof StakeholderRoadmapRoute
   TasksRoute: typeof TasksRoute
-  VoiceRoute: typeof VoiceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/voice': {
-      id: '/voice'
-      path: '/voice'
-      fullPath: '/voice'
-      preLoaderRoute: typeof VoiceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tasks': {
       id: '/tasks'
       path: '/tasks'
@@ -284,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conferencing': {
+      id: '/conferencing'
+      path: '/conferencing'
+      fullPath: '/conferencing'
+      preLoaderRoute: typeof ConferencingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/channels-config': {
       id: '/channels-config'
       path: '/channels-config'
@@ -320,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRoute,
   ChannelsRoute: ChannelsRoute,
   ChannelsConfigRoute: ChannelsConfigRoute,
+  ConferencingRoute: ConferencingRoute,
   LoginRoute: LoginRoute,
   MusicRoute: MusicRoute,
   ProjectsRoute: ProjectsRoute,
@@ -329,7 +330,6 @@ const rootRouteChildren: RootRouteChildren = {
   StakeholderReportsRoute: StakeholderReportsRoute,
   StakeholderRoadmapRoute: StakeholderRoadmapRoute,
   TasksRoute: TasksRoute,
-  VoiceRoute: VoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

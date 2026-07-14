@@ -3,7 +3,7 @@ import {
   LayoutDashboard, KanbanSquare, MessageSquare, Crown, Search, Bell, Settings,
   X, Sparkles, FolderGit2, ChevronDown, Check, Hash, Bot,
   ExternalLink, PanelLeftClose, PanelLeftOpen, ListTodo, Menu, LogOut, Loader2, PieChart,
-  PhoneCall, Music, ListMusic, Maximize2, Minimize2, Video, Minus
+  PhoneCall, Music, ListMusic, Video, Users
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/queen-store";
@@ -12,7 +12,6 @@ import { useNotifications } from "@/lib/notifications-store";
 import { formatDistanceToNow } from "date-fns";
 import { PlaylistView } from "@/components/PlaylistView";
 import { QueenDjView } from "@/components/QueenDjView";
-import { VoiceView } from "@/components/VoiceView";
 import { LivekitProvider } from "@/lib/livekit-provider";
 
 // ── Custom Sprint Icon ─────────────────────────────────────────
@@ -36,11 +35,13 @@ const TOP_NAV: {
   exact?: boolean;
   search?: Record<string, string>;
   action?: () => void;
+  showCondition?: string; // 'call' to show only when in call
 }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/tasks", label: "Tasks", icon: ListTodo },
   { to: "/sprint", label: "Sprint", icon: SprintIcon },
   { to: "/board", label: "Board", icon: KanbanSquare },
+  { to: "/conferencing", label: "Live Call", icon: Video, showCondition: 'call' },
 ];
 
 // ── AppShell ──────────────────────────────────────────────────
@@ -51,81 +52,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const {
     activeProjectId, setActiveProjectId,
     projectTabs, addProjectTab, closeProjectTab,
-    isInCall, callParticipants, activeCalls,
+    activeCall, setActiveCall,
     playlistPanelOpen, setPlaylistPanelOpen,
     queendjPanelOpen, setQueendjPanelOpen,
     channels, activeChannelId, setActiveChannelId,
     sidebarCollapsed, setSidebarCollapsed,
     users,
-    setIsInCall,
   } = useStore();
-
-  const [showLeaveCallWarning, setShowLeaveCallWarning] = useState(false);
-  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
-  const [voiceViewMaximized, setVoiceViewMaximized] = useState(false);
-  const [voiceViewVisible, setVoiceViewVisible] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("queen_is_in_call");
-      return saved === "true";
-    }
-    return true;
-  });
-  const [voiceViewPosition, setVoiceViewPosition] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("queen_voice_position");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {}
-      }
-    }
-    return { x: 0, y: 0 };
-  });
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Persist isInCall to localStorage
-  const handleSetIsInCall = (inCall: boolean) => {
-    setIsInCall(inCall);
-    localStorage.setItem("queen_is_in_call", inCall.toString());
-  };
-
-  // Persist voice view position to localStorage
-  useEffect(() => {
-    localStorage.setItem("queen_voice_position", JSON.stringify(voiceViewPosition));
-  }, [voiceViewPosition]);
-
-  // Drag handlers for voice view
-  const handleDragStart = (e: React.MouseEvent) => {
-    if (voiceViewMaximized) return; // Don't drag when maximized
-    setIsDragging(true);
-    e.preventDefault();
-  };
-
-  const handleDragMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const newX = e.movementX;
-    const newY = e.movementY;
-    
-    setVoiceViewPosition((prev: { x: number; y: number }) => ({
-      x: prev.x + newX,
-      y: prev.y + newY
-    }));
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-  };
-
-  // Reset position when maximizing
-  const handleMaximize = () => {
-    setVoiceViewMaximized(true);
-    setVoiceViewPosition({ x: 0, y: 0 });
-  };
-
-  const handleMinimize = () => {
-    setVoiceViewMaximized(false);
-  };
 
   // Handle playlist open event from chat commands
   useEffect(() => {
@@ -136,25 +69,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('queen:open-playlist', handleOpenPlaylist);
   }, [setPlaylistPanelOpen]);
 
-  // Handle show voice panel event
-  useEffect(() => {
-    const handleShowVoice = () => {
-      setVoiceViewVisible(true);
-    };
-    window.addEventListener('queen:show-voice', handleShowVoice);
-    return () => window.removeEventListener('queen:show-voice', handleShowVoice);
-  }, []);
-
-  // Sync isInCall from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("queen_is_in_call");
-    if (saved === "true") {
-      setIsInCall(true);
-    } else if (saved === "false") {
-      setIsInCall(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const { user, loading, signOut } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
@@ -247,29 +161,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const handleChannelClick = (channelId: string) => {
     setActiveChannelId(channelId);
     navigate({ to: "/channels" });
-  };
-
-  // Handle project switch with call warning
-  const handleProjectSwitch = (projectId: string) => {
-    if (isInCall && projectId !== activeProjectId) {
-      setPendingProjectId(projectId);
-      setShowLeaveCallWarning(true);
-    } else {
-      setActiveProjectId(projectId);
-    }
-  };
-
-  const confirmProjectSwitch = () => {
-    if (pendingProjectId) {
-      setActiveProjectId(pendingProjectId);
-      setPendingProjectId(null);
-    }
-    setShowLeaveCallWarning(false);
-  };
-
-  const cancelProjectSwitch = () => {
-    setPendingProjectId(null);
-    setShowLeaveCallWarning(false);
   };
 
   const [isMobile, setIsMobile] = useState(false);
@@ -387,7 +278,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         className={`group/item flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] cursor-pointer transition ${
                           isActive ? "bg-slate-800 text-slate-100" : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
                         }`}
-                        onClick={() => { handleProjectSwitch(p.id); setIsProjectDropdownOpen(false); }}
+                        onClick={() => { setActiveProjectId(p.id); setIsProjectDropdownOpen(false); }}
                       >
                         <span className={`size-1.5 rounded-full bg-gradient-to-br ${p.color} shrink-0`} />
                         <span className="flex-1 truncate">{p.name}</span>
@@ -442,6 +333,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           {TOP_NAV.map((n) => {
             const active = n.to ? (n.exact ? pathname === n.to : pathname.startsWith(n.to)) : false;
             const Icon = n.icon;
+            
+            // Skip items with showCondition if condition not met
+            if (n.showCondition === 'call' && !activeCall) return null;
+            
             return (
               n.action ? (
                 <button
@@ -451,15 +346,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className={`relative w-full flex items-center rounded-lg text-[12px] font-medium transition-all group ${
                     collapsed ? "justify-center h-9" : "gap-2.5 px-2.5 h-9"
                   } ${
-                    isInCall
+                    activeCall && n.showCondition === 'call'
                       ? "bg-slate-900 border border-slate-800/80 text-slate-100"
                       : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
                   }`}
                 >
-                  {isInCall && !collapsed && (
+                  {activeCall && n.showCondition === 'call' && !collapsed && (
                     <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-emerald-500 shadow-sm shadow-emerald-500/60" />
                   )}
-                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${isInCall ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${activeCall && n.showCondition === 'call' ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-400"}`} />
                   {!collapsed && <span>{n.label}</span>}
                 </button>
               ) : (
@@ -534,8 +429,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="mt-0.5 ml-3 pl-2.5 border-l border-slate-800/60 space-y-px pb-1">
                 {channels.map((ch) => {
                   const isActive = ch.id === activeChannelId && pathname.startsWith("/channels");
-                  const chRoomName = `channel-${ch.name.replace(/\s+/g, "-").toLowerCase()}`;
-                  const activeCall = activeCalls.find((c) => c.roomName === chRoomName);
                   return (
                     <div key={ch.id}>
                       <button
@@ -560,19 +453,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                           <Bot className="size-3 text-fuchsia-500/60 shrink-0" />
                         )}
                       </button>
-                      {/* Call button - only shows when there's an active call in this channel */}
-                      {activeCall && (
-                        <button
-                          onClick={() => {
-                            setActiveChannelId(ch.id);
-                            setVoiceViewVisible(true);
-                          }}
-                          className="mt-0.5 ml-5 w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] text-emerald-400 hover:bg-emerald-500/10 transition"
-                        >
-                          <PhoneCall className="size-2.5 shrink-0" />
-                          <span className="truncate">Join call ({activeCall.participants.length})</span>
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -587,12 +467,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               title={user?.name ?? "You"}
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="size-9 mx-auto rounded-lg grid place-items-center text-xs font-bold text-white ring-1 ring-slate-800 cursor-pointer hover:ring-fuchsia-500/40 transition bg-slate-700"
+              className="size-9 mx-auto rounded-lg grid place-items-center text-xs font-bold text-white ring-1 ring-slate-800 cursor-pointer hover:ring-fuchsia-500/40 transition bg-slate-700 relative"
               style={user?.color ? {} : {}}
             >
               <span className={`size-full rounded-lg grid place-items-center ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"}`}>
                 {user ? user.name[0].toUpperCase() : "?"}
               </span>
+              {/* Call indicator */}
+              {activeCall && (
+                <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
+              )}
             </div>
           ) : (
             <div className="relative" ref={userMenuRef}>
@@ -600,8 +484,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-900/60 cursor-pointer transition group"
               >
-                <div className={`size-7 rounded-lg grid place-items-center text-[11px] font-bold text-white shrink-0 ring-1 ring-slate-800 ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"}`}>
+                <div className={`size-7 rounded-lg grid place-items-center text-[11px] font-bold text-white shrink-0 ring-1 ring-slate-800 ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"} relative`}>
                   {user ? user.name[0].toUpperCase() : "?"}
+                  {/* Call indicator */}
+                  {activeCall && (
+                    <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-semibold text-slate-200 truncate">{user?.name ?? "Guest"}</div>
@@ -791,100 +679,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Side Panels */}
       <PlaylistView />
-
-      {/* Floating button to show VoiceView - always available when in call */}
-      {isInCall && (
-        <button
-          onClick={() => setVoiceViewVisible(true)}
-          className="fixed bottom-4 right-4 z-40 size-12 rounded-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-500/30 flex items-center justify-center transition"
-          title="Show Voice Call"
-        >
-          <Video className="size-5" />
-        </button>
-      )}
-
-      {/* VoiceView component - always rendered when in call to maintain connection */}
-      {isInCall && (
-        <div 
-          className={`fixed z-50 rounded-xl border border-slate-800 bg-slate-950 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
-            voiceViewVisible ? (voiceViewMaximized ? "inset-0" : "bottom-4 right-4 w-[600px] h-[500px]") : "opacity-0 pointer-events-none"
-          }`}
-          style={!voiceViewMaximized ? {
-            transform: `translate(${voiceViewPosition.x}px, ${voiceViewPosition.y}px)`,
-          } : undefined}
-          onMouseMove={handleDragMove}
-          onMouseUp={handleDragEnd}
-          onMouseLeave={handleDragEnd}
-        >
-          <div 
-            className={`h-10 border-b border-slate-900 px-3 flex items-center justify-between shrink-0 bg-slate-900 select-none ${
-              !voiceViewMaximized ? 'cursor-grab' : ''
-            } ${isDragging ? 'cursor-grabbing' : ''}`}
-            onMouseDown={handleDragStart}
-          >
-            <span className="text-xs font-semibold text-slate-200">Voice Call</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={voiceViewMaximized ? handleMinimize : handleMaximize}
-                className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
-                title={voiceViewMaximized ? "Minimize" : "Maximize"}
-              >
-                {voiceViewMaximized ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
-              </button>
-              <button
-                onClick={() => setVoiceViewVisible(false)}
-                className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
-                title="Hide"
-              >
-                <Minus className="size-3" />
-              </button>
-              <button
-                onClick={() => handleSetIsInCall(false)}
-                className="size-6 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300 grid place-items-center transition"
-              >
-                <X className="size-3" />
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <VoiceView channelName={channels.find(c => c.id === activeChannelId)?.name || "Voice"} />
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════ LEAVE CALL WARNING MODAL ═══════════ */}
-      {showLeaveCallWarning && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/60 p-5 space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-800/80">
-              <div className="size-10 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
-                <PhoneCall className="size-5 text-rose-400" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-100">Leave Call?</h3>
-                <p className="text-xs text-slate-400">You're currently in a voice call</p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-300">
-              Switching projects will end your current voice call. Are you sure you want to continue?
-            </p>
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={cancelProjectSwitch}
-                className="flex-1 h-9 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-              >
-                Stay in Call
-              </button>
-              <button
-                onClick={confirmProjectSwitch}
-                className="flex-1 h-9 rounded-lg text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition"
-              >
-                Leave & Switch
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ═══════════ NEW PROJECT MODAL ═══════════ */}
       {isModalOpen && (
