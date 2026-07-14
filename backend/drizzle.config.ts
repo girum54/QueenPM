@@ -1,5 +1,4 @@
-import drizzleKit from "drizzle-kit";
-const { defineConfig } = drizzleKit as any;
+import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
