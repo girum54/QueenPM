@@ -240,36 +240,22 @@ function ConnectedCallView({
     : allParticipants;
 
   return (
-    <div className={`h-full grid min-h-0 bg-slate-950 relative ${
-      sidebarOpen ? 'grid-cols-1 lg:grid-cols-[1fr_320px]' : 'grid-cols-1'
-    }`}>
+    <div className="h-full min-h-0 bg-slate-950 relative">
 
-      {/* CENTER: stage */}
-      <main className="relative flex-1 min-h-0">
-        {/* Video content - takes full viewport */}
-        <div className={`absolute inset-0 grid gap-3 p-3 ${focusedParticipant && !isScreenSharing ? "grid-cols-[1fr_220px]" : ""}`}>
+      {/* CENTER: stage - always full width */}
+      <main className="relative flex-1 min-h-0 flex items-center justify-center">
+        {/* Video content - centered */}
+        <div className="w-full h-full flex items-center justify-center p-3">
           {focusedParticipant ? (
-            <>
-              <ParticipantTile
-                participant={focusedParticipant}
-                tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === focusedParticipant.identity)}
-                large
-              />
-              <div className="grid grid-cols-1 auto-rows-[120px] gap-2 overflow-y-auto pr-1">
-                {gridParticipants.map((p) => (
-                  <ParticipantTile
-                    key={p.identity}
-                    participant={p}
-                    tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
-                    small
-                    onClick={() => setFocusId(p.identity)}
-                  />
-                ))}
-              </div>
-            </>
+            <ParticipantTile
+              participant={focusedParticipant}
+              tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === focusedParticipant.identity)}
+              large
+              onClick={() => setFocusId(null)}
+            />
           ) : (
             <div
-              className="min-h-0 grid gap-3"
+              className="grid gap-3 w-full max-w-6xl"
               style={{
                 gridTemplateColumns: `repeat(${Math.min(3, Math.ceil(Math.sqrt(Math.max(1, allParticipants.length))))}, minmax(0, 1fr))`,
               }}
@@ -285,6 +271,21 @@ function ConnectedCallView({
             </div>
           )}
         </div>
+
+        {/* Mini participant overlay - bottom right when focused */}
+        {focusedParticipant && gridParticipants.length > 0 && (
+          <div className="absolute bottom-20 right-4 z-10 w-48 space-y-2">
+            {gridParticipants.slice(0, 3).map((p) => (
+              <ParticipantTile
+                key={p.identity}
+                participant={p}
+                tracks={allTracks.filter((t) => isTrackReference(t) && t.participant.identity === p.identity)}
+                small
+                onClick={() => setFocusId(p.identity)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Topbar - overlay */}
         <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/60 to-transparent border-b border-slate-900/50 flex items-center px-4 gap-3 z-10">
@@ -311,15 +312,13 @@ function ConnectedCallView({
         </div>
 
         {/* Floating sidebar toggle button */}
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="absolute top-16 right-3 z-10 size-10 rounded-lg bg-slate-900/80 backdrop-blur border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-300 transition flex items-center justify-center shadow-lg"
-            title="Open sidebar"
-          >
-            <Users className="size-4" />
-          </button>
-        )}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className={`absolute top-16 right-3 z-20 size-10 rounded-lg bg-slate-900/80 backdrop-blur border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-300 transition flex items-center justify-center shadow-lg ${sidebarOpen ? 'bg-slate-800 text-white' : ''}`}
+          title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          <Users className="size-4" />
+        </button>
 
         {/* Control bar - overlay */}
         <div className="absolute bottom-4 left-4 right-4 z-10">
@@ -370,9 +369,9 @@ function ConnectedCallView({
         </div>
       </main>
 
-      {/* RIGHT: participants + chat */}
-      <aside className={`border-l border-slate-900 bg-slate-950/20 flex flex-col min-h-0 transition-all duration-300 ${
-        sidebarOpen ? 'w-80' : 'w-0 overflow-hidden border-none'
+      {/* RIGHT: participants + chat - overlay */}
+      <aside className={`absolute top-0 right-0 bottom-0 w-80 bg-slate-950/95 backdrop-blur border-l border-slate-900 flex flex-col transition-transform duration-300 z-15 ${
+        sidebarOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="p-3 border-b border-slate-900 flex items-center gap-2">
           <Users className="size-4 text-slate-400" />
@@ -386,7 +385,7 @@ function ConnectedCallView({
             <X className="size-3" />
           </button>
         </div>
-        <div className="overflow-y-auto max-h-[40%] p-2 space-y-1 border-b border-slate-900">
+        <div className="overflow-y-auto flex-1 p-2 space-y-1 border-b border-slate-900">
           {allParticipants.map((p) => (
             <div
               key={p.identity}
