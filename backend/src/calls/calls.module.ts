@@ -3,9 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { CallsService } from './calls.service';
 import { CallsController } from './calls.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { DatabaseModule } from '../database/database.module';
 
 @Module({
-  imports: [ConfigModule, NotificationsModule],
+  imports: [ConfigModule, NotificationsModule, DatabaseModule],
   providers: [CallsService],
   controllers: [CallsController],
   exports: [CallsService],
