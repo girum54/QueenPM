@@ -12,7 +12,7 @@ export const Route = createFileRoute("/conferencing")({
 
 function ConferencingPage() {
   const { activeProjectId, activeCall, setActiveCall, projectTabs } = useStore();
-  const { status, disconnect } = useLivekit();
+  const { status, connect, disconnect } = useLivekit();
   const [showLobby, setShowLobby] = useState(true);
   const [isRejoining, setIsRejoining] = useState(false);
 
@@ -30,10 +30,17 @@ function ConferencingPage() {
     
     try {
       // Create call if none exists
-      if (!activeCall) {
-        const createdCall = await callsApi.create({ projectId: activeProjectId, callType: "open" });
-        setActiveCall(createdCall);
+      let call = activeCall;
+      if (!call) {
+        call = await callsApi.create({ projectId: activeProjectId, callType: "open" });
+        setActiveCall(call);
       }
+      
+      // Join the call and get token
+      const response = await callsApi.join(call.id);
+      
+      // Connect to LiveKit
+      await connect(response.call.roomName);
       
       setShowLobby(false);
       setIsRejoining(false);

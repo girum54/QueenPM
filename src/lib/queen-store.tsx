@@ -162,10 +162,12 @@ const StoreCtx = createContext<StoreShape | null>(null);
 
 import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi, callsApi, type ApiActiveCall, type ApiCall } from "./api/queen.api";
 import { useEffect } from "react";
+import { useAuth } from "./auth-store";
 
 
 
 export function QueenStoreProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -189,7 +191,14 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     async function loadActiveCall() {
       try {
         const callData = await callsApi.getForProject(activeProjectId);
-        if (active) setActiveCall(callData);
+        if (active) {
+          // Only set active call if user is a participant
+          if (callData && callData.participants?.some((p: any) => p.userId === user?.id)) {
+            setActiveCall(callData);
+          } else {
+            setActiveCall(null);
+          }
+        }
       } catch (e) {
         // Silently catch in-flight errors to prevent noise
       }
@@ -200,7 +209,7 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       active = false;
       clearInterval(interval);
     };
-  }, [activeProjectId]);
+  }, [activeProjectId, user?.id]);
 
   // Real-time board sync via SSE broadcast events
   useEffect(() => {

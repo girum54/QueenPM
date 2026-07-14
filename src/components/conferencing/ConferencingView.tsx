@@ -18,6 +18,7 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
   const { users, activeProjectId } = useStore();
   const [call, setCall] = useState<ApiCall | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [localJoinTime, setLocalJoinTime] = useState<number | null>(null);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -31,6 +32,7 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
     async function loadCall() {
       try {
         const callData = await callsApi.getForProject(projectId);
+        console.log("Loaded call data:", callData);
         setCall(callData);
       } catch (err) {
         console.error("Failed to load call:", err);
@@ -38,18 +40,62 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
     }
     loadCall();
   }, [projectId]);
-
-  // Call timer based on server time
+  // Call timer - hybrid approach: use server time if valid, otherwise local join time
   useEffect(() => {
-    if (!call?.startedAt) return;
-    
-    const started = new Date(call.startedAt).getTime();
-    const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - started) / 1000));
-    }, 1000);
-    
+    if (!call) {
+      setLocalJoinTime(null);
+      setElapsed(0);
+      return;
+    }
+
+    // Try to use server startedAt if it's reasonable (not in the future)
+    let startTime: number;
+    let useServerTime = false;
+
+    if (call.startedAt) {
+      const serverStarted = new Date(call.startedAt).getTime();
+      const now = Date.now();
+      const diff = now - serverStarted;
+      
+      // If server time is within reasonable bounds (not more than 1 hour in future)
+      if (diff > -3600000) {
+        startTime = serverStarted;
+        useServerTime = true;
+        console.log("Using server time:", call.startedAt, "diff:", diff);
+      } else {
+        console.log("Server time is in future, using local join time");
+        // Check if we have a stored local join time for this call
+        const storedKey = `call_start_${call.id}`;
+        const stored = localStorage.getItem(storedKey);
+        if (stored) {
+          startTime = parseInt(stored, 10);
+          console.log("Using stored local join time:", new Date(startTime).toISOString());
+        } else {
+          startTime = now;
+          localStorage.setItem(storedKey, startTime.toString());
+          console.log("Starting new local join time:", new Date(startTime).toISOString());
+        }
+        useServerTime = false;
+      }
+    } else {
+      startTime = Date.now();
+      useServerTime = false;
+    }
+
+    if (!useServerTime) {
+      setLocalJoinTime(startTime);
+    }
+
+    const updateTimer = () => {
+      const elapsed = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+      setElapsed(elapsed);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
     return () => clearInterval(interval);
-  }, [call]);
+  }, [call?.startedAt, call?.id, call]);
 
   // These hooks are safe when status === 'connected'
   const { localParticipant } = useLocalParticipant();
@@ -89,18 +135,10 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
         u.handle.toLowerCase().includes(inviteSearch.toLowerCase())),
   );
 
-  const handleJoin = async () => {
-    if (!call) return;
-    try {
-      const response = await callsApi.join(call.id);
-      await connect(response.call.roomName);
-    } catch (err) {
-      console.error("Failed to join call:", err);
-    }
-  };
-
   const handleLeave = async () => {
     if (call) {
+      // Clean up stored local join time
+      localStorage.removeItem(`call_start_${call.id}`);
       await callsApi.leave(call.id);
     }
     await disconnect();
@@ -144,12 +182,23 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h ? String(h).padStart(2, "0") + ":" : ""}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  };
+const formatDuration = (totalSeconds: number) => {
+  const s = Math.floor(totalSeconds); // Ensure we are working with whole seconds
+  
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+
+  // Pad segments to ensure 2 digits (e.g., 01, 09, 10)
+  const pad = (num: number) => String(num).padStart(2, "0");
+
+  // Choose your format:
+  // Option A: Only show hours if > 0 (Your current logic, but fixed)
+  if (h > 0) {
+    return `${h}:${pad(m)}:${pad(sec)}`;
+  }
+  return `${pad(m)}:${pad(sec)}`;
+};
 
   const focusedParticipant = focusId
     ? allParticipants.find((p) => p.identity === focusId)
@@ -169,15 +218,6 @@ export function ConferencingView({ projectId, projectName, onLeave }: Conferenci
           <p className="font-semibold text-slate-200">Connection Failed</p>
           <p className="text-sm text-slate-400 break-words">{error}</p>
           <div className="flex gap-2 justify-center">
-            <button
-              onClick={() => {
-                clearError();
-                handleJoin();
-              }}
-              className="h-9 px-4 rounded-lg text-xs font-semibold bg-fuchsia-500 hover:bg-fuchsia-600 text-white flex items-center gap-2"
-            >
-              Retry
-            </button>
             <button onClick={onLeave} className="h-9 px-4 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300">
               Dismiss
             </button>
