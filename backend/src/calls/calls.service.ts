@@ -87,8 +87,7 @@ export class CallsService {
 
   async endCall(callId: string): Promise<void> {
     await this.db
-      .update(schema.calls)
-      .set({ status: 'ended', endedAt: new Date() })
+      .delete(schema.calls)
       .where(eq(schema.calls.id, callId));
 
     this.logger.log(`Ended call ${callId}`);
