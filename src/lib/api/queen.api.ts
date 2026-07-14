@@ -313,14 +313,52 @@ export const playlistApi = {
 
 // ─── Calls ────────────────────────────────────────────────────────────────────
 
-export interface ApiActiveCall {
+export interface ApiCall {
+  id: string;
+  projectId: string;
   roomName: string;
-  participants: {
-    identity: string;
-    name: string;
+  createdBy: string;
+  startedAt: string;
+  endedAt: string | null;
+  callType: "open" | "invite_only";
+  status: "active" | "ended";
+  participants?: {
+    userId: string;
+    joinedAt: string;
   }[];
+}
+
+export interface ApiActiveCall {
+  id: string;
+  roomName: string;
+  projectId: string;
+  callType: "open" | "invite_only";
+  startedAt: string;
+  participants: {
+    userId: string;
+    joinedAt: string;
+  }[];
+}
+
+export interface CallJoinResponse {
+  token: string;
+  url: string;
+  call: ApiCall;
 }
 
 export const callsApi = {
   getActive: () => request<ApiActiveCall[]>("/calls/active"),
+  getForProject: (projectId: string) => request<ApiCall | null>(`/calls/project/${projectId}`),
+  create: (data: { projectId: string; callType?: "open" | "invite_only" }) =>
+    request<ApiCall>("/calls/create", { method: "POST", body: JSON.stringify(data) }),
+  join: (callId: string) => request<CallJoinResponse>(`/calls/${callId}/join`, { method: "POST" }),
+  leave: (callId: string) => request<{ success: boolean }>(`/calls/${callId}/leave`, { method: "POST" }),
+  end: (callId: string) => request<{ success: boolean }>(`/calls/${callId}`, { method: "DELETE" }),
+  invite: (callId: string, recipientId: string) =>
+    request<{ sent: boolean }>(`/calls/${callId}/invite`, {
+      method: "POST",
+      body: JSON.stringify({ recipientId }),
+    }),
+  getParticipants: (callId: string) =>
+    request<{ userId: string; joinedAt: string }[]>(`/calls/${callId}/participants`),
 };

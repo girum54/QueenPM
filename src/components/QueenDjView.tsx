@@ -39,7 +39,7 @@ interface QueenDjState {
 
 export function QueenDjView() {
   const { user } = useAuth();
-  const { channels, activeChannelId, isInCall, callParticipants, queendjPanelOpen, setQueendjPanelOpen } = useStore();
+  const { channels, activeChannelId, queendjPanelOpen, setQueendjPanelOpen } = useStore();
   const playlistChannelId = activeChannelId || channels[0]?.id || 'c4452bb1-4694-415d-8919-e48de2cfaed2';
 
   const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';

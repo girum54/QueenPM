@@ -149,11 +149,8 @@ interface StoreShape {
   activeSprintId: string | null;
   setActiveSprintId: (id: string | null) => void;
   // Call state
-  isInCall: boolean;
-  setIsInCall: (inCall: boolean) => void;
-  callParticipants: string[];
-  setCallParticipants: (participants: string[]) => void;
-  activeCalls: ApiActiveCall[];
+  activeCall: ApiCall | null;
+  setActiveCall: (call: ApiCall | null) => void;
   // Side panels
   playlistPanelOpen: boolean;
   setPlaylistPanelOpen: (open: boolean) => void;
@@ -163,7 +160,7 @@ interface StoreShape {
 
 const StoreCtx = createContext<StoreShape | null>(null);
 
-import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi, callsApi, type ApiActiveCall } from "./api/queen.api";
+import { projectsApi, channelsApi, tasksApi, messagesApi, sprintsApi, usersApi, callsApi, type ApiActiveCall, type ApiCall } from "./api/queen.api";
 import { useEffect } from "react";
 
 
@@ -179,37 +176,31 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
   const [activeSprintId, setActiveSprintId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [jumpRequest, setJumpRequest] = useState<JumpRequest | null>(null);
-  const [isInCall, setIsInCall] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("queen_is_in_call");
-      return saved === "true";
-    }
-    return false;
-  });
-  const [callParticipants, setCallParticipants] = useState<string[]>([]);
-  const [activeCalls, setActiveCalls] = useState<ApiActiveCall[]>([]);
+  const [activeCall, setActiveCall] = useState<ApiCall | null>(null);
   const [playlistPanelOpen, setPlaylistPanelOpen] = useState<boolean>(false);
   const [queendjPanelOpen, setQueendjPanelOpen] = useState<boolean>(false);
   const consumed = useRef(false);
 
-  // Poll active calls every 5 seconds
+  // Poll active call for current project every 5 seconds
   useEffect(() => {
+    if (!activeProjectId) return;
+    
     let active = true;
-    async function loadActiveCalls() {
+    async function loadActiveCall() {
       try {
-        const data = await callsApi.getActive();
-        if (active) setActiveCalls(data);
+        const callData = await callsApi.getForProject(activeProjectId);
+        if (active) setActiveCall(callData);
       } catch (e) {
         // Silently catch in-flight errors to prevent noise
       }
     }
-    loadActiveCalls();
-    const interval = setInterval(loadActiveCalls, 5000);
+    loadActiveCall();
+    const interval = setInterval(loadActiveCall, 5000);
     return () => {
       active = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [activeProjectId]);
 
   // Real-time board sync via SSE broadcast events
   useEffect(() => {
@@ -621,17 +612,14 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       setSidebarCollapsed: handleSetSidebarCollapsed,
       activeSprintId,
       setActiveSprintId,
-      isInCall,
-      setIsInCall,
-      callParticipants,
-      setCallParticipants,
-      activeCalls,
+      activeCall,
+      setActiveCall,
       playlistPanelOpen,
       setPlaylistPanelOpen,
       queendjPanelOpen,
       setQueendjPanelOpen,
     }),
-    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, isInCall, callParticipants, activeCalls, playlistPanelOpen, queendjPanelOpen]
+    [tasks, messages, channels, users, activeChannelId, jumpRequest, activeProjectId, projectTabs, sidebarCollapsed, activeSprintId, activeCall, playlistPanelOpen, queendjPanelOpen]
   );
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

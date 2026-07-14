@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users, ListTodo,
@@ -31,11 +31,12 @@ export const Route = createFileRoute("/channels")({
 });
 
 function ChannelsPage() {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
     addMessage, addTask, updateTask, consumeJump,
-    activeProjectId, projectTabs, activeSprintId, isInCall,
+    activeProjectId, projectTabs, activeSprintId, activeCall,
   } = useStore();
 
   // Enable QueenDJ command handling
@@ -77,24 +78,7 @@ function ChannelsPage() {
   const [assignModalSubtitle, setAssignModalSubtitle] = useState<string | undefined>();
   const [spawningTask, setSpawningTask] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
-  const { queendjPanelOpen, setQueendjPanelOpen, setIsInCall } = useStore();
-
-  // Persist isInCall to localStorage
-  const handleSetIsInCall = (inCall: boolean) => {
-    setIsInCall(inCall);
-    localStorage.setItem("queen_is_in_call", inCall.toString());
-  };
-
-  // Sync isInCall from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("queen_is_in_call");
-    if (saved === "true") {
-      setIsInCall(true);
-    } else if (saved === "false") {
-      setIsInCall(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { queendjPanelOpen, setQueendjPanelOpen } = useStore();
 
   // ── Call invite banner ────────────────────────────────────────────────────
   const { markRead, notifications } = useNotifications();
@@ -393,9 +377,9 @@ function ChannelsPage() {
                 <Crown className="size-4" />
               </button>
               <button
-                onClick={() => isInCall ? window.dispatchEvent(new CustomEvent('queen:show-voice')) : handleSetIsInCall(!isInCall)}
-                className={`size-8 rounded-lg grid place-items-center transition ${isInCall ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-200 hover:bg-slate-900/60"}`}
-                title={isInCall ? "Show Voice Call" : "Join Voice Call"}
+                onClick={() => navigate({ to: "/conferencing" })}
+                className={`size-8 rounded-lg grid place-items-center transition ${activeCall ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-200 hover:bg-slate-900/60"}`}
+                title={activeCall ? "Join Live Call" : "Start Live Call"}
               >
                 <Video className="size-4" />
               </button>
