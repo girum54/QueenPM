@@ -15,6 +15,9 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "task_added",
 ]);
 export const userRoleEnum = pgEnum("user_role", ["developer", "stakeholder"]);
+export const callTypeEnum = pgEnum("call_type", ["open", "invite_only"]);
+export const callStatusEnum = pgEnum("call_status", ["active", "ended"]);
+export const inviteStatusEnum = pgEnum("invite_status", ["pending", "accepted", "declined"]);
 
 // ─── Playlist Tracks ──────────────────────────────────────────────────────────
 
@@ -383,5 +386,91 @@ export const playlistTrackRelations = relations(playlistTracks, ({ one }) => ({
   channel: one(channels, {
     fields: [playlistTracks.channelId],
     references: [channels.id],
+  }),
+}));
+
+// ─── Calls ─────────────────────────────────────────────────────────────────────
+
+export const calls = pgTable("calls", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  roomName: text("room_name").notNull().unique(),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => user.id),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+  callType: callTypeEnum("call_type").default("open").notNull(),
+  status: callStatusEnum("status").default("active").notNull(),
+});
+
+export const callParticipants = pgTable("call_participants", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  callId: uuid("call_id")
+    .notNull()
+    .references(() => calls.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  leftAt: timestamp("left_at"),
+  isInvited: boolean("is_invited").default(false).notNull(),
+});
+
+export const callInvites = pgTable("call_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  callId: uuid("call_id")
+    .notNull()
+    .references(() => calls.id, { onDelete: "cascade" }),
+  invitedUserId: text("invited_user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  invitedBy: text("invited_by")
+    .notNull()
+    .references(() => user.id),
+  status: inviteStatusEnum("status").default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ─── Call Relations ─────────────────────────────────────────────────────────────
+
+export const callRelations = relations(calls, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [calls.projectId],
+    references: [projects.id],
+  }),
+  creator: one(user, {
+    fields: [calls.createdBy],
+    references: [user.id],
+  }),
+  participants: many(callParticipants),
+  invites: many(callInvites),
+}));
+
+export const callParticipantRelations = relations(callParticipants, ({ one }) => ({
+  call: one(calls, {
+    fields: [callParticipants.callId],
+    references: [calls.id],
+  }),
+  user: one(user, {
+    fields: [callParticipants.userId],
+    references: [user.id],
+  }),
+}));
+
+export const callInviteRelations = relations(callInvites, ({ one }) => ({
+  call: one(calls, {
+    fields: [callInvites.callId],
+    references: [calls.id],
+  }),
+  invitedUser: one(user, {
+    fields: [callInvites.invitedUserId],
+    references: [user.id],
+  }),
+  invitedBy: one(user, {
+    fields: [callInvites.invitedBy],
+    references: [user.id],
   }),
 }));
