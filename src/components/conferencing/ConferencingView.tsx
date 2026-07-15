@@ -212,7 +212,7 @@ const formatDuration = (totalSeconds: number) => {
   // ── Error state ────────────────────────────────────────────────────────────
   if (status === "error") {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-950">
+      <div className="h-screen w-screen bg-slate-950 relative overflow-hidden flex flex-col">
         <div className="text-center max-w-sm p-6 space-y-4">
           <div className="size-12 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center mx-auto">
             <AlertCircle className="size-6 text-rose-400" />
@@ -232,7 +232,7 @@ const formatDuration = (totalSeconds: number) => {
   // ── Connecting state ─────────────────────────────────────────────────────────
   if (status === "connecting") {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-950">
+      <div className="h-screen w-screen bg-slate-950 relative overflow-hidden flex flex-col">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="size-6 text-fuchsia-400 animate-spin" />
           <p className="text-slate-400 text-sm">Connecting to call...</p>
@@ -247,7 +247,7 @@ const formatDuration = (totalSeconds: number) => {
   // ── Connected state ─────────────────────────────────────────────────────────
   if (status === "connected") {
     return (
-      <div className="h-full min-h-0 bg-slate-950 relative">
+      <div className="h-screen w-screen bg-slate-950 relative overflow-hidden flex flex-col">
         {/* Main stage */}
         <main className="relative flex-1 min-h-0 flex items-center justify-center">
           <div className="w-full h-full flex items-center justify-center p-3">

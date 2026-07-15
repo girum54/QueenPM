@@ -14,7 +14,7 @@ export function CallLobby({ projectName, callType, onJoin, onCancel, isRejoining
   const { user } = useAuth();
 
   return (
-    <div className="h-full flex items-center justify-center bg-slate-950">
+    <div className="h-screen w-screen flex items-center justify-center bg-slate-950">
       <div className="w-full max-w-md p-8 space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
