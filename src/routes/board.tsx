@@ -8,7 +8,7 @@ import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
 import {
   useStore, COLUMN_META, PRIORITY_STYLES, CREATED_BY_META,
-  type ColumnId, type Task, userById,
+  type ColumnId, type Task, type Priority, userById,
 } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
 
@@ -23,9 +23,6 @@ export const Route = createFileRoute("/board")({
 });
 
 const COLUMNS: ColumnId[] = ["new", "active", "staging", "deployed"];
-
-// Hardcoded active sprint for now - in production this would come from store/API
-const ACTIVE_SPRINT_ID = "d5d16315-fe1f-4c09-ab7b-c1e3d3f9fb0e"; // From seed data
 
 function BoardPage() {
   const { tasks, updateTask, addTask, users, requestJump, activeProjectId, projectTabs, activeSprintId } = useStore();
@@ -62,6 +59,8 @@ function BoardPage() {
       if (t.projectId && t.projectId !== activeProjectId) return false;
       // Must be in the active sprint using sprintId
       if (!t.sprintId) return false; // Only show tasks that have a sprint assigned
+      // Must match the current active sprint ID
+      if (activeSprintId && t.sprintId !== activeSprintId) return false;
       // Filter by search query
       if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false;
       // Filter by priority
@@ -73,7 +72,7 @@ function BoardPage() {
       }
       return true;
     });
-  }, [tasks, activeProjectId, query, filterPriority, filterAssignee]);
+  }, [tasks, activeProjectId, activeSprintId, query, filterPriority, filterAssignee]);
   const byCol = useMemo(() => {
     const map: Record<ColumnId, Task[]> = { new: [], active: [], staging: [], deployed: [] };
     filtered.forEach((t) => map[t.column].push(t));
