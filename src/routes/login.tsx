@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Crown, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
+import { ChessQueen } from "@/components/ChessQueen";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -70,28 +71,29 @@ function LoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="size-6 text-fuchsia-400 animate-spin" />
+      <div className="min-h-screen chess-pattern-subtle-dark flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <ChessQueen size={64} animated={true} className="text-white" />
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">QueenPM</h1>
+            <p className="text-sm text-gray-400">Unifying your team</p>
+          </div>
+          <Loader2 className="size-6 text-white animate-spin" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glow effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-fuchsia-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen chess-pattern-subtle-dark flex items-center justify-center p-4 relative overflow-hidden">
       <div className="relative w-full max-w-md">
         {/* Card */}
-        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/80 backdrop-blur-xl shadow-2xl shadow-black/60 overflow-hidden">
+        <div className="rounded-2xl border border-gray-800 bg-black/80 backdrop-blur-xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b border-slate-800/60">
+          <div className="px-8 pt-8 pb-6 border-b border-gray-800">
             <div className="flex items-center gap-3 mb-6">
-              <div className="size-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/25">
-                <Crown className="size-5 text-white" />
+              <div className="size-10 rounded-xl bg-white grid place-items-center shadow-lg">
+                <ChessQueen size={20} className="text-black" />
               </div>
               <div>
                 <div className="text-lg font-bold text-slate-50 tracking-tight">Queen PM</div>
@@ -103,15 +105,15 @@ function LoginPage() {
             </div>
 
             {/* Mode tabs */}
-            <div className="flex gap-1 bg-slate-800/60 rounded-lg p-1">
+            <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
               <button
                 id="tab-signin"
                 type="button"
                 onClick={() => { setMode("signin"); setError(null); }}
                 className={`flex-1 h-8 rounded-md text-sm font-medium transition-all ${
                   mode === "signin"
-                    ? "bg-slate-700 text-slate-100 shadow-sm"
-                    : "text-slate-500 hover:text-slate-300"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-400 hover:text-gray-300"
                 }`}
               >
                 Sign In
@@ -122,8 +124,8 @@ function LoginPage() {
                 onClick={() => { setMode("signup"); setError(null); }}
                 className={`flex-1 h-8 rounded-md text-sm font-medium transition-all ${
                   mode === "signup"
-                    ? "bg-slate-700 text-slate-100 shadow-sm"
-                    : "text-slate-500 hover:text-slate-300"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-400 hover:text-gray-300"
                 }`}
               >
                 Sign Up
@@ -193,7 +195,7 @@ function LoginPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Email
               </label>
               <input
@@ -204,12 +206,12 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full h-10 rounded-lg bg-slate-800/60 border border-slate-700 px-3.5 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:border-fuchsia-500/60 focus:ring-1 focus:ring-fuchsia-500/20 transition"
+                className="w-full h-10 rounded-lg bg-gray-800 border border-gray-700 px-3.5 text-sm text-white placeholder:text-gray-600 outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
@@ -221,12 +223,12 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-10 rounded-lg bg-slate-800/60 border border-slate-700 px-3.5 pr-10 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:border-fuchsia-500/60 focus:ring-1 focus:ring-fuchsia-500/20 transition"
+                  className="w-full h-10 rounded-lg bg-gray-800 border border-gray-700 px-3.5 pr-10 text-sm text-white placeholder:text-gray-600 outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
                 >
                   {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -244,7 +246,7 @@ function LoginPage() {
               id="btn-submit"
               type="submit"
               disabled={busy}
-              className="w-full h-10 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/20 transition-all flex items-center justify-center gap-2 mt-2"
+              className="w-full h-10 rounded-lg bg-white hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-black transition-all flex items-center justify-center gap-2 mt-2"
             >
               {busy ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -255,16 +257,16 @@ function LoginPage() {
               )}
             </button>
 
-            <p className="text-center text-xs text-slate-600 pt-1">
+            <p className="text-center text-xs text-gray-600 pt-1">
               {mode === "signin" ? (
                 <>Don't have an account?{" "}
-                  <button type="button" onClick={() => setMode("signup")} className="text-fuchsia-400 hover:text-fuchsia-300 transition">
+                  <button type="button" onClick={() => setMode("signup")} className="text-white hover:text-gray-300 transition">
                     Sign up
                   </button>
                 </>
               ) : (
                 <>Already have an account?{" "}
-                  <button type="button" onClick={() => setMode("signin")} className="text-fuchsia-400 hover:text-fuchsia-300 transition">
+                  <button type="button" onClick={() => setMode("signin")} className="text-white hover:text-gray-300 transition">
                     Sign in
                   </button>
                 </>

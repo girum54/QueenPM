@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { PlaylistView } from "@/components/PlaylistView";
 import { QueenDjView } from "@/components/QueenDjView";
 import { LivekitProvider } from "@/lib/livekit-provider";
+import { ChessQueen } from "@/components/ChessQueen";
 
 // ── Custom Sprint Icon ─────────────────────────────────────────
 function SprintIcon({ className }: { className?: string }) {
@@ -174,8 +175,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="size-6 text-fuchsia-400 animate-spin" />
+      <div className="h-screen w-screen chess-pattern-subtle-dark flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <ChessQueen size={64} animated={true} className="text-white" />
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">QueenPM</h1>
+            <p className="text-sm text-gray-400">Unifying your team</p>
+          </div>
+          <Loader2 className="size-6 text-white animate-spin" />
+        </div>
       </div>
     );
   }
@@ -184,15 +192,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <LivekitProvider>
-      <div className="h-screen w-screen overflow-hidden flex bg-slate-950 text-slate-200 font-sans antialiased selection:bg-fuchsia-500/30">
+      <div className="h-screen w-screen overflow-hidden flex bg-black text-white font-sans antialiased selection:bg-white/30">
 
       {/* ═══════════ LEFT SIDEBAR ═══════════ */}
       <aside
         onClick={collapsed ? () => setSidebarCollapsed(false) : undefined}
-        className={`fixed inset-y-0 left-0 md:relative md:translate-x-0 shrink-0 h-full border-r border-slate-900 bg-slate-950 flex flex-col z-50 transition-all duration-200 transform ${
+        className={`fixed inset-y-0 left-0 md:relative md:translate-x-0 shrink-0 h-full border-r border-gray-800 bg-black flex flex-col z-50 transition-all duration-200 transform ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         } ${
-          collapsed ? "md:w-[64px] cursor-pointer hover:bg-slate-900/10" : "md:w-[220px]"
+          collapsed ? "md:w-[64px] cursor-pointer hover:bg-gray-900" : "md:w-[220px]"
         } w-[240px]`}
       >
         {/* ── Brand + Collapse Toggle ── */}
@@ -203,31 +211,31 @@ export function AppShell({ children }: { children: ReactNode }) {
               setSidebarCollapsed(true);
             }
           }}
-          className={`flex items-center h-14 border-b border-slate-900 shrink-0 cursor-pointer hover:bg-slate-900/20 transition ${
+          className={`flex items-center h-14 border-b border-gray-800 shrink-0 cursor-pointer hover:bg-gray-900 transition ${
             collapsed ? "justify-center px-0" : "px-3 gap-2"
           }`}
         >
           {!collapsed && (
             <>
-              <div className="size-7 rounded-md bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/20 shrink-0">
-                <Crown className="size-3.5 text-white" />
+              <div className="size-7 rounded-md bg-white grid place-items-center shadow-lg shrink-0">
+                <ChessQueen size={14} className="text-black" />
               </div>
-              <span className="text-sm font-semibold tracking-tight text-slate-100 flex-1">Queen PM</span>
+              <span className="text-sm font-semibold tracking-tight text-white flex-1">Queen PM</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setSidebarCollapsed(true);
                 }}
                 title="Collapse sidebar"
-                className="size-7 rounded-md grid place-items-center text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0"
+                className="size-7 rounded-md grid place-items-center text-gray-600 hover:text-white hover:bg-gray-800 transition shrink-0"
               >
                 <PanelLeftClose className="size-3.5" />
               </button>
             </>
           )}
           {collapsed && (
-            <div className="size-7 rounded-md bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-lg shadow-fuchsia-500/20">
-              <Crown className="size-3.5 text-white" />
+            <div className="size-7 rounded-md bg-white grid place-items-center shadow-lg">
+              <ChessQueen size={14} className="text-black" />
             </div>
           )}
         </div>
@@ -255,8 +263,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[12px] font-medium transition ${
                 isProjectDropdownOpen
-                  ? "bg-slate-900 border-slate-700 text-slate-100"
-                  : "bg-slate-900/40 border-slate-800/60 text-slate-400 hover:bg-slate-900 hover:border-slate-700 hover:text-slate-200"
+                  ? "bg-gray-900 border-gray-700 text-white"
+                  : "bg-gray-900/40 border-gray-800 text-gray-400 hover:bg-gray-900 hover:border-gray-700 hover:text-white"
               }`}
             >
               <span className={`size-1.5 rounded-full bg-gradient-to-br ${activeProject?.color ?? "from-fuchsia-500 to-violet-600"} shrink-0`} />
@@ -265,8 +273,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
 
             {isProjectDropdownOpen && (
-              <div className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-900 shadow-xl z-50 overflow-hidden">
-                <div className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+              <div className="mt-1 w-full rounded-lg border border-gray-800 bg-gray-900 shadow-xl z-50 overflow-hidden">
+                <div className="px-2.5 pt-2 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                   Projects
                 </div>
                 <div className="space-y-px max-h-44 overflow-y-auto px-1 pb-1">
@@ -276,25 +284,25 @@ export function AppShell({ children }: { children: ReactNode }) {
                       <div
                         key={p.id}
                         className={`group/item flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] cursor-pointer transition ${
-                          isActive ? "bg-slate-800 text-slate-100" : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                          isActive ? "bg-gray-800 text-white" : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
                         }`}
                         onClick={() => { setActiveProjectId(p.id); setIsProjectDropdownOpen(false); }}
                       >
-                        <span className={`size-1.5 rounded-full bg-gradient-to-br ${p.color} shrink-0`} />
+                        <span className={`size-1.5 rounded-full bg-white shrink-0`} />
                         <span className="flex-1 truncate">{p.name}</span>
-                        {isActive && <Check className="size-3 text-fuchsia-400 shrink-0" />}
+                        {isActive && <Check className="size-3 text-white shrink-0" />}
                         {/* Open in new tab */}
                         <button
                           title="Open in new tab"
                           onClick={(e) => openProjectNewTab(e, p.id)}
-                          className="size-4 rounded grid place-items-center text-slate-600 hover:text-fuchsia-300 hover:bg-fuchsia-500/10 opacity-0 group-hover/item:opacity-100 transition shrink-0"
+                          className="size-4 rounded grid place-items-center text-gray-600 hover:text-white hover:bg-gray-800 opacity-0 group-hover/item:opacity-100 transition shrink-0"
                         >
                           <ExternalLink className="size-2.5" />
                         </button>
                         {!isActive && projectTabs.length > 1 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); closeProjectTab(p.id); }}
-                            className="size-4 rounded grid place-items-center text-slate-600 hover:text-slate-300 hover:bg-slate-700 opacity-0 group-hover/item:opacity-100 transition shrink-0"
+                            className="size-4 rounded grid place-items-center text-gray-600 hover:text-white hover:bg-gray-800 opacity-0 group-hover/item:opacity-100 transition shrink-0"
                           >
                             <X className="size-2.5" />
                           </button>
@@ -303,10 +311,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                     );
                   })}
                 </div>
-                <div className="border-t border-slate-800/60 p-1 flex items-center gap-1">
+                <div className="border-t border-gray-800 p-1 flex items-center gap-1">
                   <button
                     onClick={() => { setIsProjectDropdownOpen(false); setIsModalOpen(true); }}
-                    className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-200 transition"
+                    className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-white hover:bg-gray-800 transition"
                   >
                     <FolderGit2 className="size-3.5 shrink-0" />
                     <span>New Project…</span>
@@ -314,7 +322,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <button
                     title="Project settings"
                     onClick={() => { setIsProjectDropdownOpen(false); navigate({ to: "/projects" }); }}
-                    className="size-8 shrink-0 rounded-md grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition"
+                    className="size-8 shrink-0 rounded-md grid place-items-center text-gray-500 hover:text-white hover:bg-gray-800 transition"
                   >
                     <Settings className="size-3.5" />
                   </button>
@@ -325,7 +333,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         {/* ── Divider ── */}
-        <div className={`h-px bg-slate-900 ${collapsed ? "mx-2" : "mx-2.5"} mb-1`} />
+        <div className={`h-px bg-gray-800 ${collapsed ? "mx-2" : "mx-2.5"} mb-1`} />
 
         {/* ── Nav Items ── */}
         <nav className={`flex-1 overflow-y-auto space-y-px ${collapsed ? "px-1.5 pt-1" : "px-2 pt-1"}`}>
@@ -347,14 +355,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                     collapsed ? "justify-center h-9" : "gap-2.5 px-2.5 h-9"
                   } ${
                     activeCall && n.showCondition === 'call'
-                      ? "bg-slate-900 border border-slate-800/80 text-slate-100"
-                      : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
+                      ? "bg-gray-900 border border-gray-800 text-white"
+                      : "border border-transparent text-gray-500 hover:bg-gray-900/40 hover:text-white"
                   }`}
                 >
                   {activeCall && n.showCondition === 'call' && !collapsed && (
-                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-emerald-500 shadow-sm shadow-emerald-500/60" />
+                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-white shadow-sm" />
                   )}
-                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${activeCall && n.showCondition === 'call' ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${activeCall && n.showCondition === 'call' ? "text-white" : "text-gray-500 group-hover:text-gray-400"}`} />
                   {!collapsed && <span>{n.label}</span>}
                 </button>
               ) : (
@@ -366,14 +374,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                     collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 h-9"
                   } ${
                     active
-                      ? "bg-slate-900 border border-slate-800/80 text-slate-100"
-                      : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
+                      ? "bg-gray-900 border border-gray-800 text-white"
+                      : "border border-transparent text-gray-500 hover:bg-gray-900/40 hover:text-white"
                   }`}
                 >
                   {active && !collapsed && (
-                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-fuchsia-500 shadow-sm shadow-fuchsia-500/60" />
+                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-white shadow-sm" />
                   )}
-                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${active ? "text-fuchsia-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+                  <Icon className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${active ? "text-white" : "text-gray-500 group-hover:text-gray-400"}`} />
                   {!collapsed && <span>{n.label}</span>}
                 </Link>
               )
@@ -396,14 +404,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 collapsed ? "justify-center h-9" : "gap-2.5 px-2.5 h-9"
               } ${
                 pathname.startsWith("/channels")
-                  ? "bg-slate-900 border border-slate-800/80 text-slate-100"
-                  : "border border-transparent text-slate-500 hover:bg-slate-900/40 hover:text-slate-300"
+                  ? "bg-gray-900 border border-gray-800 text-white"
+                  : "border border-transparent text-gray-500 hover:bg-gray-900/40 hover:text-white"
               }`}
             >
               {pathname.startsWith("/channels") && !collapsed && (
-                <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-fuchsia-500 shadow-sm shadow-fuchsia-500/60" />
+                <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-white shadow-sm" />
               )}
-              <MessageSquare className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${pathname.startsWith("/channels") ? "text-fuchsia-400" : "text-slate-500 group-hover:text-slate-400"}`} />
+              <MessageSquare className={`shrink-0 ${collapsed ? "size-[18px]" : "size-4"} ${pathname.startsWith("/channels") ? "text-white" : "text-gray-500 group-hover:text-gray-400"}`} />
               {!collapsed && (
                 <>
                   <span className="flex-1 text-left">Channels</span>
@@ -426,7 +434,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             {/* Channel sub-list */}
             {isChannelsOpen && !collapsed && (
-              <div className="mt-0.5 ml-3 pl-2.5 border-l border-slate-800/60 space-y-px pb-1">
+              <div className="mt-0.5 ml-3 pl-2.5 border-l border-gray-800 space-y-px pb-1">
                 {channels.map((ch) => {
                   const isActive = ch.id === activeChannelId && pathname.startsWith("/channels");
                   return (
@@ -435,22 +443,22 @@ export function AppShell({ children }: { children: ReactNode }) {
                         onClick={() => handleChannelClick(ch.id)}
                         className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-[11px] transition ${
                           isActive
-                            ? "bg-slate-800/80 text-slate-100"
-                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                            ? "bg-gray-800 text-white"
+                            : "text-gray-500 hover:text-white hover:bg-gray-800/40"
                         }`}
                       >
-                        <Hash className="size-3 shrink-0 text-slate-600" />
+                        <Hash className="size-3 shrink-0 text-gray-600" />
                         <span className="flex-1 text-left truncate">{ch.name}</span>
                         {activeCall && (
                           <span className="flex items-center gap-0.5">
                             <span className="relative flex size-1.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full size-1.5 bg-emerald-400" />
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                              <span className="relative inline-flex rounded-full size-1.5 bg-white" />
                             </span>
                           </span>
                         )}
                         {!activeCall && ch.aiActive && (
-                          <Bot className="size-3 text-fuchsia-500/60 shrink-0" />
+                          <Bot className="size-3 text-white/60 shrink-0" />
                         )}
                       </button>
                     </div>
@@ -462,57 +470,57 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         {/* ── Profile (bottom) ── */}
-        <div className={`border-t border-slate-900 ${collapsed ? "p-1.5" : "p-2.5"} relative`}>
+        <div className={`border-t border-gray-800 ${collapsed ? "p-1.5" : "p-2.5"} relative`}>
           {collapsed ? (
             <div
               title={user?.name ?? "You"}
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="size-9 mx-auto rounded-lg grid place-items-center text-xs font-bold text-white ring-1 ring-slate-800 cursor-pointer hover:ring-fuchsia-500/40 transition bg-slate-700 relative"
+              className="size-9 mx-auto rounded-lg grid place-items-center text-xs font-bold text-white ring-1 ring-gray-800 cursor-pointer hover:ring-white/40 transition bg-gray-700 relative"
               style={user?.color ? {} : {}}
             >
-              <span className={`size-full rounded-lg grid place-items-center ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"}`}>
+              <span className={`size-full rounded-lg grid place-items-center bg-white text-black`}>
                 {user ? user.name[0].toUpperCase() : "?"}
               </span>
               {/* Call indicator */}
               {activeCall && (
-                <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
+                <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-white ring-2 ring-black animate-pulse" />
               )}
             </div>
           ) : (
             <div className="relative" ref={userMenuRef}>
               <div
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-900/60 cursor-pointer transition group"
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-900/60 cursor-pointer transition group"
               >
-                <div className={`size-7 rounded-lg grid place-items-center text-[11px] font-bold text-white shrink-0 ring-1 ring-slate-800 ${user?.color ?? "bg-gradient-to-br from-violet-600 to-fuchsia-600"} relative`}>
+                <div className={`size-7 rounded-lg grid place-items-center text-[11px] font-bold text-black shrink-0 ring-1 ring-gray-800 bg-white relative`}>
                   {user ? user.name[0].toUpperCase() : "?"}
                   {/* Call indicator */}
                   {activeCall && (
-                    <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
+                    <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-white ring-2 ring-black animate-pulse" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-semibold text-slate-200 truncate">{user?.name ?? "Guest"}</div>
-                  <div className="text-[10px] text-slate-500 truncate">
+                  <div className="text-[12px] font-semibold text-white truncate">{user?.name ?? "Guest"}</div>
+                  <div className="text-[10px] text-gray-500 truncate">
                     {user?.email ?? "Not signed in"}
                   </div>
                 </div>
-                <Settings className="size-3.5 text-slate-600 group-hover:text-slate-400 transition shrink-0" />
+                <Settings className="size-3.5 text-gray-600 group-hover:text-gray-400 transition shrink-0" />
               </div>
 
               {/* User dropdown */}
               {showUserMenu && (
-                <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-slate-800 bg-slate-900 shadow-xl overflow-hidden z-50">
+                <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-gray-800 bg-gray-900 shadow-xl overflow-hidden z-50">
                   {user ? (
                     <>
-                      <div className="px-3 py-2.5 border-b border-slate-800">
-                        <div className="text-[12px] font-semibold text-slate-200 truncate">{user.name}</div>
-                        <div className="text-[10px] text-slate-500 truncate">{user.username ?? user.email}</div>
+                      <div className="px-3 py-2.5 border-b border-gray-800">
+                        <div className="text-[12px] font-semibold text-white truncate">{user.name}</div>
+                        <div className="text-[10px] text-gray-500 truncate">{user.username ?? user.email}</div>
                       </div>
                       <button
                         id="btn-sign-out"
                         onClick={handleSignOut}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-rose-400 hover:bg-rose-500/10 transition"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-white hover:bg-gray-800 transition"
                       >
                         <LogOut className="size-3.5" />
                         Sign out
@@ -521,7 +529,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   ) : (
                     <Link
                       to="/login"
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-[12px] text-fuchsia-400 hover:bg-fuchsia-500/10 transition"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-[12px] text-white hover:bg-gray-800 transition"
                       onClick={() => setShowUserMenu(false)}
                     >
                       Sign in
