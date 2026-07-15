@@ -527,6 +527,15 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
             >
               + Subtask
             </button>
+            {task.column !== "deployed" && (
+              <button
+                onClick={() => updateTask(task.id, { column: "deployed" })}
+                className="px-2 py-0.5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] text-emerald-400 hover:text-emerald-300 transition"
+                title="Mark as done"
+              >
+                Done
+              </button>
+            )}
           </div>
         )}
 
@@ -619,6 +628,15 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
+                    {sub.column !== "deployed" && (
+                      <button
+                        onClick={() => updateTask(sub.id, { column: "deployed" })}
+                        className="px-2 py-0.5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] text-emerald-400 hover:text-emerald-300 transition"
+                        title="Mark as done"
+                      >
+                        Done
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
