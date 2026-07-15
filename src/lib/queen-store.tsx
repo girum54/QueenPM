@@ -111,8 +111,8 @@ export interface ProjectTab {
 
 const DEFAULT_PROJECT_TABS: ProjectTab[] = [
   { id: "p-x", name: "Project X", color: "from-fuchsia-500 to-violet-600" },
-  { id: "p-alpha", name: "Project Alpha", color: "from-sky-500 to-cyan-600" },
-  { id: "p-delta", name: "Project Delta", color: "from-emerald-500 to-teal-600" },
+  { id: "p-alpha", name: "Project Alpha", color: "from-slate-600 to-slate-700" },
+  { id: "p-delta", name: "Project Delta", color: "from-slate-600 to-slate-700" },
 ];
 
 interface JumpRequest {

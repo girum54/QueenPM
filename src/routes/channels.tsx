@@ -349,7 +349,7 @@ function ChannelsPage() {
       <div className="h-full flex overflow-hidden">
         {/* CENTER: Chat or Voice container */}
         <section className="flex-1 flex flex-col min-w-0 bg-slate-950 min-h-0">
-          <header className="h-12 border-b border-slate-900 px-5 flex items-center gap-3 shrink-0">
+          <header className="h-12 px-5 flex items-center gap-3 shrink-0">
             {activeChannel?.aiActive ? (
               <Bot className="size-5 text-fuchsia-400" />
             ) : (
@@ -361,8 +361,8 @@ function ChannelsPage() {
               {activeChannel?.name}
             </button>
             {activeChannel?.aiActive && (
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30 text-[10px] font-semibold text-emerald-300 tracking-wide">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-800 ring-1 ring-slate-700 text-[10px] font-semibold text-slate-300 tracking-wide">
+                <span className="size-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
                 QUEEN PM ACTIVE
               </span>
             )}
@@ -406,25 +406,25 @@ function ChannelsPage() {
 
           {/* ── Call invite banner ─────────────────────────────────── */}
           {callInvite && callInvite.channelId === activeChannelId && (
-            <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 ring-1 ring-emerald-400/20 shadow-lg shadow-emerald-500/10 animate-fade-in">
+            <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 ring-1 ring-slate-600 shadow-lg animate-fade-in">
               <span className="relative flex size-3 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-3 bg-emerald-400" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-3 bg-fuchsia-400" />
               </span>
-              <PhoneIncoming className="size-4 text-emerald-400 shrink-0" />
+              <PhoneIncoming className="size-4 text-fuchsia-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-emerald-200">You're invited to a voice call</p>
-                <p className="text-xs text-emerald-400/70">in #{callInvite.channelName} — tap to join</p>
+                <p className="text-sm font-semibold text-slate-200">You're invited to a voice call</p>
+                <p className="text-xs text-slate-400">in #{callInvite.channelName} — tap to join</p>
               </div>
               <button
                 onClick={handleJoinFromInvite}
-                className="shrink-0 h-8 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold transition shadow-md shadow-emerald-500/30"
+                className="shrink-0 h-8 px-4 rounded-lg bg-fuchsia-500 hover:bg-fuchsia-400 text-white text-xs font-semibold transition shadow-md shadow-fuchsia-500/30"
               >
                 Join Now
               </button>
               <button
                 onClick={() => setCallInvite(null)}
-                className="shrink-0 size-7 grid place-items-center rounded-lg hover:bg-emerald-500/20 text-emerald-400/60 hover:text-emerald-300 transition"
+                className="shrink-0 size-7 grid place-items-center rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition"
               >
                 <X className="size-3.5" />
               </button>
@@ -453,7 +453,7 @@ function ChannelsPage() {
                           : "hover:bg-slate-900/40"}`}
                     >
                       {m.pinned && (
-                        <div className="absolute -top-1 left-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 ring-1 ring-amber-500/30 text-[9px] font-semibold text-amber-300">
+                        <div className="absolute -top-1 left-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 ring-1 ring-slate-700 text-[9px] font-semibold text-slate-400">
                           <Pin className="size-2.5" /> PINNED
                         </div>
                       )}
@@ -485,7 +485,7 @@ function ChannelsPage() {
                               setAssignModalTask(task);
                             }
                           }}
-                          className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/5 to-violet-500/5 p-3 max-w-md cursor-pointer hover:border-fuchsia-500/40 hover:from-fuchsia-500/10 transition`}
+                          className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/5 p-3 max-w-md cursor-pointer hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10 transition`}
                         >
                           <div className="flex items-center gap-1.5 text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider mb-1.5">
                             <Sparkles className="size-3" /> Queen PM created a task
@@ -509,7 +509,7 @@ function ChannelsPage() {
                         <div className={`${grouped ? "ml-9" : "ml-9"} relative`}>
                           <div className="text-sm text-slate-300 leading-relaxed pr-16">{m.text}</div>
                           {linkedTask && (
-                            <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400/90 bg-emerald-500/10 ring-1 ring-emerald-500/25 rounded-full px-2 py-0.5">
+                            <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-800 ring-1 ring-slate-700 rounded-full px-2 py-0.5">
                               <ListTodo className="size-3" /> Task created
                             </div>
                           )}
@@ -531,7 +531,7 @@ function ChannelsPage() {
               </div>
 
               {/* Composer */}
-              <div className="p-4 border-t border-slate-900 shrink-0 relative animate-fade-in">
+              <div className="p-4 shrink-0 relative animate-fade-in">
                 {showAuto && (
                   <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40 overflow-hidden">
                     <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-800">
@@ -545,7 +545,7 @@ function ChannelsPage() {
                         className="w-full px-3 py-2.5 hover:bg-slate-800/60 cursor-pointer flex items-center gap-3 text-left transition"
                       >
                         {o.icon === "zap" ? (
-                          <Zap className="size-4 text-violet-400 shrink-0" />
+                          <Zap className="size-4 text-fuchsia-400 shrink-0" />
                         ) : (
                           <Crown className="size-4 text-fuchsia-400 shrink-0" />
                         )}
