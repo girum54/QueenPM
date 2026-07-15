@@ -36,7 +36,8 @@ export class CallsService {
     createdBy: string,
     callType: 'open' | 'invite_only' = 'open',
   ): Promise<typeof schema.calls.$inferSelect> {
-    const roomName = `call-${projectId}`;
+    // Generate a unique room name using UUID
+    const roomName = `call-${crypto.randomUUID()}`;
     
     // Check if there's already an active call for this project
     const existingCall = await this.getActiveCallForProject(projectId);
@@ -87,7 +88,8 @@ export class CallsService {
 
   async endCall(callId: string): Promise<void> {
     await this.db
-      .delete(schema.calls)
+      .update(schema.calls)
+      .set({ status: 'ended', endedAt: new Date() })
       .where(eq(schema.calls.id, callId));
 
     this.logger.log(`Ended call ${callId}`);
