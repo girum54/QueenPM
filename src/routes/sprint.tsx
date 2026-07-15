@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Zap, Calendar, Clock, Target, ArrowRight, KanbanSquare,
   AlertCircle, CheckCircle2, TrendingUp, ShieldCheck, Settings,
-  Sparkles, Activity, ArrowUpRight
+  Sparkles, Activity, ArrowUpRight, History
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore, COLUMN_META } from "@/lib/queen-store";
@@ -31,6 +31,7 @@ interface Sprint {
   goal: string;
   deliverables: { id: string; text: string; done: boolean }[];
   isActive: boolean;
+  completedAt?: string | null;
 }
 
 function SprintPage() {
@@ -39,6 +40,9 @@ function SprintPage() {
   const isStakeholder = user?.role === "stakeholder";
   const [sprint, setSprint] = useState<Sprint | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [allSprints, setAllSprints] = useState<Sprint[]>([]);
+  const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -69,6 +73,35 @@ function SprintPage() {
     }
     fetchActiveSprint();
   }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeProjectId || !showHistory) return;
+    async function fetchAllSprints() {
+      try {
+        const sprints = await sprintsApi.getByProject(activeProjectId);
+        const formattedSprints = await Promise.all(
+          sprints.map(async (s) => {
+            const deliverables = await sprintsApi.getDeliverables(s.id);
+            return {
+              id: s.id,
+              name: s.name,
+              style: s.style || "",
+              durationWeeks: s.durationWeeks,
+              startDate: s.startDate,
+              goal: s.goal || "",
+              deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
+              isActive: s.isActive,
+              completedAt: s.completedAt
+            };
+          })
+        );
+        setAllSprints(formattedSprints.filter(s => !s.isActive));
+      } catch (e) {
+        console.error("Failed to load sprint history:", e);
+      }
+    }
+    fetchAllSprints();
+  }, [activeProjectId, showHistory]);
 
   // Filter tasks that are actively linked to this project
   const sprintTasks = tasks;
@@ -139,10 +172,10 @@ function SprintPage() {
               </div>
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
-                  {sprint.name}
+                  {selectedSprint ? selectedSprint.name : sprint.name}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                  {sprint.style || "Agile"}
+                  {selectedSprint ? (selectedSprint.style || "Agile") : (sprint.style || "Agile")}
                 </span>
               </div>
               <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
@@ -159,6 +192,19 @@ function SprintPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowHistory(!showHistory);
+                  setSelectedSprint(null);
+                }}
+                className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-md text-xs font-medium border transition ${
+                  showHistory
+                    ? "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30"
+                    : "bg-slate-800 text-slate-300 border-slate-800 hover:bg-slate-700"
+                }`}
+              >
+                <History className="size-3.5" /> {showHistory ? "View Active Sprint" : "Sprint History"}
+              </button>
               {!isStakeholder && (
                 <Link
                   to="/sprint-config"
@@ -176,6 +222,80 @@ function SprintPage() {
             </div>
           </div>
 
+          {/* Sprint History View */}
+          {showHistory ? (
+            <div className="space-y-6">
+              <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-6">
+                <h3 className="text-sm font-semibold text-slate-100 mb-4">Completed Sprints</h3>
+                {allSprints.length === 0 ? (
+                  <p className="text-sm text-slate-500">No completed sprints found.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {allSprints.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedSprint(s)}
+                        className={`p-4 rounded-lg border cursor-pointer transition ${
+                          selectedSprint?.id === s.id
+                            ? "bg-fuchsia-500/10 border-fuchsia-500/30"
+                            : "bg-slate-950/40 border-slate-800/60 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-semibold text-slate-200">{s.name}</h4>
+                          {s.completedAt && (
+                            <span className="text-[10px] text-slate-500">
+                              Completed {new Date(s.completedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 line-clamp-2">{s.goal || "No goal defined"}</p>
+                        <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
+                          <span>{s.durationWeeks} week{ s.durationWeeks !== 1 ? 's' : ''}</span>
+                          <span>•</span>
+                          <span>{s.deliverables.length} deliverables</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selectedSprint && (
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-slate-100">Sprint Details: {selectedSprint.name}</h3>
+                    <button
+                      onClick={() => setSelectedSprint(null)}
+                      className="text-xs text-slate-400 hover:text-slate-200 transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Goal</label>
+                      <p className="text-sm text-slate-200 mt-1">{selectedSprint.goal || "No goal defined"}</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Deliverables</label>
+                      <div className="mt-2 space-y-2">
+                        {selectedSprint.deliverables.map((d) => (
+                          <div key={d.id} className="flex items-center gap-2 text-sm">
+                            <div className={`size-4 rounded border ${d.done ? "bg-emerald-500/20 border-emerald-500/50" : "border-slate-700"}`}>
+                              {d.done && <CheckCircle2 className="size-3 text-emerald-400" />}
+                            </div>
+                            <span className={d.done ? "text-slate-300 line-through" : "text-slate-200"}>{d.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
           {/* Top Section: Board Integration & Deliverable Widget */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             
@@ -380,6 +500,8 @@ function SprintPage() {
               </div>
             </div>
           </div>
+          </>
+          )}
 
         </div>
       </div>

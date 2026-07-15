@@ -74,7 +74,16 @@ function SprintConfigPage() {
   const [editingDeliverableId, setEditingDeliverableId] = useState<string | null>(null);
   const [editingDeliverableText, setEditingDeliverableText] = useState("");
 
+  // Active sprint editing state
+  const [isEditingSprint, setIsEditingSprint] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editStyle, setEditStyle] = useState("");
+  const [editDuration, setEditDuration] = useState(2);
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editGoal, setEditGoal] = useState("");
+
   const computedSprintEnd = getSprintEndDate(formStartDate, formDuration);
+  const computedEditSprintEnd = getSprintEndDate(editStartDate, editDuration);
 
   useEffect(() => {
     if (!activeProjectId) return;
@@ -214,12 +223,57 @@ function SprintConfigPage() {
 
   const handleCompleteSprint = async () => {
     if (!sprint) return;
+    
+    // Validate that all tasks are deployed before completion
+    const totalTasks = tasks.length;
+    const deployedTasks = tasks.filter(t => t.column === "deployed").length;
+    const notDeployedTasks = tasks.filter(t => t.column !== "deployed");
+    
+    if (totalTasks > 0 && deployedTasks < totalTasks) {
+      alert(`Cannot complete sprint: ${totalTasks - deployedTasks} of ${totalTasks} tasks are not yet deployed.\n\nPlease move all tasks to the "deployed" column before completing the sprint.`);
+      return;
+    }
+    
     try {
       await sprintsApi.complete(sprint.id);
       setSprint(null);
     } catch (e) {
       console.error("Failed to complete sprint:", e);
     }
+  };
+
+  const handleUpdateSprint = async () => {
+    if (!sprint) return;
+    try {
+      const updated = await sprintsApi.update(sprint.id, {
+        name: editName,
+        goal: editGoal,
+        style: editStyle,
+        durationWeeks: editDuration,
+        startDate: editStartDate,
+      });
+      setSprint({
+        ...sprint,
+        name: updated.name,
+        goal: updated.goal || "",
+        style: updated.style || "",
+        durationWeeks: updated.durationWeeks,
+        startDate: updated.startDate,
+      });
+      setIsEditingSprint(false);
+    } catch (e) {
+      console.error("Failed to update sprint:", e);
+    }
+  };
+
+  const handleStartEditSprint = () => {
+    if (!sprint) return;
+    setEditName(sprint.name);
+    setEditGoal(sprint.goal);
+    setEditStyle(sprint.style);
+    setEditDuration(sprint.durationWeeks);
+    setEditStartDate(sprint.startDate);
+    setIsEditingSprint(true);
   };
 
   // Metrics calculations for Active Sprint
@@ -285,12 +339,31 @@ function SprintConfigPage() {
             </div>
 
             {sprint && (
-              <button
-                onClick={handleCompleteSprint}
-                className="h-9 px-4 rounded-md bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-xs font-semibold text-rose-300 transition"
-              >
-                Complete Sprint
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleStartEditSprint}
+                  className="h-9 px-4 rounded-md bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition"
+                >
+                  Edit Sprint
+                </button>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-500">Deployment Status</div>
+                  <div className="text-xs font-semibold text-slate-300">
+                    {activeSprintMetrics?.completedTasks ?? 0}/{activeSprintMetrics?.totalTasks ?? 0} tasks deployed
+                  </div>
+                </div>
+                <button
+                  onClick={handleCompleteSprint}
+                  disabled={(activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)}
+                  className={`h-9 px-4 rounded-md text-xs font-semibold transition ${
+                    (activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)
+                      ? "bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed"
+                      : "bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-300"
+                  }`}
+                >
+                  Complete Sprint
+                </button>
+              </div>
             )}
           </div>
 
@@ -533,24 +606,124 @@ function SprintConfigPage() {
 
               {/* Goal & Details Panel */}
               <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-6 space-y-4">
-                <div>
-                  <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-500">Sprint Objective</h3>
-                  <p className="text-base text-slate-200 mt-1.5 leading-relaxed font-sans">{sprint.goal}</p>
-                </div>
+                {isEditingSprint ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-500">Edit Sprint Configuration</h3>
+                      <button
+                        onClick={() => setIsEditingSprint(false)}
+                        className="text-xs text-slate-400 hover:text-slate-200 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Name</label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                        />
+                      </div>
 
-                {/* Progress bar */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Overall Delivery Progress</span>
-                    <span className="font-semibold text-fuchsia-400">{activeSprintMetrics?.deliverablesProgressPct}%</span>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Goal</label>
+                        <textarea
+                          value={editGoal}
+                          onChange={(e) => setEditGoal(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 p-3 text-sm text-slate-100 outline-none resize-none transition"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Delivery Methodology</label>
+                        <input
+                          type="text"
+                          value={editStyle}
+                          onChange={(e) => setEditStyle(e.target.value)}
+                          className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Duration (Weeks)</label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[1, 2, 3, 4].map((w) => (
+                              <button
+                                key={w}
+                                type="button"
+                                onClick={() => setEditDuration(w)}
+                                className={`h-9 rounded-md text-xs font-semibold transition ${
+                                  editDuration === w
+                                    ? "bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/40"
+                                    : "bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200"
+                                }`}
+                              >
+                                {w} {w === 1 ? "Week" : "Weeks"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Start Date</label>
+                          <input
+                            type="date"
+                            value={editStartDate}
+                            onChange={(e) => setEditStartDate(e.target.value)}
+                            className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                          />
+                          {computedEditSprintEnd && (
+                            <p className="text-[10px] text-slate-500 mt-1.5">
+                              Sprint ends <span className="text-slate-300 font-medium">{formatDisplayDate(computedEditSprintEnd)}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleUpdateSprint}
+                          className="flex-1 h-10 rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-fuchsia-500/20"
+                        >
+                          Save Changes
+                        </button>
+                        <button
+                          onClick={() => setIsEditingSprint(false)}
+                          className="h-10 px-4 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2.5 rounded-full bg-slate-950 overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500"
-                      style={{ width: `${activeSprintMetrics?.deliverablesProgressPct}%` }}
-                    />
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-500">Sprint Objective</h3>
+                      <p className="text-base text-slate-200 mt-1.5 leading-relaxed font-sans">{sprint.goal}</p>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Overall Delivery Progress</span>
+                        <span className="font-semibold text-fuchsia-400">{activeSprintMetrics?.deliverablesProgressPct}%</span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-slate-950 overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500"
+                          style={{ width: `${activeSprintMetrics?.deliverablesProgressPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Two Column details: Deliverables vs Sprint Velocity/Scope */}
