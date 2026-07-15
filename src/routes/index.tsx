@@ -2,12 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import {
   Activity, TrendingUp, Bot, Users, ArrowRight, Sparkles, Crown,
-  KanbanSquare, MessageSquare, Gauge, Timer, CheckCircle2,
+  KanbanSquare, MessageSquare, Gauge, Timer, CheckCircle2, History,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore, COLUMN_META, type ColumnId } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
-import { dashboardApi, type DashboardStats } from "@/lib/api/queen.api";
+import { dashboardApi, sprintsApi, type DashboardStats } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,10 +20,11 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { activeProjectId, activeSprintId, projectTabs } = useStore();
+  const { activeProjectId, activeSprintId, projectTabs, tasks } = useStore();
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [allSprints, setAllSprints] = useState<any[]>([]);
 
   const activeProject = projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
 
@@ -36,6 +37,35 @@ function DashboardPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [activeProjectId, activeSprintId]);
+
+  useEffect(() => {
+    if (!activeProjectId) return;
+    async function fetchAllSprints() {
+      try {
+        const sprints = await sprintsApi.getByProject(activeProjectId);
+        const formattedSprints = await Promise.all(
+          sprints.map(async (s) => {
+            const deliverables = await sprintsApi.getDeliverables(s.id);
+            return {
+              id: s.id,
+              name: s.name,
+              style: s.style || "",
+              durationWeeks: s.durationWeeks,
+              startDate: s.startDate,
+              goal: s.goal || "",
+              deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
+              isActive: s.isActive,
+              completedAt: s.completedAt
+            };
+          })
+        );
+        setAllSprints(formattedSprints.filter(s => !s.isActive));
+      } catch (e) {
+        console.error("Failed to load sprint history:", e);
+      }
+    }
+    fetchAllSprints();
+  }, [activeProjectId]);
 
   // Fallback empty metrics while loading
   const metrics: DashboardStats = stats ?? {
@@ -106,13 +136,7 @@ function DashboardPage() {
               accent="bg-sky-500/10 ring-sky-500/30"
             />
             <AutomationDonut ai={metrics.aiCount} slash={metrics.slashCount} ui={metrics.uiCount} ratio={metrics.autoRatio} />
-            <KpiCard
-              icon={<CheckCircle2 className="size-4 text-emerald-300" />}
-              label="Throughput"
-              value={`${metrics.byCol.deployed}`}
-              hint="Deployed all-time"
-              accent="bg-emerald-500/10 ring-emerald-500/30"
-            />
+            <CompletedSprintsCard sprints={allSprints} tasks={tasks} />
           </div>
 
           {/* Sprint health + Efficiency */}
@@ -259,6 +283,43 @@ function AutomationDonut({ ai, slash, ui, ratio }: { ai: number; slash: number; 
             <span className="size-2 rounded-sm bg-slate-600" /> Manual · {ui}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CompletedSprintsCard({ sprints, tasks }: { sprints: any[]; tasks: any[] }) {
+  return (
+    <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+      <div className="size-8 rounded-md grid place-items-center ring-1 mb-4 bg-amber-500/10 ring-amber-500/30">
+        <History className="size-4 text-amber-300" />
+      </div>
+      <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Completed Sprints</div>
+      <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">{sprints.length}</div>
+      <div className="text-[11px] text-slate-500 mt-1">
+        {sprints.length > 0 ? `${sprints.length} sprint${sprints.length !== 1 ? 's' : ''} completed` : "No completed sprints"}
+      </div>
+      <div className="mt-3 space-y-1.5">
+        {sprints.length > 0 && (
+          <div className="space-y-1">
+            {sprints.slice(0, 3).map((s) => {
+              const sTasks = tasks.filter(t => t.sprintId === s.id);
+              const sCompleted = sTasks.filter(t => t.column === "deployed").length;
+              const sProgress = sTasks.length > 0 ? Math.round((sCompleted / sTasks.length) * 100) : 0;
+              return (
+                <div key={s.id} className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-400 truncate max-w-[80px]">{s.name}</span>
+                  <span className="text-slate-300 font-medium">{sProgress}%</span>
+                </div>
+              );
+            })}
+            {sprints.length > 3 && (
+              <div className="text-[10px] text-slate-500 text-center">
+                +{sprints.length - 3} more
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
