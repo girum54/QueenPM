@@ -103,8 +103,8 @@ function SprintPage() {
     fetchAllSprints();
   }, [activeProjectId, showHistory]);
 
-  // Filter tasks that are actively linked to this project
-  const sprintTasks = tasks;
+  // Filter tasks that are actively linked to this sprint
+  const sprintTasks = tasks.filter(t => t.sprintId === sprint?.id);
 
   // Stats calculation
   const completedTasks = sprintTasks.filter(t => t.column === "deployed").length;
