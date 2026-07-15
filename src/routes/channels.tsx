@@ -432,7 +432,7 @@ function ChannelsPage() {
           )}
 
           {/* Messages Stream */}
-          <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
+          <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
                 {channelMessages.map((m, idx) => {
                   const author = userById(m.authorId, users)!;
                   const prev = channelMessages[idx - 1];
@@ -443,24 +443,33 @@ function ChannelsPage() {
                     ? tasks.find((t) => t.originMessageId === m.id)
                     : null;
                   const canConvert = !!m.text && !m.taskRef && !linkedTask;
+                  const isOwnMessage = m.authorId === currentUser?.id;
+                  
                   return (
                     <div
                       key={m.id}
                       id={`msg-${m.id}`}
-                      className={`group relative rounded-lg px-3 py-1.5 transition-all duration-300 ${m.parentId ? "ml-8 border-l-2 border-slate-800 pl-4" : ""
-                        } ${flashing
-                          ? "bg-fuchsia-500/10 ring-1 ring-fuchsia-500/50 shadow-lg shadow-fuchsia-500/20"
-                          : "hover:bg-slate-900/40"}`}
+                      className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} ${m.parentId ? "ml-8" : ""}`}
                     >
-                      {m.pinned && (
-                        <div className="absolute -top-1 left-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 ring-1 ring-slate-700 text-[9px] font-semibold text-slate-400">
-                          <Pin className="size-2.5" /> PINNED
-                        </div>
-                      )}
-                      {!grouped && (
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <div className={`size-7 rounded-md ${author.color} grid place-items-center text-[11px] font-bold text-white`}>
-                            {author.isAi ? <Crown className="size-3.5" /> : author.name[0]}
+                      <div
+                        className={`group relative max-w-[70%] rounded-xl border px-4 py-3 transition-all duration-300 ${
+                          isOwnMessage
+                            ? "bg-slate-800 border-slate-700"
+                            : "bg-slate-900 border-slate-800"
+                        } ${flashing
+                          ? "ring-2 ring-fuchsia-500/50 shadow-lg shadow-fuchsia-500/20"
+                          : ""} ${m.parentId ? "border-l-2 border-l-slate-600" : ""}`}
+                      >
+                        {m.pinned && (
+                          <div className="absolute -top-2 left-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 ring-1 ring-slate-700 text-[9px] font-semibold text-slate-400">
+                            <Pin className="size-2.5" /> PINNED
+                          </div>
+                        )}
+                        
+                        {/* Message header with author and timestamp */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`size-6 rounded-md ${author.color} grid place-items-center text-[10px] font-bold text-white shrink-0`}>
+                            {author.isAi ? <Crown className="size-3" /> : author.name[0]}
                           </div>
                           <span className="text-sm font-semibold text-slate-100">{author.name}</span>
                           {author.isAi && (
@@ -468,63 +477,65 @@ function ChannelsPage() {
                               AI
                             </span>
                           )}
-                          <span className="text-[11px] text-slate-500">{m.ts}</span>
+                          <span className="text-[10px] text-slate-500 ml-auto">{m.ts}</span>
                         </div>
-                      )}
-                      {task ? (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => {
-                            setAssignModalSubtitle(undefined);
-                            setAssignModalTask(task);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+
+                        {/* Message content */}
+                        {task ? (
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
                               setAssignModalSubtitle(undefined);
                               setAssignModalTask(task);
-                            }
-                          }}
-                          className={`${grouped ? "ml-9" : "ml-9"} mt-1 rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/5 p-3 max-w-md cursor-pointer hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10 transition`}
-                        >
-                          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider mb-1.5">
-                            <Sparkles className="size-3" /> Queen PM created a task
-                          </div>
-                          <div className="text-sm font-medium text-slate-100">{task.title}</div>
-                          <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${PRIORITY_STYLES[task.priority]}`}>
-                              {task.priority}
-                            </span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${CREATED_BY_META[task.createdBy].className}`}>
-                              {CREATED_BY_META[task.createdBy].label}
-                            </span>
-                            <span className="ml-auto text-[10px] text-fuchsia-300/80">
-                              {task.assigneeId
-                                ? `→ ${userById(task.assigneeId, users)?.handle}`
-                                : "Click to assign →"}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={`${grouped ? "ml-9" : "ml-9"} relative`}>
-                          <div className="text-sm text-slate-300 leading-relaxed pr-16">{m.text}</div>
-                          {linkedTask && (
-                            <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-800 ring-1 ring-slate-700 rounded-full px-2 py-0.5">
-                              <ListTodo className="size-3" /> Task created
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                setAssignModalSubtitle(undefined);
+                                setAssignModalTask(task);
+                              }
+                            }}
+                            className="mt-1 rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/5 p-3 cursor-pointer hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10 transition"
+                          >
+                            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-fuchsia-300 uppercase tracking-wider mb-1.5">
+                              <Sparkles className="size-3" /> Queen PM created a task
                             </div>
-                          )}
-                          {canConvert && (
-                            <button
-                              onClick={() => convertMessageToTask(m.id, m.text!)}
-                              disabled={spawningTask}
-                              title="Convert message to task"
-                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 ring-1 ring-fuchsia-500/30 transition disabled:opacity-40"
-                            >
-                              <ListTodo className="size-3" /> Create task
-                            </button>
-                          )}
-                        </div>
-                      )}
+                            <div className="text-sm font-medium text-slate-100">{task.title}</div>
+                            <div className="flex items-center flex-wrap gap-1.5 mt-2.5">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${PRIORITY_STYLES[task.priority]}`}>
+                                {task.priority}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${CREATED_BY_META[task.createdBy].className}`}>
+                                {CREATED_BY_META[task.createdBy].label}
+                              </span>
+                              <span className="ml-auto text-[10px] text-fuchsia-300/80">
+                                {task.assigneeId
+                                  ? `→ ${userById(task.assigneeId, users)?.handle}`
+                                  : "Click to assign →"}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <div className="text-sm text-slate-300 leading-relaxed">{m.text}</div>
+                            {linkedTask && (
+                              <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-800 ring-1 ring-slate-700 rounded-full px-2 py-0.5">
+                                <ListTodo className="size-3" /> Task created
+                              </div>
+                            )}
+                            {canConvert && (
+                              <button
+                                onClick={() => convertMessageToTask(m.id, m.text!)}
+                                disabled={spawningTask}
+                                title="Convert message to task"
+                                className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 ring-1 ring-fuchsia-500/30 transition disabled:opacity-40"
+                              >
+                                <ListTodo className="size-3" /> Create task
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
