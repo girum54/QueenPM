@@ -234,6 +234,16 @@ function SprintConfigPage() {
       return;
     }
     
+    // Validate that all deliverables are completed
+    const totalDeliverables = sprint.deliverables.length;
+    const completedDeliverables = sprint.deliverables.filter(d => d.done).length;
+    const incompleteDeliverables = sprint.deliverables.filter(d => !d.done);
+    
+    if (totalDeliverables > 0 && completedDeliverables < totalDeliverables) {
+      alert(`Cannot complete sprint: ${totalDeliverables - completedDeliverables} of ${totalDeliverables} deliverables are not yet completed.\n\nPlease mark all deliverables as done before completing the sprint.`);
+      return;
+    }
+    
     try {
       await sprintsApi.complete(sprint.id);
       setSprint(null);
@@ -354,9 +364,13 @@ function SprintConfigPage() {
                 </div>
                 <button
                   onClick={handleCompleteSprint}
-                  disabled={(activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)}
+                  disabled={
+                    ((activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)) ||
+                    ((activeSprintMetrics?.totalDeliverables ?? 0) > 0 && (activeSprintMetrics?.completedDeliverables ?? 0) < (activeSprintMetrics?.totalDeliverables ?? 0))
+                  }
                   className={`h-9 px-4 rounded-md text-xs font-semibold transition ${
-                    (activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)
+                    ((activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)) ||
+                    ((activeSprintMetrics?.totalDeliverables ?? 0) > 0 && (activeSprintMetrics?.completedDeliverables ?? 0) < (activeSprintMetrics?.totalDeliverables ?? 0))
                       ? "bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed"
                       : "bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-300"
                   }`}
