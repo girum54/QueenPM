@@ -75,7 +75,7 @@ function SprintPage() {
   }, [activeProjectId]);
 
   useEffect(() => {
-    if (!activeProjectId || !showHistory) return;
+    if (!activeProjectId) return;
     async function fetchAllSprints() {
       try {
         const sprints = await sprintsApi.getByProject(activeProjectId);
@@ -101,7 +101,7 @@ function SprintPage() {
       }
     }
     fetchAllSprints();
-  }, [activeProjectId, showHistory]);
+  }, [activeProjectId]);
 
   // Filter tasks that are actively linked to this sprint
   const sprintTasks = tasks.filter(t => t.sprintId === sprint?.id);
@@ -406,6 +406,45 @@ function SprintPage() {
                   <span>Start (June 7)</span>
                   <span>Target (June 21)</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Historical Sprint Summary */}
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="size-8 rounded-md bg-amber-500/10 ring-1 ring-amber-500/30 grid place-items-center">
+                    <History className="size-4 text-amber-300" />
+                  </div>
+                  <span className="text-2xl font-bold text-slate-100 tabular-nums">{allSprints.length}</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Completed Sprints</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {allSprints.length > 0 ? `${allSprints.length} sprint${allSprints.length !== 1 ? 's' : ''} completed in this project` : "No completed sprints yet"}
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {allSprints.length > 0 && (
+                  <div className="space-y-1.5">
+                    {allSprints.slice(0, 3).map((s) => {
+                      const sTasks = tasks.filter(t => t.sprintId === s.id);
+                      const sCompleted = sTasks.filter(t => t.column === "deployed").length;
+                      const sProgress = sTasks.length > 0 ? Math.round((sCompleted / sTasks.length) * 100) : 0;
+                      return (
+                        <div key={s.id} className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 truncate max-w-[100px]">{s.name}</span>
+                          <span className="text-slate-300 font-medium">{sProgress}%</span>
+                        </div>
+                      );
+                    })}
+                    {allSprints.length > 3 && (
+                      <div className="text-[10px] text-slate-500 text-center">
+                        +{allSprints.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
