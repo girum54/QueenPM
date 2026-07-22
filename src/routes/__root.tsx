@@ -101,14 +101,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Queen PM" },
       { property: "og:description", content: "Queen PM" },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "/logo-512x512.png" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@QueenPM" },
+      { name: "twitter:image", content: "/logo-512x512.png" },
     ],
     links: [
       {
         rel: "icon",
-        type: "image/svg+xml",
-        href: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 8,12 A 2,2 0 1 1  4,12 A 2,2 0 1 1  8,12 M 24.5,7.5 A 2,2 0 1 1  20.5,7.5 A 2,2 0 1 1  24.5,7.5 M 41,12 A 2,2 0 1 1  37,12 A 2,2 0 1 1  41,12 M 10.5,20 A 2,2 0 1 1  6.5,20 A 2,2 0 1 1  10.5,20 M 38.5,20 A 2,2 0 1 1  34.5,20 A 2,2 0 1 1  38.5,20" /><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 24.5,10 L 18,25 L 10.5,13.5 L 9,26 z" /><path d="M 9,26 C 9,28 10.5,30 12.5,30 L 32.5,30 C 34.5,30 36,28 36,26" /><path d="M 11,14 L 33,14" /><path d="M 12.5,30 L 32.5,30 L 32.5,37.5 L 12.5,37.5 z" /><path d="M 11.5,37.5 L 33.5,37.5" /></g></svg>',
+        type: "image/png",
+        sizes: "32x32",
+        href: "/favicon-32x32.png",
+      },
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "16x16",
+        href: "/favicon-16x16.png",
+      },
+      {
+        rel: "shortcut icon",
+        href: "/favicon.png",
+      },
+      {
+        rel: "apple-touch-icon",
+        sizes: "180x180",
+        href: "/apple-touch-icon.png",
       },
       {
         rel: "stylesheet",
