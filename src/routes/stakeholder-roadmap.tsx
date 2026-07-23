@@ -111,7 +111,7 @@ function RoadmapPage() {
                         progress = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
                       }
                       const startDate = new Date(sprint.startDate);
-                      const endDate = new Date(startDate.getTime() + sprint.durationWeeks * 7 * 24 * 60 * 60 * 1000);
+                      const endDate = new Date(startDate.getTime() + sprint.durationWeeks * 24 * 60 * 60 * 1000);
                       const now = new Date();
                       const timeProgress = endDate > startDate ? Math.max(0, Math.min(100, ((now.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100)) : 0;
                       let healthStatus = "On Track";

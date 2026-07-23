@@ -27,7 +27,7 @@ interface Sprint {
   id: string;
   name: string;
   style: string;          // free-text — user defines their own methodology label
-  durationWeeks: number;
+  durationDays: number;
   startDate: string;
   goal: string;
   deliverables: { id: string; text: string; done: boolean }[];
@@ -62,7 +62,7 @@ function SprintConfigPage() {
   // Setup Form State
   const [formName, setFormName] = useState("");
   const [formStyle, setFormStyle] = useState("");  // free-text methodology label
-  const [formDuration, setFormDuration] = useState(2);
+  const [formDuration, setFormDuration] = useState(14);  // in days
   const [formStartDate, setFormStartDate] = useState(() => {
     const d = new Date();
     return d.toISOString().split("T")[0];
@@ -78,7 +78,7 @@ function SprintConfigPage() {
   const [isEditingSprint, setIsEditingSprint] = useState(false);
   const [editName, setEditName] = useState("");
   const [editStyle, setEditStyle] = useState("");
-  const [editDuration, setEditDuration] = useState(2);
+  const [editDuration, setEditDuration] = useState(14);  // in days
   const [editStartDate, setEditStartDate] = useState("");
   const [editGoal, setEditGoal] = useState("");
 
@@ -97,7 +97,7 @@ function SprintConfigPage() {
             id: activeSprint.id,
             name: activeSprint.name,
             style: activeSprint.style || "",
-            durationWeeks: activeSprint.durationWeeks,
+            durationDays: activeSprint.durationWeeks,  // stored as days in the DB column
             startDate: activeSprint.startDate,
             goal: activeSprint.goal || "",
             deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
@@ -151,7 +151,7 @@ function SprintConfigPage() {
         id: activated.id,
         name: activated.name,
         style: activated.style || "",
-        durationWeeks: activated.durationWeeks,
+        durationDays: activated.durationWeeks,  // DB column stores days
         startDate: activated.startDate,
         goal: activated.goal || "",
         deliverables: dbDels.map(d => ({ id: d.id, text: d.text, done: d.done })),
@@ -267,7 +267,7 @@ function SprintConfigPage() {
         name: updated.name,
         goal: updated.goal || "",
         style: updated.style || "",
-        durationWeeks: updated.durationWeeks,
+        durationDays: updated.durationWeeks,  // DB column stores days
         startDate: updated.startDate,
       });
       setIsEditingSprint(false);
@@ -281,7 +281,7 @@ function SprintConfigPage() {
     setEditName(sprint.name);
     setEditGoal(sprint.goal);
     setEditStyle(sprint.style);
-    setEditDuration(sprint.durationWeeks);
+    setEditDuration(sprint.durationDays);
     setEditStartDate(sprint.startDate);
     setIsEditingSprint(true);
   };
@@ -301,7 +301,7 @@ function SprintConfigPage() {
 
     // Calculate days remaining
     const start = new Date(sprint.startDate).getTime();
-    const end = start + sprint.durationWeeks * 7 * 24 * 60 * 60 * 1000;
+    const end = start + sprint.durationDays * 24 * 60 * 60 * 1000;
     const remainingMs = end - Date.now();
     const daysRemaining = Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
 
@@ -343,7 +343,7 @@ function SprintConfigPage() {
               </h1>
               <p className="text-sm text-slate-400 mt-1">
                 {sprint 
-                  ? `Running a ${sprint.style.toUpperCase()} sprint for ${sprint.durationWeeks} weeks` 
+                  ? `Running a ${sprint.style.toUpperCase()} sprint for ${sprint.durationDays} day${sprint.durationDays !== 1 ? 's' : ''}` 
                   : "Initialize your deliverables, sprint duration, and delivery methodologies."}
               </p>
             </div>
@@ -445,21 +445,32 @@ function SprintConfigPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Duration</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[1, 2, 3, 4].map((w) => (
-                          <button
-                            key={w}
-                            type="button"
-                            onClick={() => setFormDuration(w)}
-                            className={`h-9 rounded-md text-xs font-semibold transition ${
-                              formDuration === w
-                                ? "bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/40"
-                                : "bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200"
-                            }`}
-                          >
-                            {w} {w === 1 ? "Week" : "Weeks"}
-                          </button>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={formDuration}
+                          onChange={(e) => setFormDuration(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-20 h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition text-center"
+                        />
+                        <span className="text-xs text-slate-400">days</span>
+                        <div className="flex gap-1 ml-1">
+                          {[2, 7, 14, 30].map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => setFormDuration(d)}
+                              className={`h-8 px-2.5 rounded text-xs font-semibold transition ${
+                                formDuration === d
+                                  ? "bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/40"
+                                  : "bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200"
+                              }`}
+                            >
+                              {d === 7 ? "1w" : d === 14 ? "2w" : d === 30 ? "1m" : `${d}d`}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -572,7 +583,7 @@ function SprintConfigPage() {
                   <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">
                     {activeSprintMetrics?.daysRemaining}d
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-1">out of {sprint.durationWeeks * 7} total days</div>
+                  <div className="text-[11px] text-slate-500 mt-1">out of {sprint.durationDays} total days</div>
                 </div>
 
                 <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
@@ -665,22 +676,33 @@ function SprintConfigPage() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Duration (Weeks)</label>
-                          <div className="grid grid-cols-4 gap-2">
-                            {[1, 2, 3, 4].map((w) => (
-                              <button
-                                key={w}
-                                type="button"
-                                onClick={() => setEditDuration(w)}
-                                className={`h-9 rounded-md text-xs font-semibold transition ${
-                                  editDuration === w
-                                    ? "bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/40"
-                                    : "bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200"
-                                }`}
-                              >
-                                {w} {w === 1 ? "Week" : "Weeks"}
-                              </button>
-                            ))}
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Duration</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={1}
+                              max={365}
+                              value={editDuration}
+                              onChange={(e) => setEditDuration(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-20 h-9 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition text-center"
+                            />
+                            <span className="text-xs text-slate-400">days</span>
+                            <div className="flex gap-1">
+                              {[2, 7, 14, 30].map((d) => (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={() => setEditDuration(d)}
+                                  className={`h-8 px-2 rounded text-xs font-semibold transition ${
+                                    editDuration === d
+                                      ? "bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/40"
+                                      : "bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200"
+                                  }`}
+                                >
+                                  {d === 7 ? "1w" : d === 14 ? "2w" : d === 30 ? "1m" : `${d}d`}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
@@ -866,7 +888,7 @@ function SprintConfigPage() {
                     <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1 pt-1.5 border-t border-slate-900/80">
                       <span>Day 1</span>
                       <span>Halfway</span>
-                      <span>Day {sprint.durationWeeks * 7}</span>
+                      <span>Day {sprint.durationDays}</span>
                     </div>
                   </div>
 

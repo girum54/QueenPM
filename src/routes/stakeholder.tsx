@@ -91,7 +91,7 @@ function StakeholderDashboardPage() {
         progress = deliverables.length > 0 ? Math.round((done / deliverables.length) * 100) : 0;
       }
       const startDate = new Date(activeSprint.startDate);
-      const endDate = new Date(startDate.getTime() + activeSprint.durationWeeks * 7 * 24 * 60 * 60 * 1000);
+      const endDate = new Date(startDate.getTime() + activeSprint.durationWeeks * 24 * 60 * 60 * 1000);
       deadline = endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       const now = new Date();
       const timeProgress = Math.max(0, Math.min(100, ((now.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100));

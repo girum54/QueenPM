@@ -26,7 +26,7 @@ interface Sprint {
   id: string;
   name: string;
   style: string;
-  durationWeeks: number;
+  durationDays: number;
   startDate: string;
   goal: string;
   deliverables: { id: string; text: string; done: boolean }[];
@@ -55,7 +55,7 @@ function SprintPage() {
             id: activeSprint.id,
             name: activeSprint.name,
             style: activeSprint.style || "",
-            durationWeeks: activeSprint.durationWeeks,
+            durationDays: activeSprint.durationWeeks,  // DB column stores days
             startDate: activeSprint.startDate,
             goal: activeSprint.goal || "",
             deliverables: (activeSprint.deliverables || []).map(d => ({ id: d.id, text: d.text, done: d.done })),
@@ -86,7 +86,7 @@ function SprintPage() {
               id: s.id,
               name: s.name,
               style: s.style || "",
-              durationWeeks: s.durationWeeks,
+              durationDays: s.durationWeeks,  // DB column stores days
               startDate: s.startDate,
               goal: s.goal || "",
               deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
@@ -153,7 +153,7 @@ function SprintPage() {
 
   // Calculate days remaining
   const start = new Date(sprint.startDate).getTime();
-  const end = start + sprint.durationWeeks * 7 * 24 * 60 * 60 * 1000;
+  const end = start + sprint.durationDays * 24 * 60 * 60 * 1000;
   const remainingMs = end - Date.now();
   const daysRemaining = Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
   const endDateStr = new Date(end).toLocaleDateString([], { month: "short", day: "numeric" });
@@ -251,7 +251,7 @@ function SprintPage() {
                         </div>
                         <p className="text-xs text-slate-400 line-clamp-2">{s.goal || "No goal defined"}</p>
                         <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
-                          <span>{s.durationWeeks} week{ s.durationWeeks !== 1 ? 's' : ''}</span>
+                          <span>{s.durationDays} day{ s.durationDays !== 1 ? 's' : ''}</span>
                           <span>•</span>
                           <span>{s.deliverables.length} deliverables</span>
                         </div>
