@@ -69,7 +69,11 @@ export function ParticipantTile({ participant, tracks, large, small, onClick }: 
       {/* ── Video layer ─────────────────────────────────────────────────── */}
       {videoTrack && isTrackReference(videoTrack) ? (
         <div className="absolute inset-0">
-          <VideoTrack trackRef={videoTrack} className={`w-full h-full ${isScreenSharing ? 'object-contain' : 'object-cover'}`} />
+          <VideoTrack
+            trackRef={videoTrack}
+            className={`w-full h-full ${isScreenSharing ? 'object-contain' : 'object-cover'}`}
+            style={isLocal && !isScreenSharing ? { transform: "scaleX(-1)" } : undefined}
+          />
         </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 grid place-items-center">
