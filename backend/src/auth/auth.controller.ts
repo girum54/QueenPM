@@ -36,8 +36,8 @@ export class AuthController {
 
     // Forward all Set-Cookie headers from Better Auth to the client
     const cookies = betterAuthResponse.headers.getSetCookie?.() ?? [];
-    for (const cookie of cookies) {
-      res.setHeader('set-cookie', cookie);
+    if (cookies.length > 0) {
+      res.setHeader('set-cookie', cookies);
     }
 
     const data = await betterAuthResponse.json();
@@ -61,8 +61,8 @@ export class AuthController {
 
     // Forward all Set-Cookie headers so the session cookie is set on the client
     const cookies = betterAuthResponse.headers.getSetCookie?.() ?? [];
-    for (const cookie of cookies) {
-      res.setHeader('set-cookie', cookie);
+    if (cookies.length > 0) {
+      res.setHeader('set-cookie', cookies);
     }
 
     const data = await betterAuthResponse.json();
@@ -85,8 +85,8 @@ export class AuthController {
 
     // Clear session cookie by forwarding Better Auth's Set-Cookie header
     const cookies = betterAuthResponse.headers.getSetCookie?.() ?? [];
-    for (const cookie of cookies) {
-      res.setHeader('set-cookie', cookie);
+    if (cookies.length > 0) {
+      res.setHeader('set-cookie', cookies);
     }
 
     return res.status(HttpStatus.OK).json({ message: 'Signed out successfully' });
