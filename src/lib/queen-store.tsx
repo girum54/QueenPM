@@ -285,6 +285,18 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
     } catch (e) { }
   }, []);
 
+  // Listen for active project change requests from notifications/external components
+  useEffect(() => {
+    const handleSetProject = (e: Event) => {
+      const detail = (e as CustomEvent<{ projectId: string }>).detail;
+      if (detail && detail.projectId) {
+        handleSetActiveProjectId(detail.projectId);
+      }
+    };
+    window.addEventListener("queen:set-active-project", handleSetProject);
+    return () => window.removeEventListener("queen:set-active-project", handleSetProject);
+  }, []);
+
   // 1. Fetch Projects
   useEffect(() => {
     async function loadProjects() {

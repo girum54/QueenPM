@@ -52,12 +52,39 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
           if (prev.some((n) => n.id === newNotif.id)) return prev;
 
-          // Parse body — call invites carry JSON with channelId
-          let callMeta: { channelId?: string; channelName?: string; text?: string } | null = null;
+          // Parse body — call invites carry JSON with channelId (old) or projectId (conferencing)
+          let callMeta: {
+            channelId?: string;
+            channelName?: string;
+            text?: string;
+            callId?: string;
+            projectId?: string;
+          } | null = null;
           try { callMeta = newNotif.body ? JSON.parse(newNotif.body) : null; } catch { /* plain string body */ }
 
-          if (callMeta?.channelId) {
-            // Rich call-invite toast – stays for 30 seconds, has an action button
+          if (callMeta?.projectId) {
+            // Rich project call-invite toast
+            toast(newNotif.title, {
+              description: callMeta.text ?? "You're invited to a voice call",
+              duration: 30_000,
+              action: {
+                label: "📞 Join Call",
+                onClick: () => {
+                  // Set active project in localStorage and trigger store update
+                  localStorage.setItem("active_project_id", callMeta!.projectId!);
+                  window.dispatchEvent(
+                    new CustomEvent("queen:set-active-project", {
+                      detail: { projectId: callMeta!.projectId },
+                    })
+                  );
+                  // Navigate to /conferencing
+                  window.history.pushState({}, "", "/conferencing");
+                  window.dispatchEvent(new PopStateEvent("popstate"));
+                },
+              },
+            });
+          } else if (callMeta?.channelId) {
+            // Rich channel call-invite toast – stays for 30 seconds, has an action button
             toast(newNotif.title, {
               description: callMeta.text ?? `Join the voice call in #${callMeta.channelName}`,
               duration: 30_000,
