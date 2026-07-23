@@ -233,24 +233,40 @@ async function main() {
     active.push({ child: frontend, name: 'Frontend' });
   } else {
     // ── Local mode: tunnel + backend + frontend ───────────────────────────────
-    if (await portOpen(localDbPort)) {
-      log('SYSTEM', `✅ DB tunnel already up on :${localDbPort} — skipping`);
+    const localLivekitPort = '7880';
+    const dbOpen = await portOpen(localDbPort);
+    const lkOpen = await portOpen(localLivekitPort);
+
+    if (dbOpen && lkOpen) {
+      log('SYSTEM', `✅ DB and LiveKit tunnels already up on :${localDbPort} and :${localLivekitPort} — skipping`);
     } else {
-      log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
-      const tunnel = spawn('ssh', ['-N', '-L', `${localDbPort}:127.0.0.1:5432`, sshHost], { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      const sshArgs = ['-N'];
+      if (!dbOpen) {
+        log('SYSTEM', `Opening DB tunnel  127.0.0.1:${localDbPort} → ${sshHost}:5432`);
+        sshArgs.push('-L', `${localDbPort}:127.0.0.1:5432`);
+      }
+      if (!lkOpen) {
+        log('SYSTEM', `Opening LiveKit tunnel  127.0.0.1:${localLivekitPort} → ${sshHost}:7880`);
+        sshArgs.push('-L', `${localLivekitPort}:127.0.0.1:7880`);
+      }
+      sshArgs.push(sshHost);
+
+      const tunnel = spawn('ssh', sshArgs, { shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
       tunnel.stdout.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => log('Tunnel', l)));
       tunnel.stderr.on('data', (d) => d.toString().split('\n').filter(Boolean).forEach((l) => err('Tunnel', l)));
       tunnel.on('exit', (code) => log('SYSTEM', `Tunnel exited (code ${code})`));
       active.push({ child: tunnel, name: 'Tunnel' });
 
-      log('SYSTEM', 'Waiting for tunnel to be ready...');
+      log('SYSTEM', 'Waiting for tunnels to be ready...');
       let ready = false;
       for (let i = 0; i < 20; i++) {
         await delay(1000);
-        if (await portOpen(localDbPort)) { ready = true; break; }
+        const dOpen = dbOpen || (await portOpen(localDbPort));
+        const lOpen = lkOpen || (await portOpen(localLivekitPort));
+        if (dOpen && lOpen) { ready = true; break; }
       }
-      if (!ready) log('SYSTEM', '⚠️  Tunnel port never opened. Check SSH access to uib-server. Continuing anyway...');
-      else log('SYSTEM', `✅ Tunnel ready on :${localDbPort}`);
+      if (!ready) log('SYSTEM', '⚠️  Tunnel ports never fully opened. Check SSH access to uib-server. Continuing anyway...');
+      else log('SYSTEM', `✅ Tunnels ready (DB :${localDbPort}, LiveKit :${localLivekitPort})`);
     }
 
     await delay(1500);
