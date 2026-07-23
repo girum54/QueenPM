@@ -21,7 +21,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "drizzle-orm": ["./backend/node_modules/drizzle-orm"],
+      "better-auth": ["./backend/node_modules/better-auth"],
+      "better-auth/*": ["./backend/node_modules/better-auth/*"]
     }
   }
 }
