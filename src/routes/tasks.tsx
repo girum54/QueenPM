@@ -453,123 +453,129 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
     <div className="bg-slate-950/10">
       
       {/* Parent Task Row */}
-      <div className="group flex items-center gap-3 px-4 py-2.5 hover:bg-slate-900/40 transition text-xs border-b border-slate-900/40">
+      <div className="group flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-2.5 hover:bg-slate-900/40 transition text-xs border-b border-slate-900/40">
         
-        {/* Subtask expand toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          disabled={subtasks.length === 0}
-          className={`size-5 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 disabled:opacity-20 transition`}
-        >
-          {subtasks.length > 0 ? (
-            expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />
-          ) : (
-            <span className="w-3.5 h-3.5 block" />
-          )}
-        </button>
+        {/* Left: Expand, Status, Title, Description, Sprint */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {/* Subtask expand toggle */}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            disabled={subtasks.length === 0}
+            className={`size-5 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 disabled:opacity-20 transition shrink-0`}
+          >
+            {subtasks.length > 0 ? (
+              expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />
+            ) : (
+              <span className="w-3.5 h-3.5 block" />
+            )}
+          </button>
 
-        {/* Status circle */}
-        <div className="shrink-0">
-          {task.column === "deployed" ? (
-            <CheckCircle2 className="size-4 text-slate-600" />
-          ) : task.column === "active" ? (
-            <AlertCircle className="size-4 text-slate-300" />
-          ) : (
-            <Circle className="size-4 text-slate-700" />
-          )}
-        </div>
+          {/* Status circle */}
+          <div className="shrink-0">
+            {task.column === "deployed" ? (
+              <CheckCircle2 className="size-4 text-slate-600" />
+            ) : task.column === "active" ? (
+              <AlertCircle className="size-4 text-slate-300" />
+            ) : (
+              <Circle className="size-4 text-slate-700" />
+            )}
+          </div>
 
-        {/* Title */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`font-medium truncate block ${task.column === "deployed" ? "line-through text-slate-500" : "text-slate-205"}`}>
-              {task.title}
-            </span>
-            {taskSprint && (
-              <span className="px-1.5 py-0.2 rounded text-[8px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
-                {taskSprint.name}
+          {/* Title & description */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`font-medium break-words ${task.column === "deployed" ? "line-through text-slate-500" : "text-slate-200"}`}>
+                {task.title}
               </span>
-            )}
-          </div>
-          {task.description && (
-            <span className="text-[10px] text-slate-500 truncate block">{task.description}</span>
-          )}
-        </div>
-
-        {/* Priority */}
-        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[task.priority]}`}>
-          {task.priority}
-        </span>
-
-        {/* Status badge */}
-        <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${colMeta.accent}`}>
-          <span className={`size-1 rounded-full ${colMeta.dot}`} />
-          {colMeta.label}
-        </span>
-
-        {/* Created By badge */}
-        <span className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold shrink-0 ${createdMeta.className}`}>
-          <CreatedIcon className="size-2.5" />
-          {task.createdBy === "ai" ? "AI" : task.createdBy === "slash" ? "Slash" : "Manual"}
-        </span>
-
-        {/* Assignee */}
-        <div className="shrink-0 w-16 flex justify-end">
-          {assignee ? (
-            <div
-              title={assignee.name}
-              className={`size-5 rounded-full ${assignee.color} grid place-items-center text-[9px] font-bold text-white ring-1 ring-slate-900`}
-            >
-              {assignee.isAi ? <Crown className="size-2.5" /> : assignee.name[0]}
+              {taskSprint && (
+                <span className="px-1.5 py-0.2 rounded text-[8px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
+                  {taskSprint.name}
+                </span>
+              )}
             </div>
-          ) : (
-            <span className="text-[10px] text-slate-600">—</span>
-          )}
+            {task.description && (
+              <span className="text-[10px] text-slate-500 line-clamp-1 block">{task.description}</span>
+            )}
+          </div>
         </div>
 
-        {/* Add Subtask actions */}
-        {!isStakeholder && (
-          <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 flex-wrap">
-            <select 
-              value={task.sprintId || ""}
-              onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
-              className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
-            >
-              <option value="">Backlog</option>
-              {sprints.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={() => setIsQuickOpen(!isQuickOpen)}
-              className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
-            >
-              + Subtask
-            </button>
-            {task.column !== "deployed" && (
-              <button
-                onClick={() => updateTask(task.id, { column: "deployed" })}
-                className="px-2 py-0.5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] text-emerald-400 hover:text-emerald-300 transition"
-                title="Mark as done"
+        {/* Right: Badges & Actions */}
+        <div className="flex items-center gap-1.5 flex-wrap shrink-0 pl-7 sm:pl-0">
+          {/* Priority */}
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[task.priority]}`}>
+            {task.priority}
+          </span>
+
+          {/* Status badge */}
+          <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${colMeta.accent}`}>
+            <span className={`size-1 rounded-full ${colMeta.dot}`} />
+            {colMeta.label}
+          </span>
+
+          {/* Created By badge */}
+          <span className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold shrink-0 ${createdMeta.className}`}>
+            <CreatedIcon className="size-2.5" />
+            {task.createdBy === "ai" ? "AI" : task.createdBy === "slash" ? "Slash" : "Manual"}
+          </span>
+
+          {/* Assignee */}
+          <div className="shrink-0 flex items-center justify-end">
+            {assignee ? (
+              <div
+                title={assignee.name}
+                className={`size-5 rounded-full ${assignee.color} grid place-items-center text-[9px] font-bold text-white ring-1 ring-slate-900`}
               >
-                Done
-              </button>
+                {assignee.isAi ? <Crown className="size-2.5" /> : assignee.name[0]}
+              </div>
+            ) : (
+              <span className="text-[10px] text-slate-600">—</span>
             )}
-            <button
-              onClick={() => { if (confirm(`Delete "${task.title}"?`)) deleteTask(task.id); }}
-              className="px-1.5 py-0.5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 hover:text-rose-300 transition"
-              title="Delete task"
-            >
-              <Trash2 className="size-3" />
-            </button>
           </div>
-        )}
+
+          {/* Add Subtask actions */}
+          {!isStakeholder && (
+            <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 flex-wrap">
+              <select 
+                value={task.sprintId || ""}
+                onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
+                className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition max-w-[90px] sm:max-w-none truncate"
+              >
+                <option value="">Backlog</option>
+                {sprints.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setIsQuickOpen(!isQuickOpen)}
+                className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
+              >
+                + Subtask
+              </button>
+              {task.column !== "deployed" && (
+                <button
+                  onClick={() => updateTask(task.id, { column: "deployed" })}
+                  className="px-2 py-0.5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] text-emerald-400 hover:text-emerald-300 transition"
+                  title="Mark as done"
+                >
+                  Done
+                </button>
+              )}
+              <button
+                onClick={() => { if (confirm(`Delete "${task.title}"?`)) deleteTask(task.id); }}
+                className="px-1.5 py-0.5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 hover:text-rose-300 transition"
+                title="Delete task"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </div>
+          )}
+        </div>
 
       </div>
 
       {/* Quick Add Subtask Input Line */}
       {isQuickOpen && (
-        <form onSubmit={handleQuickAdd} className="pl-14 pr-4 py-1.5 bg-slate-900/20 border-b border-slate-900/50 flex items-center gap-2">
+        <form onSubmit={handleQuickAdd} className="pl-10 sm:pl-14 pr-4 py-1.5 bg-slate-900/20 border-b border-slate-900/50 flex items-center gap-2">
           <CornerDownRight className="size-3 text-slate-600 shrink-0" />
           <input
             autoFocus
@@ -590,98 +596,103 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
 
       {/* Subtasks List */}
       {expanded && subtasks.length > 0 && (
-        <div className="pl-9 divide-y divide-slate-900/20 bg-slate-900/5">
+        <div className="pl-4 sm:pl-9 divide-y divide-slate-900/20 bg-slate-900/5">
           {subtasks.map((sub) => {
             const subAssignee = userById(sub.assigneeId, users);
             const subCol = COLUMN_META[sub.column];
             return (
-              <div key={sub.id} className="group flex items-center gap-2 px-4 py-2 hover:bg-slate-900/30 transition text-xs">
-                <CornerDownRight className="size-3 text-slate-600 shrink-0" />
-                
-                {/* Status circle */}
-                <div className="shrink-0 pl-1">
-                  {sub.column === "deployed" ? (
-                    <CheckCircle2 className="size-3.5 text-slate-600" />
-                  ) : sub.column === "active" ? (
-                    <AlertCircle className="size-3.5 text-slate-300" />
-                  ) : (
-                    <Circle className="size-3.5 text-slate-700" />
-                  )}
-                </div>
-
-                {/* Subtask Title */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[11px] ${sub.column === "deployed" ? "line-through text-slate-650" : "text-slate-300"}`}>
-                      {sub.title}
-                    </span>
-                    {(() => {
-                      const subSprint = sprints.find((s) => s.id === sub.sprintId);
-                      return subSprint ? (
-                        <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
-                          {subSprint.name}
-                        </span>
-                      ) : null;
-                    })()}
-                  </div>
-                </div>
-
-                {/* Priority */}
-                <span className={`px-1 py-0.2 rounded text-[8px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[sub.priority]}`}>
-                  {sub.priority}
-                </span>
-
-                {/* Status */}
-                <span className={`flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-semibold uppercase tracking-wide shrink-0 ${subCol.accent}`}>
-                  <span className={`size-1 rounded-full ${subCol.dot}`} />
-                  {subCol.label}
-                </span>
-
-                {/* Assignee */}
-                <div className="shrink-0 w-12 flex justify-end">
-                  {subAssignee ? (
-                    <div
-                      title={subAssignee.name}
-                      className={`size-4.5 rounded-full ${subAssignee.color} grid place-items-center text-[8px] font-bold text-white ring-1 ring-slate-950`}
-                    >
-                      {subAssignee.isAi ? <Crown className="size-2" /> : subAssignee.name[0]}
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-slate-650">—</span>
-                  )}
-                </div>
-
-                {/* Add to sprint action */}
-                {!isStakeholder && (
-                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 ml-2">
-                    <select 
-                      value={sub.sprintId || ""}
-                      onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
-                      className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition"
-                    >
-                      <option value="">Backlog</option>
-                      {sprints.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                    {sub.column !== "deployed" && (
-                      <button
-                        onClick={() => updateTask(sub.id, { column: "deployed" })}
-                        className="px-2 py-0.5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] text-emerald-400 hover:text-emerald-300 transition"
-                        title="Mark as done"
-                      >
-                        Done
-                      </button>
+              <div key={sub.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2 hover:bg-slate-900/30 transition text-xs">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <CornerDownRight className="size-3 text-slate-600 shrink-0" />
+                  
+                  {/* Status circle */}
+                  <div className="shrink-0 pl-0.5">
+                    {sub.column === "deployed" ? (
+                      <CheckCircle2 className="size-3.5 text-slate-600" />
+                    ) : sub.column === "active" ? (
+                      <AlertCircle className="size-3.5 text-slate-300" />
+                    ) : (
+                      <Circle className="size-3.5 text-slate-700" />
                     )}
-                    <button
-                      onClick={() => { if (confirm(`Delete "${sub.title}"?`)) deleteTask(sub.id); }}
-                      className="px-1.5 py-0.5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 hover:text-rose-300 transition"
-                      title="Delete subtask"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
                   </div>
-                )}
+
+                  {/* Subtask Title */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[11px] break-words ${sub.column === "deployed" ? "line-through text-slate-650" : "text-slate-300"}`}>
+                        {sub.title}
+                      </span>
+                      {(() => {
+                        const subSprint = sprints.find((s) => s.id === sub.sprintId);
+                        return subSprint ? (
+                          <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
+                            {subSprint.name}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Badges & Actions */}
+                <div className="flex items-center gap-1.5 flex-wrap shrink-0 pl-5 sm:pl-0">
+                  {/* Priority */}
+                  <span className={`px-1 py-0.2 rounded text-[8px] font-semibold uppercase tracking-wide shrink-0 ${PRIORITY_STYLES[sub.priority]}`}>
+                    {sub.priority}
+                  </span>
+
+                  {/* Status */}
+                  <span className={`flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-semibold uppercase tracking-wide shrink-0 ${subCol.accent}`}>
+                    <span className={`size-1 rounded-full ${subCol.dot}`} />
+                    {subCol.label}
+                  </span>
+
+                  {/* Assignee */}
+                  <div className="shrink-0 flex items-center justify-end">
+                    {subAssignee ? (
+                      <div
+                        title={subAssignee.name}
+                        className={`size-4.5 rounded-full ${subAssignee.color} grid place-items-center text-[8px] font-bold text-white ring-1 ring-slate-950`}
+                      >
+                        {subAssignee.isAi ? <Crown className="size-2" /> : subAssignee.name[0]}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-650">—</span>
+                    )}
+                  </div>
+
+                  {/* Add to sprint action */}
+                  {!isStakeholder && (
+                    <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 flex-wrap">
+                      <select 
+                        value={sub.sprintId || ""}
+                        onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
+                        className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition max-w-[90px] sm:max-w-none truncate"
+                      >
+                        <option value="">Backlog</option>
+                        {sprints.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                      {sub.column !== "deployed" && (
+                        <button
+                          onClick={() => updateTask(sub.id, { column: "deployed" })}
+                          className="px-2 py-0.5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[10px] text-emerald-400 hover:text-emerald-300 transition"
+                          title="Mark as done"
+                        >
+                          Done
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { if (confirm(`Delete "${sub.title}"?`)) deleteTask(sub.id); }}
+                        className="px-1.5 py-0.5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 hover:text-rose-300 transition"
+                        title="Delete subtask"
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
