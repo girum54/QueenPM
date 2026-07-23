@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Hash, Bot, ChevronDown, Pin, Search, Send, Crown, Sparkles, Zap, MessageSquare, Bell, X, Info, Users, ListTodo,
-  Video, Music, PhoneIncoming,
+  Video, Music, PhoneIncoming, Trash2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { AcceptAssignModal } from "@/components/AcceptAssignModal";
@@ -35,7 +35,7 @@ function ChannelsPage() {
   const { user: currentUser } = useAuth();
   const {
     channels, users, messages, tasks, activeChannelId, setActiveChannelId,
-    addMessage, addTask, updateTask, consumeJump,
+    addMessage, deleteMessage, addTask, updateTask, consumeJump,
     activeProjectId, projectTabs, activeSprintId, activeCall,
   } = useStore();
 
@@ -477,7 +477,18 @@ function ChannelsPage() {
                               AI
                             </span>
                           )}
-                          <span className="text-[10px] text-slate-500 ml-auto">{m.ts}</span>
+                          <span className="text-[10px] text-slate-500 ml-auto flex items-center gap-2">
+                            {m.ts}
+                            <button
+                              onClick={() => {
+                                if (confirm("Delete this message?")) deleteMessage(m.id);
+                              }}
+                              title="Delete message"
+                              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </span>
                         </div>
 
                         {/* Message content */}
