@@ -139,7 +139,7 @@ function DashboardPage() {
               accent="bg-sky-500/10 ring-sky-500/30"
             />
             <AutomationDonut ai={metrics.aiCount} slash={metrics.slashCount} ui={metrics.uiCount} ratio={metrics.autoRatio} />
-            <CompletedSprintsCard sprints={allSprints} tasks={tasks} />
+            <CompletedSprintsCard sprints={allSprints} activeSprint={activeSprint} tasks={tasks} />
           </div>
 
           {/* Active Sprint Panel */}
@@ -382,21 +382,41 @@ function AutomationDonut({ ai, slash, ui, ratio }: { ai: number; slash: number; 
   );
 }
 
-function CompletedSprintsCard({ sprints, tasks }: { sprints: any[]; tasks: any[] }) {
+function CompletedSprintsCard({ sprints, activeSprint, tasks }: { sprints: any[]; activeSprint: any | null; tasks: any[] }) {
+  const totalSprints = sprints.length + (activeSprint ? 1 : 0);
+  const activeCount = activeSprint ? 1 : 0;
+  const completedCount = sprints.length;
+  
   return (
     <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
       <div className="size-8 rounded-md grid place-items-center ring-1 mb-4 bg-amber-500/10 ring-amber-500/30">
         <History className="size-4 text-amber-300" />
       </div>
-      <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Completed Sprints</div>
-      <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">{sprints.length}</div>
+      <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Sprints</div>
+      <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">{totalSprints}</div>
       <div className="text-[11px] text-slate-500 mt-1">
-        {sprints.length > 0 ? `${sprints.length} sprint${sprints.length !== 1 ? 's' : ''} completed` : "No completed sprints"}
+        {activeCount} active, {completedCount} completed
       </div>
+      
+      {/* Current sprint compact display */}
+      {activeSprint && activeSprint.deliverables.length > 0 && (() => {
+        const done = activeSprint.deliverables.filter((d: any) => d.done).length;
+        const total = activeSprint.deliverables.length;
+        return (
+          <div className="mt-3 pt-3 border-t border-slate-800/50">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-fuchsia-300 font-medium truncate max-w-[100px]">{activeSprint.name}</span>
+              <span className="text-slate-400">{done}/{total} complete</span>
+            </div>
+          </div>
+        );
+      })()}
+      
+      {/* Completed sprints list */}
       <div className="mt-3 space-y-1.5">
         {sprints.length > 0 && (
           <div className="space-y-1">
-            {sprints.slice(0, 3).map((s) => {
+            {sprints.slice(0, 2).map((s) => {
               const sTasks = tasks.filter(t => t.sprintId === s.id);
               const sCompleted = sTasks.filter(t => t.column === "deployed").length;
               const sProgress = sTasks.length > 0 ? Math.round((sCompleted / sTasks.length) * 100) : 0;
@@ -407,9 +427,9 @@ function CompletedSprintsCard({ sprints, tasks }: { sprints: any[]; tasks: any[]
                 </div>
               );
             })}
-            {sprints.length > 3 && (
+            {sprints.length > 2 && (
               <div className="text-[10px] text-slate-500 text-center">
-                +{sprints.length - 3} more
+                +{sprints.length - 2} more
               </div>
             )}
           </div>
