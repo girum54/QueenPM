@@ -452,7 +452,7 @@ function ChannelsPage() {
                       className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} ${m.parentId ? "ml-8" : ""}`}
                     >
                       <div
-                        className={`group relative max-w-[70%] rounded-xl border px-4 py-3 transition-all duration-300 ${
+                        className={`group relative max-w-[88%] sm:max-w-[70%] rounded-xl border px-3.5 sm:px-4 py-2.5 sm:py-3 transition-all duration-300 ${
                           isOwnMessage
                             ? "bg-slate-800 border-slate-700"
                             : "bg-slate-900 border-slate-800"

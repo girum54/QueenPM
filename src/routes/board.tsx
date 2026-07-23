@@ -209,7 +209,7 @@ function BoardPage() {
                     {!isStakeholder && (
                       <button
                         onClick={() => setQuickAddCol(col)}
-                        className="ml-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-800 rounded transition text-slate-400 hover:text-slate-200"
+                        className="ml-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 hover:bg-slate-800 rounded transition text-slate-400 hover:text-slate-200"
                       >
                         <Plus className="size-3.5" />
                       </button>

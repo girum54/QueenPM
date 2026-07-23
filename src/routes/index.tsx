@@ -89,11 +89,11 @@ function DashboardPage() {
   return (
     <AppShell>
       <div className="h-full overflow-y-auto font-sans">
-        <div className="max-w-[1400px] mx-auto px-8 py-8 space-y-6">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-6">
           {/* Hero */}
-          <div className="flex items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
+              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5 flex-wrap">
                 <span className="inline-flex items-center gap-1.5">
                   📁 Project: <span className="text-slate-300 font-semibold">{activeProject?.name}</span>
                 </span>
@@ -102,23 +102,23 @@ function DashboardPage() {
                   <Sparkles className="size-3.5 text-fuchsia-400" /> Command center
                 </span>
               </div>
-              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-50 tracking-tight">
                 Hello {user?.name ?? "there"}.
               </h1>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
                 {metrics.byCol.active} tasks active · {metrics.byCol.staging} in staging · {metrics.byCol.deployed} deployed this cycle
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
               <Link
                 to="/board"
-                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-100 transition"
+                className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs sm:text-sm font-medium text-slate-100 transition shrink-0 flex-1 sm:flex-none"
               >
                 <KanbanSquare className="size-4" /> Open Board
               </Link>
               <Link
                 to="/channels"
-                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-fuchsia-500/15 ring-1 ring-fuchsia-500/30 hover:bg-fuchsia-500/25 text-sm font-medium text-fuchsia-200 transition"
+                className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md bg-fuchsia-500/15 ring-1 ring-fuchsia-500/30 hover:bg-fuchsia-500/25 text-xs sm:text-sm font-medium text-fuchsia-200 transition shrink-0 flex-1 sm:flex-none"
               >
                 <MessageSquare className="size-4" /> Jump to Channels
               </Link>

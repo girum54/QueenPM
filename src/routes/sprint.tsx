@@ -162,7 +162,7 @@ function SprintPage() {
   return (
     <AppShell>
       <div className="h-full overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto px-8 py-8 space-y-6">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
           
           {/* Header & Meta */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -170,34 +170,34 @@ function SprintPage() {
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
                 <Activity className="size-3.5 text-fuchsia-400" /> Project Style Cycle
               </div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-semibold text-slate-50 tracking-tight">
                   {selectedSprint ? selectedSprint.name : sprint.name}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30">
                   {selectedSprint ? (selectedSprint.style || "Agile") : (sprint.style || "Agile")}
                 </span>
               </div>
-              <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-slate-400">
                 <span className="flex items-center gap-1.5">
-                  <Clock className="size-4 text-fuchsia-400" />
+                  <Clock className="size-4 text-fuchsia-400 shrink-0" />
                   <span className="text-slate-200 font-medium">Time Remaining:</span> {daysRemaining} days left (Ends {endDateStr})
                 </span>
-                <span className="text-slate-600">•</span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
                 <span className="flex items-center gap-1.5">
-                  <Calendar className="size-4 text-slate-500" />
+                  <Calendar className="size-4 text-slate-500 shrink-0" />
                   <span>Timeline:</span> {startDateStr} – {endDateStr}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 flex-wrap sm:flex-nowrap">
               <button
                 onClick={() => {
                   setShowHistory(!showHistory);
                   setSelectedSprint(null);
                 }}
-                className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-md text-xs font-medium border transition ${
+                className={`inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md text-xs font-medium border transition shrink-0 flex-1 sm:flex-none ${
                   showHistory
                     ? "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30"
                     : "bg-slate-800 text-slate-300 border-slate-800 hover:bg-slate-700"
@@ -208,16 +208,16 @@ function SprintPage() {
               {!isStakeholder && (
                 <Link
                   to="/sprint-config"
-                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition"
+                  className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition shrink-0 flex-1 sm:flex-none"
                 >
                   <Settings className="size-3.5" /> Configure Model
                 </Link>
               )}
               <Link
                 to="/board"
-                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition"
+                className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition shrink-0 w-full sm:w-auto"
               >
-                <KanbanSquare className="size-3.5" /> Go to Sprint Board <ArrowRight className="size-3.5" />
+                <KanbanSquare className="size-3.5" /> Go to Board <ArrowRight className="size-3.5" />
               </Link>
             </div>
           </div>

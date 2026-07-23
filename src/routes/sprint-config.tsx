@@ -330,18 +330,18 @@ function SprintConfigPage() {
   return (
     <AppShell>
       <div className="h-full overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto px-8 py-8 space-y-6">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
           
           {/* Breadcrumbs & Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <Sparkles className="size-3.5 text-fuchsia-400" /> Sprint Management
               </div>
-              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-50 tracking-tight">
                 {sprint ? sprint.name : "Configure New Sprint"}
               </h1>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
                 {sprint 
                   ? `Running a ${sprint.style.toUpperCase()} sprint for ${sprint.durationDays} day${sprint.durationDays !== 1 ? 's' : ''}` 
                   : "Initialize your deliverables, sprint duration, and delivery methodologies."}
@@ -349,14 +349,14 @@ function SprintConfigPage() {
             </div>
 
             {sprint && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full md:w-auto">
                 <button
                   onClick={handleStartEditSprint}
-                  className="h-9 px-4 rounded-md bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition"
+                  className="h-9 px-3.5 rounded-md bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition shrink-0"
                 >
                   Edit Sprint
                 </button>
-                <div className="text-right">
+                <div className="text-left sm:text-right flex-1 sm:flex-initial">
                   <div className="text-[10px] text-slate-500">Deployment Status</div>
                   <div className="text-xs font-semibold text-slate-300">
                     {activeSprintMetrics?.completedTasks ?? 0}/{activeSprintMetrics?.totalTasks ?? 0} tasks deployed
@@ -368,7 +368,7 @@ function SprintConfigPage() {
                     ((activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)) ||
                     ((activeSprintMetrics?.totalDeliverables ?? 0) > 0 && (activeSprintMetrics?.completedDeliverables ?? 0) < (activeSprintMetrics?.totalDeliverables ?? 0))
                   }
-                  className={`h-9 px-4 rounded-md text-xs font-semibold transition ${
+                  className={`h-9 px-3.5 rounded-md text-xs font-semibold transition shrink-0 ${
                     ((activeSprintMetrics?.totalTasks ?? 0) > 0 && (activeSprintMetrics?.completedTasks ?? 0) < (activeSprintMetrics?.totalTasks ?? 0)) ||
                     ((activeSprintMetrics?.totalDeliverables ?? 0) > 0 && (activeSprintMetrics?.completedDeliverables ?? 0) < (activeSprintMetrics?.totalDeliverables ?? 0))
                       ? "bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed"

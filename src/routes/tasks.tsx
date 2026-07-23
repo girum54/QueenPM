@@ -216,24 +216,24 @@ function TasksPage() {
   return (
     <AppShell>
       <div className="h-full overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto px-8 py-7 space-y-6">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-8 py-4 sm:py-7 space-y-4 sm:space-y-6">
 
           {/* Header */}
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <span className={`size-1.5 rounded-full bg-gradient-to-br ${activeProject?.color} shrink-0`} />
                 {activeProject?.name} Tasks
               </div>
-              <h1 className="text-3xl font-semibold text-slate-50 tracking-tight">Project Tasks Explorer</h1>
-              <p className="text-sm text-slate-400 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-50 tracking-tight">Project Tasks Explorer</h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
                 {stats.total} total items (including nested subtasks) · {stats.done} completed
               </p>
             </div>
             {!isStakeholder && (
               <button
                 onClick={() => { setNewParentId(null); setIsNewTaskOpen(true); }}
-                className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center gap-2 transition"
+                className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white shadow-lg shadow-fuchsia-500/20 inline-flex items-center justify-center gap-2 transition w-full sm:w-auto"
               >
                 <Plus className="size-4" /> Create Task
               </button>
@@ -241,16 +241,16 @@ function TasksPage() {
           </div>
 
           {/* Stat chips */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
             {[
               { label: "Total Project Tasks", value: stats.total, color: "text-slate-200" },
               { label: "Completed", value: stats.done, color: "text-slate-500" },
               { label: "Active Execution", value: stats.active, color: "text-slate-300" },
               { label: "Urgent Incidents", value: stats.urgent, color: "text-fuchsia-400" },
             ].map((s) => (
-              <div key={s.label} className={`rounded-xl px-4 py-3 flex items-center gap-3 bg-slate-900/40 border border-slate-900`}>
-                <span className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</span>
-                <span className="text-xs text-slate-500 font-medium">{s.label}</span>
+              <div key={s.label} className={`rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-2.5 sm:gap-3 bg-slate-900/40 border border-slate-900`}>
+                <span className={`text-xl sm:text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</span>
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium leading-tight">{s.label}</span>
               </div>
             ))}
           </div>
@@ -258,7 +258,7 @@ function TasksPage() {
           {/* Filters & Controls */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Search */}
-            <div className="flex items-center gap-2 px-3 h-8 rounded-lg bg-slate-905/60 border border-slate-800/80 text-xs text-slate-300 w-56">
+            <div className="flex items-center gap-2 px-3 h-8 rounded-lg bg-slate-905/60 border border-slate-800/80 text-xs text-slate-300 w-full sm:w-56">
               <Search className="size-3.5 text-slate-500 shrink-0" />
               <input
                 value={query}
@@ -275,7 +275,7 @@ function TasksPage() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as ColumnId | "all")}
-              className="h-8 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer"
+              className="h-8 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="all">All Statuses</option>
               {(["new", "active", "staging", "deployed"] as ColumnId[]).map((c) => (
@@ -287,7 +287,7 @@ function TasksPage() {
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value as Priority | "all")}
-              className="h-8 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer"
+              className="h-8 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="all">All Priorities</option>
               {(["urgent", "high", "medium", "low"] as Priority[]).map((p) => (
@@ -295,16 +295,16 @@ function TasksPage() {
               ))}
             </select>
 
-            <div className="h-5 w-px bg-slate-850 mx-1" />
+            <div className="h-5 w-px bg-slate-850 mx-1 hidden sm:block" />
 
             {/* Group by */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <ArrowUpDown className="size-3" /> Group:
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap overflow-x-auto pb-1 sm:pb-0 max-w-full">
+              <ArrowUpDown className="size-3 shrink-0" /> <span className="shrink-0">Group:</span>
               {(["none", "sprint", "status", "priority"] as GroupBy[]).map((g) => (
                 <button
                   key={g}
                   onClick={() => setGroupBy(g)}
-                  className={`h-7 px-2.5 rounded-md font-medium capitalize transition ${
+                  className={`h-7 px-2.5 rounded-md font-medium capitalize transition shrink-0 ${
                     groupBy === g ? "bg-slate-800 text-slate-100" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
                   }`}
                 >
@@ -313,13 +313,13 @@ function TasksPage() {
               ))}
             </div>
 
-            <div className="h-5 w-px bg-slate-850 mx-1" />
+            <div className="h-5 w-px bg-slate-850 mx-1 hidden sm:block" />
 
             {/* Sort */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="h-8 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer"
+              className="h-8 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 outline-none cursor-pointer flex-1 sm:flex-initial"
             >
               <option value="created">Sort: Newest</option>
               <option value="priority">Sort: Priority</option>
@@ -327,7 +327,7 @@ function TasksPage() {
               <option value="sprint">Sort: Sprint</option>
             </select>
 
-            <span className="ml-auto text-xs text-slate-600 tabular-nums">{filteredRoots.length} root tasks</span>
+            <span className="w-full sm:w-auto text-right sm:ml-auto text-xs text-slate-600 tabular-nums">{filteredRoots.length} root tasks</span>
           </div>
 
           {/* Task Groups */}
@@ -529,7 +529,7 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
 
         {/* Add Subtask actions */}
         {!isStakeholder && (
-          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+          <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 flex-wrap">
             <select 
               value={task.sprintId || ""}
               onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
