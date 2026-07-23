@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import {
   Activity, TrendingUp, Bot, Users, ArrowRight, Sparkles, Crown,
-  KanbanSquare, MessageSquare, Gauge, Timer, CheckCircle2, History,
+  KanbanSquare, MessageSquare, Timer, CheckCircle2, History, Circle, Settings,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore, COLUMN_META, type ColumnId } from "@/lib/queen-store";
@@ -25,6 +25,7 @@ function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [allSprints, setAllSprints] = useState<any[]>([]);
+  const [activeSprint, setActiveSprint] = useState<any | null>(null);
 
   const activeProject = projectTabs.find((p) => p.id === activeProjectId) || projectTabs[0];
 
@@ -59,6 +60,8 @@ function DashboardPage() {
             };
           })
         );
+        const active = formattedSprints.find(s => s.isActive) ?? null;
+        setActiveSprint(active);
         setAllSprints(formattedSprints.filter(s => !s.isActive));
       } catch (e) {
         console.error("Failed to load sprint history:", e);
@@ -138,6 +141,97 @@ function DashboardPage() {
             <AutomationDonut ai={metrics.aiCount} slash={metrics.slashCount} ui={metrics.uiCount} ratio={metrics.autoRatio} />
             <CompletedSprintsCard sprints={allSprints} tasks={tasks} />
           </div>
+
+          {/* Active Sprint Panel */}
+          {activeSprint ? (
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-semibold text-slate-100">{activeSprint.name}</h3>
+                    {activeSprint.style && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30 uppercase tracking-wide">
+                        {activeSprint.style}
+                      </span>
+                    )}
+                  </div>
+                  {activeSprint.goal && (
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">{activeSprint.goal}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    to="/sprint"
+                    className="inline-flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-200 transition"
+                  >
+                    View sprint <ArrowRight className="size-3" />
+                  </Link>
+                  <Link
+                    to="/sprint-config"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] font-medium text-slate-300 transition"
+                  >
+                    <Settings className="size-3" /> Manage
+                  </Link>
+                </div>
+              </div>
+
+              {activeSprint.deliverables.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {activeSprint.deliverables.map((d: any) => (
+                    <div
+                      key={d.id}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-xs transition ${
+                        d.done
+                          ? "bg-slate-950/60 border-slate-800/40 text-slate-500"
+                          : "bg-slate-950/20 border-slate-800/80 text-slate-200"
+                      }`}
+                    >
+                      {d.done
+                        ? <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
+                        : <Circle className="size-3.5 text-slate-600 shrink-0" />}
+                      <span className={`truncate ${d.done ? "line-through" : ""}`}>{d.text}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">No deliverables for this sprint.</p>
+              )}
+
+              {/* Progress bar */}
+              {activeSprint.deliverables.length > 0 && (() => {
+                const done = activeSprint.deliverables.filter((d: any) => d.done).length;
+                const total = activeSprint.deliverables.length;
+                const pct = Math.round((done / total) * 100);
+                return (
+                  <div className="mt-4 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span>{done}/{total} deliverables complete</span>
+                      <span className="font-semibold text-fuchsia-400">{pct}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-800/60 bg-slate-900/20 p-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-slate-400">No active sprint</p>
+                <p className="text-xs text-slate-600 mt-0.5">Start a sprint to track deliverables and progress here.</p>
+              </div>
+              <Link
+                to="/sprint-config"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-fuchsia-500/10 ring-1 ring-fuchsia-500/30 text-xs font-semibold text-fuchsia-300 hover:bg-fuchsia-500/20 transition shrink-0"
+              >
+                New Sprint <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          )}
 
           {/* Sprint health + Efficiency */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
