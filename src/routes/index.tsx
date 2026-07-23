@@ -399,14 +399,16 @@ function CompletedSprintsCard({ sprints, activeSprint, tasks }: { sprints: any[]
       </div>
       
       {/* Current sprint compact display */}
-      {activeSprint && activeSprint.deliverables.length > 0 && (() => {
-        const done = activeSprint.deliverables.filter((d: any) => d.done).length;
-        const total = activeSprint.deliverables.length;
+      {activeSprint && (() => {
+        const sprintTasks = tasks.filter(t => t.sprintId === activeSprint.id);
+        const completed = sprintTasks.filter(t => t.column === "deployed").length;
+        const total = sprintTasks.length;
+        if (total === 0) return null;
         return (
           <div className="mt-3 pt-3 border-t border-slate-800/50">
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-fuchsia-300 font-medium truncate max-w-[100px]">{activeSprint.name}</span>
-              <span className="text-slate-400">{done}/{total} complete</span>
+              <span className="text-slate-400">{completed}/{total} tasks</span>
             </div>
           </div>
         );
