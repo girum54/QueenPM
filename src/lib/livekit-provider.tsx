@@ -59,10 +59,11 @@ export interface LivekitContextType {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_BASE_URL =
-  typeof window !== 'undefined'
-    ? (import.meta.env.VITE_API_URL ?? 'http://localhost:3001')
-    : (process.env.VITE_API_URL ?? 'http://localhost:3001');
+const RAW_API_URL = typeof window !== 'undefined'
+  ? (import.meta.env.VITE_API_URL ?? 'http://localhost:3001')
+  : (process.env.VITE_API_URL ?? 'http://localhost:3001');
+
+const API_BASE_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, '')}/api`;
 
 const ROOM_OPTIONS: RoomOptions = {
   adaptiveStream: true,

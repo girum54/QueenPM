@@ -42,7 +42,8 @@ export function QueenDjView() {
   const { channels, activeChannelId, queendjPanelOpen, setQueendjPanelOpen } = useStore();
   const playlistChannelId = activeChannelId || channels[0]?.id || 'c4452bb1-4694-415d-8919-e48de2cfaed2';
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+  const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+  const API_BASE_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, '')}/api`;
 
   // ── State ────────────────────────────────────────────────────────────────
   const [state, setState] = useState<QueenDjState>({

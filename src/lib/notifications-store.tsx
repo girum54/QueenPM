@@ -28,10 +28,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     // Load initial notifications
     notificationsApi.getAll().then((data) => setNotifications(data)).catch(console.error);
 
-    const API_BASE_URL =
+    const RAW_API_URL =
       typeof window !== "undefined"
         ? (import.meta.env.VITE_API_URL || "http://localhost:3001")
         : "http://localhost:3001";
+    const API_BASE_URL = RAW_API_URL.endsWith("/api") ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, "")}/api`;
 
     const eventSource = new EventSource(`${API_BASE_URL}/notifications/stream`, {
       withCredentials: true,

@@ -80,27 +80,29 @@ export function MusicView() {
     }
   }, [status, offlineMode, enableOfflineMode]);
 
+  if (status === "error") {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-rose-400 text-sm font-semibold">Failed to connect to LiveKit</p>
+          <p className="text-slate-500 text-xs">Ensure your LiveKit server is running.</p>
+          <button
+            onClick={enableOfflineMode}
+            className="mt-4 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition"
+          >
+            Test UI in Offline Mode
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "connecting") {
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-3">
-          {status === "error" ? (
-            <>
-              <p className="text-rose-400 text-sm font-semibold">Failed to connect to LiveKit</p>
-              <p className="text-slate-500 text-xs">Ensure your LiveKit server is running.</p>
-              <button
-                onClick={enableOfflineMode}
-                className="mt-4 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition"
-              >
-                Test UI in Offline Mode
-              </button>
-            </>
-          ) : (
-            <>
-              <Disc3 className="size-8 text-fuchsia-400 animate-spin [animation-duration:3s]" />
-              <p className="text-slate-400 text-sm">Joining Music Lounge…</p>
-            </>
-          )}
+          <Disc3 className="size-8 text-fuchsia-400 animate-spin [animation-duration:3s]" />
+          <p className="text-slate-400 text-sm">Joining Music Lounge…</p>
         </div>
       </div>
     );
@@ -143,7 +145,8 @@ function ConnectedMusicView() {
   const { channels, activeChannelId } = useStore();
   const playlistChannelId = activeChannelId || channels[0]?.id || 'c4452bb1-4694-415d-8919-e48de2cfaed2';
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+  const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+  const API_BASE_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, '')}/api`;
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);

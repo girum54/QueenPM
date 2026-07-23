@@ -10,8 +10,8 @@ import * as express from 'express';
 // inside a try/catch so the app can still start without docs.
 
 async function bootstrap() {
-  // Disable default NestJS body parser so Better Auth can process raw requests
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+  app.setGlobalPrefix('api');
 
   // Reflect the requesting origin back — required for cross-origin requests
   // with credentials (cookies) from any team member's machine.

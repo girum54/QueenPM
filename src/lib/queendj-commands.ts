@@ -7,7 +7,8 @@
 import { useEffect } from 'react';
 import type { ParsedQueenDjCommand } from './chat-commands';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+const API_BASE_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, '')}/api`;
 
 export function useQueenDjCommandHandler() {
   useEffect(() => {
