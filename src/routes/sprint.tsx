@@ -1,26 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Zap, Calendar, Clock, Target, ArrowRight, KanbanSquare,
-  AlertCircle, CheckCircle2, TrendingUp, ShieldCheck, Settings,
-  Sparkles, Activity, ArrowUpRight, History
+  Calendar, Clock, KanbanSquare, CheckCircle2,
+  ArrowRight, History, Settings, Target, ArrowUpRight,
+  Circle
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useStore, COLUMN_META } from "@/lib/queen-store";
 import { useAuth } from "@/lib/auth-store";
+import { sprintsApi } from "@/lib/api/queen.api";
 
 export const Route = createFileRoute("/sprint")({
   head: () => ({
     meta: [
       { title: "Active Sprint — Queen PM" },
-      { name: "description", content: "Active sprint dashboard tracking target deliverables, velocity and health." },
+      { name: "description", content: "Track your active sprint progress, tasks, and deliverables." },
     ],
   }),
   component: SprintPage,
 });
-
-import { useEffect } from "react";
-import { sprintsApi } from "@/lib/api/queen.api";
 
 interface Sprint {
   id: string;
@@ -55,11 +53,11 @@ function SprintPage() {
             id: activeSprint.id,
             name: activeSprint.name,
             style: activeSprint.style || "",
-            durationDays: activeSprint.durationWeeks,  // DB column stores days
+            durationDays: activeSprint.durationWeeks,
             startDate: activeSprint.startDate,
             goal: activeSprint.goal || "",
             deliverables: (activeSprint.deliverables || []).map(d => ({ id: d.id, text: d.text, done: d.done })),
-            isActive: activeSprint.isActive
+            isActive: activeSprint.isActive,
           });
         } else {
           setSprint(null);
@@ -79,23 +77,23 @@ function SprintPage() {
     async function fetchAllSprints() {
       try {
         const sprints = await sprintsApi.getByProject(activeProjectId);
-        const formattedSprints = await Promise.all(
+        const formatted = await Promise.all(
           sprints.map(async (s) => {
             const deliverables = await sprintsApi.getDeliverables(s.id);
             return {
               id: s.id,
               name: s.name,
               style: s.style || "",
-              durationDays: s.durationWeeks,  // DB column stores days
+              durationDays: s.durationWeeks,
               startDate: s.startDate,
               goal: s.goal || "",
               deliverables: deliverables.map(d => ({ id: d.id, text: d.text, done: d.done })),
               isActive: s.isActive,
-              completedAt: s.completedAt
+              completedAt: s.completedAt,
             };
           })
         );
-        setAllSprints(formattedSprints.filter(s => !s.isActive));
+        setAllSprints(formatted.filter(s => !s.isActive));
       } catch (e) {
         console.error("Failed to load sprint history:", e);
       }
@@ -103,23 +101,18 @@ function SprintPage() {
     fetchAllSprints();
   }, [activeProjectId]);
 
-  // Filter tasks that are actively linked to this sprint
   const sprintTasks = tasks.filter(t => t.sprintId === sprint?.id);
-
-  // Stats calculation
   const completedTasks = sprintTasks.filter(t => t.column === "deployed").length;
   const totalTasks = sprintTasks.length;
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  // Velocity trailing average mock
-  const velocityValues = [32, 45, 38, 48, 52, 49];
-  const maxVelocity = Math.max(...velocityValues);
+  const completedDeliverables = sprint?.deliverables.filter(d => d.done).length ?? 0;
+  const totalDeliverables = sprint?.deliverables.length ?? 0;
 
   if (loading) {
     return (
       <AppShell>
         <div className="flex h-full items-center justify-center bg-slate-950">
-          <div className="text-slate-400 text-sm animate-pulse">Analyzing active sprint metrics...</div>
+          <div className="text-slate-400 text-sm animate-pulse">Loading sprint...</div>
         </div>
       </AppShell>
     );
@@ -135,15 +128,15 @@ function SprintPage() {
           <h2 className="text-2xl font-bold text-slate-100">No Active Sprint</h2>
           <p className="text-slate-400 max-w-sm mt-2 text-sm leading-relaxed">
             {isStakeholder
-              ? "There is no active sprint initialized for this project. Sprints can be started by project managers or developers."
-              : "There is no active sprint initialized for this project. Start by configuring specifications and deliverables."}
+              ? "No sprint is currently active for this project."
+              : "No sprint is active. Create one to start tracking tasks and deliverables."}
           </p>
           {!isStakeholder && (
             <Link
               to="/sprint-config"
               className="mt-6 inline-flex items-center gap-2 h-10 px-5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white transition shadow-lg shadow-fuchsia-500/20"
             >
-              Configure & Start Sprint <ArrowRight className="size-4" />
+              New Sprint <ArrowRight className="size-4" />
             </Link>
           )}
         </div>
@@ -151,7 +144,7 @@ function SprintPage() {
     );
   }
 
-  // Calculate days remaining
+  // Timeline calculations
   const start = new Date(sprint.startDate).getTime();
   const end = start + sprint.durationDays * 24 * 60 * 60 * 1000;
   const remainingMs = end - Date.now();
@@ -162,407 +155,287 @@ function SprintPage() {
   return (
     <AppShell>
       <div className="h-full overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
-          
-          {/* Header & Meta */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-6">
+
+          {/* ── Header ── */}
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                <Activity className="size-3.5 text-fuchsia-400" /> Project Style Cycle
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-semibold text-slate-50 tracking-tight">
-                  {selectedSprint ? selectedSprint.name : sprint.name}
+                  {showHistory && selectedSprint ? selectedSprint.name : sprint.name}
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                  {selectedSprint ? (selectedSprint.style || "Agile") : (sprint.style || "Agile")}
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-fuchsia-500/15 text-fuchsia-300 ring-1 ring-fuchsia-500/30 uppercase tracking-wide">
+                  {sprint.style || "Agile"}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-slate-400">
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
                 <span className="flex items-center gap-1.5">
-                  <Clock className="size-4 text-fuchsia-400 shrink-0" />
-                  <span className="text-slate-200 font-medium">Time Remaining:</span> {daysRemaining} days left (Ends {endDateStr})
+                  <Clock className="size-3.5 text-slate-500 shrink-0" />
+                  {daysRemaining > 0 ? `${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining` : "Sprint ended"}
                 </span>
-                <span className="text-slate-600 hidden sm:inline">•</span>
+                <span className="text-slate-700">·</span>
                 <span className="flex items-center gap-1.5">
-                  <Calendar className="size-4 text-slate-500 shrink-0" />
-                  <span>Timeline:</span> {startDateStr} – {endDateStr}
+                  <Calendar className="size-3.5 text-slate-500 shrink-0" />
+                  {startDateStr} – {endDateStr}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 flex-wrap sm:flex-nowrap">
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
-                onClick={() => {
-                  setShowHistory(!showHistory);
-                  setSelectedSprint(null);
-                }}
-                className={`inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md text-xs font-medium border transition shrink-0 flex-1 sm:flex-none ${
+                onClick={() => { setShowHistory(!showHistory); setSelectedSprint(null); }}
+                className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-md text-xs font-medium border transition ${
                   showHistory
                     ? "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30"
                     : "bg-slate-800 text-slate-300 border-slate-800 hover:bg-slate-700"
                 }`}
               >
-                <History className="size-3.5" /> {showHistory ? "View Active Sprint" : "Sprint History"}
+                <History className="size-3.5" />
+                {showHistory ? "Active Sprint" : "History"}
               </button>
               {!isStakeholder && (
                 <Link
                   to="/sprint-config"
-                  className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition shrink-0 flex-1 sm:flex-none"
+                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-800 hover:border-slate-700 transition"
                 >
-                  <Settings className="size-3.5" /> Configure Model
+                  <Settings className="size-3.5" /> Manage Sprint
                 </Link>
               )}
               <Link
                 to="/board"
-                className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 transition shrink-0 w-full sm:w-auto"
+                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-md bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-xs font-semibold text-white shadow-lg shadow-fuchsia-500/25 transition"
               >
                 <KanbanSquare className="size-3.5" /> Go to Board <ArrowRight className="size-3.5" />
               </Link>
             </div>
           </div>
 
-          {/* Sprint History View */}
+          {/* ── History View ── */}
           {showHistory ? (
-            <div className="space-y-6">
-              <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-6">
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
                 <h3 className="text-sm font-semibold text-slate-100 mb-4">Completed Sprints</h3>
                 {allSprints.length === 0 ? (
-                  <p className="text-sm text-slate-500">No completed sprints found.</p>
+                  <p className="text-sm text-slate-500">No completed sprints yet.</p>
                 ) : (
-                  <div className="space-y-3">
-                    {allSprints.map((s) => (
-                      <div
-                        key={s.id}
-                        onClick={() => setSelectedSprint(s)}
-                        className={`p-4 rounded-lg border cursor-pointer transition ${
-                          selectedSprint?.id === s.id
-                            ? "bg-fuchsia-500/10 border-fuchsia-500/30"
-                            : "bg-slate-950/40 border-slate-800/60 hover:border-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-semibold text-slate-200">{s.name}</h4>
-                          {s.completedAt && (
-                            <span className="text-[10px] text-slate-500">
-                              Completed {new Date(s.completedAt).toLocaleDateString()}
-                            </span>
-                          )}
+                  <div className="space-y-2">
+                    {allSprints.map((s) => {
+                      const sTasks = tasks.filter(t => t.sprintId === s.id);
+                      const sCompleted = sTasks.filter(t => t.column === "deployed").length;
+                      const sProgress = sTasks.length > 0 ? Math.round((sCompleted / sTasks.length) * 100) : 0;
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedSprint(selectedSprint?.id === s.id ? null : s)}
+                          className={`p-4 rounded-lg border cursor-pointer transition ${
+                            selectedSprint?.id === s.id
+                              ? "bg-fuchsia-500/10 border-fuchsia-500/30"
+                              : "bg-slate-950/40 border-slate-800/60 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-semibold text-slate-200 truncate">{s.name}</h4>
+                              {s.goal && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{s.goal}</p>}
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 text-xs">
+                              <span className="text-slate-400">{sProgress}%</span>
+                              {s.completedAt && (
+                                <span className="text-[10px] text-slate-500">
+                                  {new Date(s.completedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-400 line-clamp-2">{s.goal || "No goal defined"}</p>
-                        <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
-                          <span>{s.durationDays} day{ s.durationDays !== 1 ? 's' : ''}</span>
-                          <span>•</span>
-                          <span>{s.deliverables.length} deliverables</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
+              {/* Selected sprint detail */}
               {selectedSprint && (
-                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-slate-100">Sprint Details: {selectedSprint.name}</h3>
-                    <button
-                      onClick={() => setSelectedSprint(null)}
-                      className="text-xs text-slate-400 hover:text-slate-200 transition"
-                    >
-                      Close
-                    </button>
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-100">{selectedSprint.name}</h3>
+                    <button onClick={() => setSelectedSprint(null)} className="text-xs text-slate-500 hover:text-slate-300 transition">Dismiss</button>
                   </div>
-                  <div className="space-y-4">
+
+                  {selectedSprint.goal && (
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Goal</label>
-                      <p className="text-sm text-slate-200 mt-1">{selectedSprint.goal || "No goal defined"}</p>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">Goal</div>
+                      <p className="text-sm text-slate-200">{selectedSprint.goal}</p>
                     </div>
+                  )}
+
+                  {selectedSprint.deliverables.length > 0 && (
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Deliverables</label>
-                      <div className="mt-2 space-y-2">
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Deliverables</div>
+                      <div className="space-y-1.5">
                         {selectedSprint.deliverables.map((d) => (
                           <div key={d.id} className="flex items-center gap-2 text-sm">
-                            <div className={`size-4 rounded border ${d.done ? "bg-emerald-500/20 border-emerald-500/50" : "border-slate-700"}`}>
-                              {d.done && <CheckCircle2 className="size-3 text-emerald-400" />}
-                            </div>
-                            <span className={d.done ? "text-slate-300 line-through" : "text-slate-200"}>{d.text}</span>
+                            {d.done
+                              ? <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                              : <Circle className="size-4 text-slate-600 shrink-0" />}
+                            <span className={d.done ? "text-slate-400 line-through" : "text-slate-200"}>{d.text}</span>
                           </div>
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  {tasks.filter(t => t.sprintId === selectedSprint.id).length > 0 && (
                     <div>
-                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Sprint Tasks</label>
-                      <div className="mt-2 space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                        {tasks.filter(t => t.sprintId === selectedSprint.id).length === 0 ? (
-                          <p className="text-xs text-slate-500">No tasks in this sprint</p>
-                        ) : (
-                          tasks.filter(t => t.sprintId === selectedSprint.id).map((t) => {
-                            const colMeta = COLUMN_META[t.column];
-                            return (
-                              <div key={t.id} className="flex items-center justify-between p-2 rounded bg-slate-950/40 border border-slate-800/40 text-xs">
-                                <span className="text-slate-300 truncate font-medium max-w-[250px]" title={t.title}>
-                                  {t.title}
-                                </span>
-                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex items-center gap-1 ${colMeta.accent}`}>
-                                  <span className={`size-1 rounded-full ${colMeta.dot}`} />
-                                  {colMeta.label}
-                                </span>
-                              </div>
-                            );
-                          })
-                        )}
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Tasks</div>
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                        {tasks.filter(t => t.sprintId === selectedSprint.id).map((t) => {
+                          const colMeta = COLUMN_META[t.column];
+                          return (
+                            <div key={t.id} className="flex items-center justify-between p-2 rounded bg-slate-950/40 border border-slate-800/40 text-xs">
+                              <span className="text-slate-300 truncate font-medium max-w-[260px]">{t.title}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase flex items-center gap-1 ${colMeta.accent}`}>
+                                <span className={`size-1 rounded-full ${colMeta.dot}`} />
+                                {colMeta.label}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
           ) : (
             <>
-          {/* Top Section: Board Integration & Deliverable Widget */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            
-            {/* Deliverable Widget */}
-            <div className="lg:col-span-2 rounded-xl border-2 border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/5 via-slate-900/60 to-violet-500/5 p-6 flex flex-col justify-between relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-fuchsia-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-              
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-9 rounded-lg bg-gradient-to-br from-fuchsia-500 to-violet-600 grid place-items-center shadow-md">
-                      <Target className="size-4 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-100">Target Deliverable</h3>
-                      <p className="text-[10px] text-slate-500">Core commitment for this sprint cycle</p>
-                    </div>
+              {/* ── Stats Row ── */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Task Progress */}
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4 flex flex-col gap-3">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Tasks</div>
+                  <div className="text-2xl font-bold text-slate-100 tabular-nums">{completedTasks}/{totalTasks}</div>
+                  <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500"
+                      style={{ width: `${progressPercent}%` }}
+                    />
                   </div>
-
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30`}>
-                    <span className="size-1.5 rounded-full bg-emerald-400" />
-                    On Track to Ship
-                  </span>
+                  <div className="text-xs text-slate-500">{progressPercent}% complete</div>
                 </div>
 
-                <p className="text-slate-200 text-sm leading-relaxed font-medium pl-1 bg-slate-950/20 p-3 rounded-lg border border-slate-800/40">
-                  "{sprint.goal || "No goals defined."}"
-                </p>
-              </div>
-
-              <div className="mt-5 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="size-3.5 text-fuchsia-400" />
-                  Verified by Queen PM Autonomous Quality Assurance
-                </span>
-                <span className="font-mono text-[10px] bg-slate-800/40 px-2 py-0.5 rounded text-slate-400">
-                  RE-Q3-04
-                </span>
-              </div>
-            </div>
-
-            {/* Linked Board Integration Panel */}
-            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                    <KanbanSquare className="size-4 text-fuchsia-400" /> Board Integration
-                  </h3>
-                  <span className="text-[10px] font-mono text-slate-500">Linked scope</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-3">
-                  This sprint tracks {totalTasks} tasks on the main Board. Changes to statuses sync in real-time.
-                </p>
-
-                <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
-                  {sprintTasks.map((t) => {
-                    const colMeta = COLUMN_META[t.column];
-                    return (
-                      <div key={t.id} className="flex items-center justify-between p-2 rounded bg-slate-950/40 border border-slate-800/40 text-xs">
-                        <span className="text-slate-300 truncate font-medium max-w-[170px]" title={t.title}>
-                          {t.title}
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex items-center gap-1 ${colMeta.accent}`}>
-                          <span className={`size-1 rounded-full ${colMeta.dot}`} />
-                          {colMeta.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Link
-                to="/board"
-                className="mt-4 w-full h-8 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 inline-flex items-center justify-center gap-1.5 transition border border-slate-800"
-              >
-                Go to Sprint Board <ArrowUpRight className="size-3.5" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Sprint Analytics Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* Progress Percentage & Velocity */}
-            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="size-8 rounded-md bg-fuchsia-500/10 ring-1 ring-fuchsia-500/30 grid place-items-center">
-                    <TrendingUp className="size-4 text-fuchsia-300" />
+                {/* Deliverables */}
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4 flex flex-col gap-3">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Deliverables</div>
+                  <div className="text-2xl font-bold text-slate-100 tabular-nums">{completedDeliverables}/{totalDeliverables}</div>
+                  <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+                      style={{ width: totalDeliverables > 0 ? `${Math.round((completedDeliverables / totalDeliverables) * 100)}%` : "0%" }}
+                    />
                   </div>
-                  <span className="text-2xl font-bold text-slate-100 tabular-nums">{progressPercent}%</span>
-                </div>
-                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Sprint Velocity / Progress</div>
-                <p className="text-xs text-slate-400 mt-1">
-                  {completedTasks} of {totalTasks} tasks deployed to production environment.
-                </p>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-fuchsia-500 to-violet-500 transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-500">
-                  <span>Start (June 7)</span>
-                  <span>Target (June 21)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Historical Sprint Summary */}
-            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="size-8 rounded-md bg-amber-500/10 ring-1 ring-amber-500/30 grid place-items-center">
-                    <History className="size-4 text-amber-300" />
+                  <div className="text-xs text-slate-500">
+                    {totalDeliverables > 0 ? `${Math.round((completedDeliverables / totalDeliverables) * 100)}% done` : "No deliverables"}
                   </div>
-                  <span className="text-2xl font-bold text-slate-100 tabular-nums">{allSprints.length}</span>
                 </div>
-                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Completed Sprints</div>
-                <p className="text-xs text-slate-400 mt-1">
-                  {allSprints.length > 0 ? `${allSprints.length} sprint${allSprints.length !== 1 ? 's' : ''} completed in this project` : "No completed sprints yet"}
-                </p>
+
+                {/* Days Remaining */}
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4 flex flex-col gap-3">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Time Left</div>
+                  <div className="text-2xl font-bold text-slate-100 tabular-nums">{daysRemaining}d</div>
+                  <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-sky-500 to-blue-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, Math.round(((sprint.durationDays - daysRemaining) / sprint.durationDays) * 100))}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-slate-500">of {sprint.durationDays} day{sprint.durationDays !== 1 ? "s" : ""}</div>
+                </div>
+
+                {/* Past Sprints */}
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4 flex flex-col gap-3">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Past Sprints</div>
+                  <div className="text-2xl font-bold text-slate-100 tabular-nums">{allSprints.length}</div>
+                  <div className="text-xs text-slate-500">
+                    {allSprints.length === 0 ? "First sprint" : `${allSprints.length} completed`}
+                  </div>
+                  {allSprints.length > 0 && (
+                    <button
+                      onClick={() => setShowHistory(true)}
+                      className="text-[10px] text-fuchsia-400 hover:text-fuchsia-300 text-left transition"
+                    >
+                      View history →
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-4 space-y-2">
-                {allSprints.length > 0 && (
-                  <div className="space-y-1.5">
-                    {allSprints.slice(0, 3).map((s) => {
-                      const sTasks = tasks.filter(t => t.sprintId === s.id);
-                      const sCompleted = sTasks.filter(t => t.column === "deployed").length;
-                      const sProgress = sTasks.length > 0 ? Math.round((sCompleted / sTasks.length) * 100) : 0;
-                      return (
-                        <div key={s.id} className="flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 truncate max-w-[100px]">{s.name}</span>
-                          <span className="text-slate-300 font-medium">{sProgress}%</span>
+              {/* ── Sprint Goal ── */}
+              {sprint.goal && (
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Sprint Goal</div>
+                  <p className="text-sm text-slate-200 leading-relaxed">{sprint.goal}</p>
+                </div>
+              )}
+
+              {/* ── Main Content: Deliverables + Tasks ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                {/* Deliverables Checklist */}
+                {totalDeliverables > 0 && (
+                  <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+                    <h3 className="text-sm font-semibold text-slate-100 mb-4 flex items-center gap-2">
+                      <CheckCircle2 className="size-4 text-fuchsia-400" /> Deliverables
+                    </h3>
+                    <div className="space-y-2">
+                      {sprint.deliverables.map((d) => (
+                        <div key={d.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-800/60 bg-slate-950/30 text-sm">
+                          {d.done
+                            ? <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                            : <Circle className="size-4 text-slate-600 shrink-0" />}
+                          <span className={d.done ? "text-slate-400 line-through" : "text-slate-200"}>{d.text}</span>
                         </div>
-                      );
-                    })}
-                    {allSprints.length > 3 && (
-                      <div className="text-[10px] text-slate-500 text-center">
-                        +{allSprints.length - 3} more
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
 
-            {/* Task Burn-down / Completion Estimate */}
-            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="size-8 rounded-md bg-sky-500/10 ring-1 ring-sky-500/30 grid place-items-center">
-                    <Clock className="size-4 text-sky-300" />
+                {/* Board Tasks */}
+                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                      <KanbanSquare className="size-4 text-fuchsia-400" /> Board Tasks
+                    </h3>
+                    <Link
+                      to="/board"
+                      className="text-[10px] text-fuchsia-400 hover:text-fuchsia-300 inline-flex items-center gap-1 transition"
+                    >
+                      Open Board <ArrowUpRight className="size-3" />
+                    </Link>
                   </div>
-                  <span className="text-2xl font-bold text-slate-100 tabular-nums">2.4 days</span>
+                  {sprintTasks.length === 0 ? (
+                    <p className="text-xs text-slate-500">No tasks assigned to this sprint yet.</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                      {sprintTasks.map((t) => {
+                        const colMeta = COLUMN_META[t.column];
+                        return (
+                          <div key={t.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/40 text-xs">
+                            <span className="text-slate-300 truncate font-medium max-w-[240px]" title={t.title}>{t.title}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase flex items-center gap-1 shrink-0 ${colMeta.accent}`}>
+                              <span className={`size-1 rounded-full ${colMeta.dot}`} />
+                              {colMeta.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Burn-down Estimate</div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Estimated time to complete remaining {totalTasks - completedTasks} scope items at current team pace.
-                </p>
-              </div>
 
-              {/* Sparkline-like burn-down mock */}
-              <div className="mt-4 flex items-end gap-1.5 h-12">
-                {velocityValues.map((v, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 rounded-sm bg-sky-500/30 transition-colors"
-                    style={{ height: `${(v / maxVelocity) * 100}%` }}
-                    title={`Day ${idx + 1}: ${v} remaining`}
-                  />
-                ))}
               </div>
-            </div>
-
-            {/* Deliverable Health Status */}
-            <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="size-8 rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/30 grid place-items-center">
-                    <CheckCircle2 className="size-4 text-emerald-300" />
-                  </div>
-                  <span className="text-sm font-semibold text-emerald-400">Excellent (94%)</span>
-                </div>
-                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Deliverable Health Status</div>
-                <p className="text-xs text-slate-400 mt-1">
-                  AI Risk assessment reports low likelihood of delays. Pipeline automation is at peak ratio.
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col gap-1.5 text-[11px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Quality Gate approval:</span>
-                  <span className="text-emerald-400 font-medium">Passed</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Blocking Incidents:</span>
-                  <span className="text-slate-300 font-medium">0 active</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Under the hood QA and logs panel */}
-          <div className="rounded-xl border border-slate-800/80 bg-slate-900/20 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                  <Sparkles className="size-4 text-fuchsia-400" /> Queen PM Cycle Diagnostics
-                </h3>
-                <p className="text-xs text-slate-500">Predictive timeline simulations and continuous optimization insights</p>
-              </div>
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400">
-                Live Analysis
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80 space-y-2">
-                <div className="text-xs font-semibold text-fuchsia-300 flex items-center gap-1.5">
-                  <Zap className="size-3.5" /> Optimal Resource Allocation
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Queen PM advises shifting <span className="text-slate-200">Daniel Park</span> to "Fix race condition in checkout webhook" to maximize the completion probability of the Payments v2 deliverable.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80 space-y-2">
-                <div className="text-xs font-semibold text-sky-300 flex items-center gap-1.5">
-                  <AlertCircle className="size-3.5" /> Automated Branch Health
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  No merge conflicts detected across 4 active pull requests tied to this sprint. Continuous deployment test suites passing.
-                </p>
-              </div>
-            </div>
-          </div>
-          </>
+            </>
           )}
 
         </div>
