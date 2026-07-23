@@ -74,7 +74,7 @@ export function StakeholderShell({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-slate-950 flex items-center justify-center">
+      <div className="h-screen w-screen chess-pattern-subtle-dark flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
           <img src="/logo.png" alt="Queen PM Logo" className="size-20 object-contain animate-pulse" />
           <div className="text-center">
