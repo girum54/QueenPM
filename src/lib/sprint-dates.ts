@@ -26,10 +26,10 @@ export function formatDisplayDate(value: string): string {
 }
 
 /** Sprint end date as YYYY-MM-DD (inclusive last day of sprint) */
-export function getSprintEndDate(startDate: string | Date, durationWeeks: number): string {
+export function getSprintEndDate(startDate: string | Date, durationDays: number): string {
   const start = typeof startDate === "string" ? parseDateString(startDate.slice(0, 10)) : startDate;
   if (!start) return "";
   const end = new Date(start);
-  end.setDate(end.getDate() + durationWeeks * 7);
+  end.setDate(end.getDate() + durationDays);
   return toDateString(end);
 }

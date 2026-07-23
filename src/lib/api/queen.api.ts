@@ -89,7 +89,7 @@ export interface ApiSprint {
   name: string;
   goal: string | null;
   style: string | null;
-  durationWeeks: number;
+  durationWeeks: number;  // DB column — value is now days, not weeks
   startDate: string;
   isActive: boolean;
   completedAt: string | null;
@@ -116,7 +116,7 @@ export const sprintsApi = {
     name: string;
     goal?: string;
     style?: string;
-    durationWeeks: number;
+    durationWeeks: number;  // value is in days — field name kept for backend compat
     startDate: string;
   }) => request<ApiSprint>("/sprints", { method: "POST", body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Omit<ApiSprint, "id" | "projectId" | "createdAt">>) =>

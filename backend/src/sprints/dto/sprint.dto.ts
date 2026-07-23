@@ -19,7 +19,7 @@ export class CreateSprintDto {
 
   @IsInt()
   @Min(1)
-  @Max(12)
+  @Max(365)
   durationWeeks: number;
 
   @IsDateString()
@@ -41,7 +41,7 @@ export class UpdateSprintDto {
 
   @IsInt()
   @Min(1)
-  @Max(12)
+  @Max(365)
   @IsOptional()
   durationWeeks?: number;
 
