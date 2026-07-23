@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Crown, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
-import { ChessQueen } from "@/components/ChessQueen";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -53,9 +52,9 @@ function LoginPage() {
     return (
       <div className="min-h-screen chess-pattern-subtle-dark flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
-          <ChessQueen size={64} animated={true} className="text-white" />
+          <img src="/logo.png" alt="Queen PM Logo" className="size-20 object-contain animate-pulse" />
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">QueenPM</h1>
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">QueenPM</h1>
             <p className="text-sm text-gray-400">Unifying your team</p>
           </div>
           <Loader2 className="size-6 text-white animate-spin" />
@@ -72,8 +71,8 @@ function LoginPage() {
           {/* Header */}
           <div className="px-8 pt-8 pb-6 border-b border-gray-800">
             <div className="flex items-center gap-3 mb-6">
-              <div className="size-10 rounded-xl bg-white grid place-items-center shadow-lg">
-                <ChessQueen size={20} className="text-black" />
+              <div className="size-10 grid place-items-center overflow-hidden">
+                <img src="/logo.png" alt="Queen PM" className="size-full object-contain drop-shadow-md" />
               </div>
               <div>
                 <div className="text-lg font-bold text-slate-50 tracking-tight">Queen PM</div>

@@ -48,8 +48,9 @@ function RoadmapPage() {
   if (loading) {
     return (
       <StakeholderShell>
-        <div className="h-full flex items-center justify-center">
-          <Loader2 className="size-8 text-amber-400 animate-spin" />
+        <div className="h-full flex flex-col items-center justify-center gap-4">
+          <img src="/logo.png" alt="Queen PM Logo" className="size-16 object-contain animate-pulse" />
+          <Loader2 className="size-6 text-amber-400 animate-spin" />
         </div>
       </StakeholderShell>
     );

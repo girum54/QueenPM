@@ -75,7 +75,14 @@ export function StakeholderShell({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="h-screen w-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="size-6 text-fuchsia-400 animate-spin" />
+        <div className="flex flex-col items-center gap-6">
+          <img src="/logo.png" alt="Queen PM Logo" className="size-20 object-contain animate-pulse" />
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">QueenPM</h1>
+            <p className="text-sm text-amber-400/80 font-medium">Stakeholder Portal</p>
+          </div>
+          <Loader2 className="size-6 text-amber-400 animate-spin" />
+        </div>
       </div>
     );
   }
@@ -97,8 +104,8 @@ export function StakeholderShell({ children }: { children: ReactNode }) {
         >
           {!collapsed && (
             <>
-              <div className="size-7 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 grid place-items-center shadow-lg shadow-amber-500/20 shrink-0">
-                <Crown className="size-3.5 text-white" />
+              <div className="size-7 shrink-0 grid place-items-center overflow-hidden">
+                <img src="/logo.png" alt="Queen PM" className="size-full object-contain drop-shadow" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-slate-100 flex-1">Stakeholder</span>
               <button
@@ -110,8 +117,8 @@ export function StakeholderShell({ children }: { children: ReactNode }) {
             </>
           )}
           {collapsed && (
-            <div className="size-7 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 grid place-items-center shadow-lg shadow-amber-500/20">
-              <Crown className="size-3.5 text-white" />
+            <div className="size-7 grid place-items-center overflow-hidden">
+              <img src="/logo.png" alt="Queen PM" className="size-full object-contain drop-shadow" />
             </div>
           )}
         </div>

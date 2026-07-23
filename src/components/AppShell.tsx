@@ -13,7 +13,6 @@ import { formatDistanceToNow } from "date-fns";
 import { PlaylistView } from "@/components/PlaylistView";
 import { QueenDjView } from "@/components/QueenDjView";
 import { LivekitProvider } from "@/lib/livekit-provider";
-import { ChessQueen } from "@/components/ChessQueen";
 
 // ── Custom Sprint Icon ─────────────────────────────────────────
 function SprintIcon({ className }: { className?: string }) {
@@ -177,9 +176,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     return (
       <div className="h-screen w-screen chess-pattern-subtle-dark flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
-          <ChessQueen size={64} animated={true} className="text-white" />
+          <img src="/logo.png" alt="Queen PM Logo" className="size-20 object-contain animate-pulse" />
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">QueenPM</h1>
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">QueenPM</h1>
             <p className="text-sm text-gray-400">Unifying your team</p>
           </div>
           <Loader2 className="size-6 text-white animate-spin" />
@@ -217,8 +216,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           {!collapsed && (
             <>
-              <div className="size-7 rounded-md bg-white grid place-items-center shadow-lg shrink-0">
-                <ChessQueen size={14} className="text-black" />
+              <div className="size-7 shrink-0 grid place-items-center overflow-hidden">
+                <img src="/logo.png" alt="Queen PM" className="size-full object-contain drop-shadow" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-white flex-1">Queen PM</span>
               <button
@@ -234,8 +233,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </>
           )}
           {collapsed && (
-            <div className="size-7 rounded-md bg-white grid place-items-center shadow-lg">
-              <ChessQueen size={14} className="text-black" />
+            <div className="size-7 grid place-items-center overflow-hidden">
+              <img src="/logo.png" alt="Queen PM" className="size-full object-contain drop-shadow" />
             </div>
           )}
         </div>
