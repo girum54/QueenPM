@@ -475,7 +475,7 @@ function SprintConfigPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">Commencement Date</label>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1.5">Start Date</label>
                       <DatePicker
                         value={formStartDate}
                         onChange={setFormStartDate}
@@ -484,7 +484,7 @@ function SprintConfigPage() {
                       />
                       {computedSprintEnd && (
                         <p className="text-[10px] text-slate-500 mt-1.5">
-                          Sprint ends <span className="text-slate-300 font-medium">{formatDisplayDate(computedSprintEnd)}</span>
+                          Ends <span className="text-slate-300 font-medium">{formatDisplayDate(computedSprintEnd)}</span>
                         </p>
                       )}
                     </div>
@@ -595,7 +595,7 @@ function SprintConfigPage() {
                     {activeSprintMetrics?.completedDeliverables}/{activeSprintMetrics?.totalDeliverables}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    {activeSprintMetrics?.deliverablesProgressPct}% checklist execution
+                    {activeSprintMetrics?.deliverablesProgressPct}% complete
                   </div>
                 </div>
 
@@ -603,12 +603,12 @@ function SprintConfigPage() {
                   <div className="size-8 rounded-md grid place-items-center ring-1 mb-4 bg-violet-500/10 ring-violet-500/30">
                     <BarChart3 className="size-4 text-violet-300" />
                   </div>
-                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold font-sans">Task Execution</div>
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold font-sans">Tasks</div>
                   <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">
                     {activeSprintMetrics?.completedTasks}/{activeSprintMetrics?.totalTasks}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    {activeSprintMetrics?.inProgressTasks} tasks currently in-flight
+                    {activeSprintMetrics?.inProgressTasks} in progress
                   </div>
                 </div>
 
@@ -616,15 +616,15 @@ function SprintConfigPage() {
                   <div className="size-8 rounded-md grid place-items-center ring-1 mb-4 bg-emerald-500/10 ring-emerald-500/30">
                     <Users className="size-4 text-emerald-300" />
                   </div>
-                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold font-sans">Sprint Health</div>
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold font-sans">Status</div>
                   <div className="text-2xl font-semibold text-slate-50 mt-1 tabular-nums">
                     {activeSprintMetrics && activeSprintMetrics.daysRemaining > 0
                       ? activeSprintMetrics.taskProgressPct > 50 
-                        ? "Optimal" 
-                        : "On Track"
-                      : "Complete"}
+                        ? "On Track" 
+                        : "In Progress"
+                      : "Ended"}
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-1">{activeSprintMetrics?.taskProgressPct}% task completion rate</div>
+                  <div className="text-[11px] text-slate-500 mt-1">{activeSprintMetrics?.taskProgressPct}% tasks done</div>
                 </div>
 
               </div>
@@ -634,7 +634,7 @@ function SprintConfigPage() {
                 {isEditingSprint ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-500">Edit Sprint Configuration</h3>
+                      <h3 className="text-sm font-semibold text-slate-100">Edit Sprint</h3>
                       <button
                         onClick={() => setIsEditingSprint(false)}
                         className="text-xs text-slate-400 hover:text-slate-200 transition"
@@ -643,57 +643,61 @@ function SprintConfigPage() {
                       </button>
                     </div>
                     
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Name</label>
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Goal</label>
-                        <textarea
-                          value={editGoal}
-                          onChange={(e) => setEditGoal(e.target.value)}
-                          rows={3}
-                          className="w-full rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 p-3 text-sm text-slate-100 outline-none resize-none transition"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Delivery Methodology</label>
-                        <input
-                          type="text"
-                          value={editStyle}
-                          onChange={(e) => setEditStyle(e.target.value)}
-                          className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                      {/* Left: Sprint fields */}
+                      <div className="space-y-4">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Duration</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min={1}
-                              max={365}
-                              value={editDuration}
-                              onChange={(e) => setEditDuration(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-20 h-9 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition text-center"
-                            />
-                            <span className="text-xs text-slate-400">days</span>
-                            <div className="flex gap-1">
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Name</label>
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Sprint Goal</label>
+                          <textarea
+                            value={editGoal}
+                            onChange={(e) => setEditGoal(e.target.value)}
+                            rows={3}
+                            className="w-full rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 p-3 text-sm text-slate-100 outline-none resize-none transition"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Methodology</label>
+                          <input
+                            type="text"
+                            value={editStyle}
+                            onChange={(e) => setEditStyle(e.target.value)}
+                            placeholder="e.g. Scrum, Kanban, Weekly Pulse"
+                            className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Duration</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={editDuration}
+                                onChange={(e) => setEditDuration(Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-20 h-9 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition text-center"
+                              />
+                              <span className="text-xs text-slate-400">days</span>
+                            </div>
+                            <div className="flex gap-1 mt-1.5">
                               {[2, 7, 14, 30].map((d) => (
                                 <button
                                   key={d}
                                   type="button"
                                   onClick={() => setEditDuration(d)}
-                                  className={`h-8 px-2 rounded text-xs font-semibold transition ${
+                                  className={`h-7 px-2 rounded text-xs font-semibold transition ${
                                     editDuration === d
                                       ? "bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/40"
                                       : "bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-slate-200"
@@ -704,38 +708,108 @@ function SprintConfigPage() {
                               ))}
                             </div>
                           </div>
-                        </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Start Date</label>
-                          <input
-                            type="date"
-                            value={editStartDate}
-                            onChange={(e) => setEditStartDate(e.target.value)}
-                            className="w-full h-10 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
-                          />
-                          {computedEditSprintEnd && (
-                            <p className="text-[10px] text-slate-500 mt-1.5">
-                              Sprint ends <span className="text-slate-300 font-medium">{formatDisplayDate(computedEditSprintEnd)}</span>
-                            </p>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Start Date</label>
+                            <input
+                              type="date"
+                              value={editStartDate}
+                              onChange={(e) => setEditStartDate(e.target.value)}
+                              className="w-full h-9 rounded-md bg-slate-950/60 border border-slate-800 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 px-3 text-sm text-slate-100 outline-none transition"
+                            />
+                            {computedEditSprintEnd && (
+                              <p className="text-[10px] text-slate-500 mt-1">
+                                Ends <span className="text-slate-300 font-medium">{formatDisplayDate(computedEditSprintEnd)}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Deliverables */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-2">Deliverables</label>
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 mb-3">
+                          {sprint.deliverables.length === 0 ? (
+                            <p className="text-xs text-slate-500 py-3">No deliverables yet.</p>
+                          ) : (
+                            sprint.deliverables.map((d) => (
+                              <div key={d.id} className={`flex items-center gap-2 p-2.5 rounded-lg border group transition ${
+                                d.done ? "bg-slate-950/60 border-slate-800/50" : "bg-slate-950/20 border-slate-800"
+                              }`}>
+                                <button
+                                  onClick={() => handleToggleDeliverable(d.id)}
+                                  className={`size-4 rounded border flex items-center justify-center transition shrink-0 ${
+                                    d.done ? "border-fuchsia-500 bg-fuchsia-500" : "border-slate-700 hover:border-slate-500"
+                                  }`}
+                                >
+                                  {d.done && <Check className="size-2.5 stroke-[3] text-white" />}
+                                </button>
+                                {editingDeliverableId === d.id ? (
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={editingDeliverableText}
+                                    onChange={(e) => setEditingDeliverableText(e.target.value)}
+                                    onBlur={() => { handleUpdateActiveDeliverableText(d.id, editingDeliverableText); setEditingDeliverableId(null); }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") { handleUpdateActiveDeliverableText(d.id, editingDeliverableText); setEditingDeliverableId(null); }
+                                      if (e.key === "Escape") setEditingDeliverableId(null);
+                                    }}
+                                    className="flex-1 bg-transparent text-xs outline-none text-slate-200 border-b border-fuchsia-500/50 pb-0.5"
+                                  />
+                                ) : (
+                                  <span
+                                    onDoubleClick={() => { setEditingDeliverableId(d.id); setEditingDeliverableText(d.text); }}
+                                    className={`text-xs flex-1 cursor-text ${d.done ? "line-through text-slate-500" : "text-slate-200"}`}
+                                    title="Double click to edit"
+                                  >
+                                    {d.text}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteActiveDeliverable(d.id)}
+                                  className="size-5 opacity-0 group-hover:opacity-100 grid place-items-center text-slate-500 hover:text-rose-400 rounded transition"
+                                >
+                                  <Trash2 className="size-3" />
+                                </button>
+                              </div>
+                            ))
                           )}
                         </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newDeliverableText}
+                            onChange={(e) => setNewDeliverableText(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleAddActiveDeliverable()}
+                            placeholder="Add deliverable..."
+                            className="flex-1 h-9 rounded-md bg-slate-950/60 border border-slate-800 px-3 text-xs text-slate-100 outline-none focus:border-fuchsia-500 transition"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddActiveDeliverable}
+                            className="size-9 rounded-md bg-slate-800 hover:bg-slate-700 grid place-items-center text-slate-300 shrink-0 transition"
+                          >
+                            <Plus className="size-4" />
+                          </button>
+                        </div>
                       </div>
+                    </div>
 
-                      <div className="flex gap-3 pt-2">
-                        <button
-                          onClick={handleUpdateSprint}
-                          className="flex-1 h-10 rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-fuchsia-500/20"
-                        >
-                          Save Changes
-                        </button>
-                        <button
-                          onClick={() => setIsEditingSprint(false)}
-                          className="h-10 px-4 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                    <div className="flex gap-3 pt-2 border-t border-slate-800/60">
+                      <button
+                        onClick={handleUpdateSprint}
+                        className="flex-1 h-10 rounded-md bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-fuchsia-500/20"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        onClick={() => setIsEditingSprint(false)}
+                        className="h-10 px-4 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -899,13 +973,13 @@ function SprintConfigPage() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Total Work Scope</span>
-                      <span className="font-semibold text-slate-200">{activeSprintMetrics?.totalTasks} tasks in-system</span>
+                      <span className="text-slate-400">Total Tasks</span>
+                      <span className="font-semibold text-slate-200">{activeSprintMetrics?.totalTasks}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Commitment Delivery</span>
-                      <span className="font-semibold text-fuchsia-400">{activeSprintMetrics?.completedTasks} tasks deployed</span>
+                      <span className="text-slate-400">Completed</span>
+                      <span className="font-semibold text-fuchsia-400">{activeSprintMetrics?.completedTasks} deployed</span>
                     </div>
                   </div>
                 </div>
