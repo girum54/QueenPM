@@ -26,7 +26,7 @@ export const Route = createFileRoute("/tasks")({
 
 
 type GroupBy = "sprint" | "status" | "priority" | "none";
-type SortBy = "created" | "priority" | "title";
+type SortBy = "created" | "priority" | "title" | "sprint";
 
 function TasksPage() {
   const { tasks, users, addTask, activeProjectId, projectTabs } = useStore();
@@ -106,8 +106,19 @@ function TasksPage() {
       .sort((a, b) => {
         if (sortBy === "created") return b.createdAt - a.createdAt;
         if (sortBy === "title") return a.title.localeCompare(b.title);
-        const order: Priority[] = ["urgent", "high", "medium", "low"];
-        return order.indexOf(a.priority) - order.indexOf(b.priority);
+        if (sortBy === "priority") {
+          const order: Priority[] = ["urgent", "high", "medium", "low"];
+          return order.indexOf(a.priority) - order.indexOf(b.priority);
+        }
+        if (sortBy === "sprint") {
+          const sprintA = sprints.find((s) => s.id === a.sprintId);
+          const sprintB = sprints.find((s) => s.id === b.sprintId);
+          if (!sprintA && !sprintB) return 0;
+          if (!sprintA) return 1;
+          if (!sprintB) return -1;
+          return sprintA.name.localeCompare(sprintB.name);
+        }
+        return 0;
       });
   }, [rootTasks, subtasksByParent, query, filterStatus, filterPriority, sortBy]);
 
@@ -313,6 +324,7 @@ function TasksPage() {
               <option value="created">Sort: Newest</option>
               <option value="priority">Sort: Priority</option>
               <option value="title">Sort: Title</option>
+              <option value="sprint">Sort: Sprint</option>
             </select>
 
             <span className="ml-auto text-xs text-slate-600 tabular-nums">{filteredRoots.length} root tasks</span>
@@ -405,6 +417,7 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
   const colMeta = COLUMN_META[task.column];
   const CreatedIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
   const createdMeta = CREATED_BY_META[task.createdBy];
+  const taskSprint = sprints.find((s) => s.id === task.sprintId);
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,9 +482,16 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
 
         {/* Title */}
         <div className="flex-1 min-w-0">
-          <span className={`font-medium truncate block ${task.column === "deployed" ? "line-through text-slate-500" : "text-slate-205"}`}>
-            {task.title}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`font-medium truncate block ${task.column === "deployed" ? "line-through text-slate-500" : "text-slate-205"}`}>
+              {task.title}
+            </span>
+            {taskSprint && (
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
+                {taskSprint.name}
+              </span>
+            )}
+          </div>
           {task.description && (
             <span className="text-[10px] text-slate-500 truncate block">{task.description}</span>
           )}
@@ -585,9 +605,19 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
 
                 {/* Subtask Title */}
                 <div className="flex-1 min-w-0">
-                  <span className={`text-[11px] ${sub.column === "deployed" ? "line-through text-slate-600" : "text-slate-300"}`}>
-                    {sub.title}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] ${sub.column === "deployed" ? "line-through text-slate-650" : "text-slate-300"}`}>
+                      {sub.title}
+                    </span>
+                    {(() => {
+                      const subSprint = sprints.find((s) => s.id === sub.sprintId);
+                      return subSprint ? (
+                        <span className="px-1 py-0.2 rounded text-[8px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 shrink-0">
+                          {subSprint.name}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
 
                 {/* Priority */}

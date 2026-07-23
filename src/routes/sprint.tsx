@@ -290,6 +290,29 @@ function SprintPage() {
                         ))}
                       </div>
                     </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Sprint Tasks</label>
+                      <div className="mt-2 space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                        {tasks.filter(t => t.sprintId === selectedSprint.id).length === 0 ? (
+                          <p className="text-xs text-slate-500">No tasks in this sprint</p>
+                        ) : (
+                          tasks.filter(t => t.sprintId === selectedSprint.id).map((t) => {
+                            const colMeta = COLUMN_META[t.column];
+                            return (
+                              <div key={t.id} className="flex items-center justify-between p-2 rounded bg-slate-950/40 border border-slate-800/40 text-xs">
+                                <span className="text-slate-300 truncate font-medium max-w-[250px]" title={t.title}>
+                                  {t.title}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex items-center gap-1 ${colMeta.accent}`}>
+                                  <span className={`size-1 rounded-full ${colMeta.dot}`} />
+                                  {colMeta.label}
+                                </span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
