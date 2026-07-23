@@ -349,26 +349,27 @@ function ChannelsPage() {
       <div className="h-full flex overflow-hidden">
         {/* CENTER: Chat or Voice container */}
         <section className="flex-1 flex flex-col min-w-0 bg-slate-950 min-h-0">
-          <header className="h-12 px-5 flex items-center gap-3 shrink-0">
+          <header className="h-12 px-3 sm:px-5 flex items-center gap-2 sm:gap-3 shrink-0 border-b border-slate-900/80 bg-slate-950/50">
             {activeChannel?.aiActive ? (
-              <Bot className="size-5 text-fuchsia-400" />
+              <Bot className="size-4.5 sm:size-5 text-fuchsia-400 shrink-0" />
             ) : (
-              <Hash className="size-5 text-slate-500" />
+              <Hash className="size-4.5 sm:size-5 text-slate-500 shrink-0" />
             )}
             <button
-              className="text-base font-semibold text-slate-100 hover:text-fuchsia-300 transition"
+              className="text-sm sm:text-base font-semibold text-slate-100 hover:text-fuchsia-300 transition truncate max-w-[110px] sm:max-w-none shrink-0"
             >
               {activeChannel?.name}
             </button>
             {activeChannel?.aiActive && (
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-800 ring-1 ring-slate-700 text-[10px] font-semibold text-slate-300 tracking-wide">
+              <span className="flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 rounded-full bg-slate-800 ring-1 ring-slate-700 text-[10px] font-semibold text-slate-300 shrink-0">
                 <span className="size-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
-                QUEEN PM ACTIVE
+                <span className="hidden sm:inline tracking-wide">QUEEN PM ACTIVE</span>
+                <span className="sm:hidden text-[9px] font-bold text-fuchsia-300">ACTIVE</span>
               </span>
             )}
 
             {/* Header controls */}
-            <div className="ml-auto flex items-center gap-3 text-slate-500">
+            <div className="ml-auto flex items-center gap-1 sm:gap-2.5 text-slate-500 shrink-0">
               <button
                 onClick={() => setQueendjPanelOpen(!queendjPanelOpen)}
                 className={`size-8 rounded-lg grid place-items-center transition ${queendjPanelOpen ? "text-fuchsia-400 bg-slate-900/60" : "hover:text-slate-200 hover:bg-slate-900/60"}`}
@@ -390,11 +391,11 @@ function ChannelsPage() {
               >
                 <Info className="size-4.5" />
               </button>
-              <button className="size-8 grid place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
+              <button className="hidden sm:grid size-8 place-items-center text-slate-500 hover:text-slate-200 hover:bg-slate-900 rounded-lg transition">
                 <Bell className="size-4" />
               </button>
 
-              <div className="flex -space-x-1.5 pl-1.5 border-l border-slate-800">
+              <div className="hidden md:flex -space-x-1.5 pl-1.5 border-l border-slate-800">
                 {users.slice(0, 4).map((u) => (
                   <div key={u.id} className={`size-6 rounded-full ${u.color} grid place-items-center text-[10px] font-bold text-white ring-2 ring-slate-950`}>
                     {u.isAi ? <Crown className="size-3" /> : u.name[0]}
