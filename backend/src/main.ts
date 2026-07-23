@@ -27,8 +27,22 @@ async function bootstrap() {
 
   const expressApp = app.getHttpAdapter().getInstance();
 
-  // Mount Better Auth's handler BEFORE body-parsers
-  expressApp.all('/api/auth/{*any}', toNodeHandler(auth));
+  // Mount Better Auth's handler BEFORE body-parsers, but let custom NestJS AuthController handle custom endpoints
+  const authHandler = toNodeHandler(auth);
+  const customAuthPaths = [
+    '/api/auth/sign-in',
+    '/api/auth/sign-up',
+    '/api/auth/sign-out',
+    '/api/auth/session',
+    '/api/auth/me',
+  ];
+  expressApp.use('/api/auth', (req, res, next) => {
+    const fullPath = req.originalUrl.split('?')[0];
+    if (customAuthPaths.includes(fullPath)) {
+      return next();
+    }
+    return authHandler(req, res);
+  });
 
   // Re-enable body-parsers for NestJS routes
   expressApp.use(express.json());
