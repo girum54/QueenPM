@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import {
   ListTodo, Plus, Search, X, Calendar, Clock, Crown, Bot, Zap, MousePointerClick,
-  CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight, Loader2,
+  CheckCircle2, Circle, AlertCircle, ArrowUpDown, ChevronDown, ChevronRight, CornerDownRight, Loader2, Trash2,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
@@ -412,7 +412,7 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
   const [isQuickOpen, setIsQuickOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   
-  const { addTask, updateTask, activeProjectId } = useStore();
+  const { addTask, updateTask, deleteTask, activeProjectId } = useStore();
   const assignee = userById(task.assigneeId, users);
   const colMeta = COLUMN_META[task.column];
   const CreatedIcon = task.createdBy === "ai" ? Bot : task.createdBy === "slash" ? Zap : MousePointerClick;
@@ -430,7 +430,6 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
     setIsAdding(true);
     try {
       await addTask({
-        id: `t_${Date.now()}`,
         title: quickTitle.trim(),
         priority: "medium",
         column: "new",
@@ -556,6 +555,13 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
                 Done
               </button>
             )}
+            <button
+              onClick={() => { if (confirm(`Delete "${task.title}"?`)) deleteTask(task.id); }}
+              className="px-1.5 py-0.5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 hover:text-rose-300 transition"
+              title="Delete task"
+            >
+              <Trash2 className="size-3" />
+            </button>
           </div>
         )}
 
@@ -667,6 +673,13 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
                         Done
                       </button>
                     )}
+                    <button
+                      onClick={() => { if (confirm(`Delete "${sub.title}"?`)) deleteTask(sub.id); }}
+                      className="px-1.5 py-0.5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 hover:text-rose-300 transition"
+                      title="Delete subtask"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
                   </div>
                 )}
               </div>

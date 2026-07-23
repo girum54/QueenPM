@@ -130,7 +130,9 @@ interface StoreShape {
   setActiveChannelId: (id: string) => void;
   updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
   addTask: (t: Omit<Task, "id"> & { id?: string }) => Promise<Task | null>;
+  deleteTask: (id: string) => Promise<void>;
   addMessage: (m: Omit<Message, "id" | "ts"> & { id?: string; ts?: string }) => Promise<Message | null>;
+  deleteMessage: (id: string) => Promise<void>;
   jumpRequest: JumpRequest | null;
   requestJump: (messageId: string, channelId: string) => void;
   consumeJump: () => JumpRequest | null;
@@ -584,6 +586,14 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
           return null;
         }
       },
+      deleteTask: async (id) => {
+        try {
+          await tasksApi.delete(id);
+          setTasks((ts) => ts.filter((t) => t.id !== id));
+        } catch (e) {
+          console.error("Failed to delete task:", e);
+        }
+      },
       addMessage: async (m) => {
         try {
           const created = await messagesApi.create({
@@ -609,6 +619,14 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           console.error("Failed to add message:", e);
           return null;
+        }
+      },
+      deleteMessage: async (id) => {
+        try {
+          await messagesApi.delete(id);
+          setMessages((ms) => ms.filter((m) => m.id !== id));
+        } catch (e) {
+          console.error("Failed to delete message:", e);
         }
       },
       jumpRequest,
