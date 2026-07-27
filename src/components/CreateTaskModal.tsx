@@ -11,7 +11,9 @@ interface CreateTaskModalProps {
   initialPriority?: Priority;
   initialSprintId?: string | null;
   initialAssigneeId?: string | null;
+  initialDeliverableId?: string | null;
   sprints: any[];
+  deliverables: any[];
   users: User[];
 }
 
@@ -24,13 +26,16 @@ export function CreateTaskModal({
   initialPriority = "medium",
   initialSprintId = null,
   initialAssigneeId = null,
+  initialDeliverableId = null,
   sprints,
+  deliverables,
   users,
 }: CreateTaskModalProps) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>(initialPriority);
   const [column, setColumn] = useState<ColumnId>(initialColumn);
   const [sprintId, setSprintId] = useState<string | null>(initialSprintId);
+  const [deliverableId, setDeliverableId] = useState<string | null>(initialDeliverableId);
   const [assigneeId, setAssigneeId] = useState<string | null>(initialAssigneeId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,6 +56,7 @@ export function CreateTaskModal({
         priority,
         column,
         sprintId,
+        deliverableId,
         assigneeId,
         parentId: parentId || undefined,
         // Optional fields set to null/undefined or defaults by parent
@@ -131,6 +137,21 @@ export function CreateTaskModal({
                 .map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.isActive ? "(Active)" : "(Upcoming)"}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Deliverable (optional)</label>
+            <select value={deliverableId || ""} onChange={(e) => setDeliverableId(e.target.value || null)}
+              className="w-full h-9 rounded-md bg-slate-800/60 border border-slate-700 px-3 text-sm text-slate-100 outline-none focus:border-fuchsia-500">
+              <option value="">-- No deliverable --</option>
+              {deliverables
+                .filter((d) => !sprintId || d.sprintId === sprintId)
+                .map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.text}
                   </option>
                 ))}
             </select>

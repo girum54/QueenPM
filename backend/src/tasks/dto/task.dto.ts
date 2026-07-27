@@ -43,6 +43,10 @@ export class CreateTaskDto {
 
   @IsString()
   @IsOptional()
+  deliverableId?: string;
+
+  @IsString()
+  @IsOptional()
   parentId?: string;
 
   @IsDateString()
@@ -82,6 +86,10 @@ export class UpdateTaskDto {
   @IsString()
   @IsOptional()
   sprintId?: string;
+
+  @IsString()
+  @IsOptional()
+  deliverableId?: string;
 
   @IsDateString()
   @IsOptional()

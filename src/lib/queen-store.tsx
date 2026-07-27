@@ -30,6 +30,7 @@ export interface Task {
   originMessageId: string | null;
   originChannelId: string | null;
   sprintId?: string | null;
+  deliverableId?: string | null;
   createdAt: number;
   completedAt?: number | null;
   deadline?: string | null;

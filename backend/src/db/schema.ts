@@ -189,6 +189,7 @@ export const tasks = pgTable("tasks", {
   originChannelId: uuid("origin_channel_id").references(() => channels.id, { onDelete: "set null" }),
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
   sprintId: uuid("sprint_id").references(() => sprints.id, { onDelete: "set null" }), // required when on a board
+  deliverableId: uuid("deliverable_id").references(() => sprintDeliverables.id, { onDelete: "set null" }), // optional link to deliverable
   parentId: uuid("parent_id"),          // for subtasks
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
@@ -272,11 +273,12 @@ export const sprintRelations = relations(sprints, ({ one, many }) => ({
   tasks: many(tasks),
 }));
 
-export const sprintDeliverableRelations = relations(sprintDeliverables, ({ one }) => ({
+export const sprintDeliverableRelations = relations(sprintDeliverables, ({ one, many }) => ({
   sprint: one(sprints, {
     fields: [sprintDeliverables.sprintId],
     references: [sprints.id],
   }),
+  tasks: many(tasks),
 }));
 
 export const boardRelations = relations(boards, ({ one }) => ({
@@ -302,6 +304,10 @@ export const taskRelations = relations(tasks, ({ one, many }) => ({
   sprint: one(sprints, {
     fields: [tasks.sprintId],
     references: [sprints.id],
+  }),
+  deliverable: one(sprintDeliverables, {
+    fields: [tasks.deliverableId],
+    references: [sprintDeliverables.id],
   }),
   subtasks: many(tasks, { relationName: "subtasks" }),
   parent: one(tasks, {

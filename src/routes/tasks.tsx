@@ -49,9 +49,10 @@ function TasksPage() {
   const [newParentId, setNewParentId] = useState<string | null>(null);
   const [sprints, setSprints] = useState<any[]>([]);
   const [activeSprint, setActiveSprint] = useState<any | null>(null);
+  const [deliverables, setDeliverables] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch sprints for current project
+  // Fetch sprints and deliverables for current project
   useEffect(() => {
     if (!activeProjectId) return;
     async function loadSprints() {
@@ -60,6 +61,11 @@ function TasksPage() {
         setSprints(projectSprints);
         const active = projectSprints.find((s: any) => s.isActive);
         setActiveSprint(active || null);
+        // Fetch deliverables for all sprints
+        const allDeliverables = await Promise.all(
+          projectSprints.map((s: any) => sprintsApi.getDeliverables(s.id))
+        );
+        setDeliverables(allDeliverables.flat());
       } catch (e) {
         console.error("Failed to load sprints:", e);
       }
@@ -369,6 +375,7 @@ function TasksPage() {
                             subtasks={subtasksByParent[task.id] || []}
                             users={users}
                             sprints={sprints}
+                            deliverables={deliverables}
                             onAddSubtask={() => openSubtaskModal(task.id)}
                             isStakeholder={isStakeholder}
                           />
@@ -391,6 +398,7 @@ function TasksPage() {
         parentId={newParentId}
         initialSprintId={activeSprint?.id || null}
         sprints={sprints}
+        deliverables={deliverables}
         users={users}
       />
     </AppShell>
@@ -402,11 +410,12 @@ interface RowProps {
   subtasks: Task[];
   users: any[];
   sprints: any[];
+  deliverables: any[];
   onAddSubtask: () => void;
   isStakeholder: boolean;
 }
 
-function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isStakeholder }: RowProps) {
+function TaskHierarchicalRow({ task, subtasks, users, sprints, deliverables, onAddSubtask, isStakeholder }: RowProps) {
   const [expanded, setExpanded] = useState(true);
   const [quickTitle, setQuickTitle] = useState("");
   const [isQuickOpen, setIsQuickOpen] = useState(false);
@@ -535,7 +544,7 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
           {/* Add Subtask actions */}
           {!isStakeholder && (
             <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 flex-wrap">
-              <select 
+              <select
                 value={task.sprintId || ""}
                 onChange={(e) => updateTask(task.id, { sprintId: e.target.value || null })}
                 className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition max-w-[90px] sm:max-w-none truncate"
@@ -545,6 +554,20 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
+              {task.sprintId && (
+                <select
+                  value={task.deliverableId || ""}
+                  onChange={(e) => updateTask(task.id, { deliverableId: e.target.value || null })}
+                  className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition max-w-[90px] sm:max-w-none truncate"
+                >
+                  <option value="">No deliverable</option>
+                  {deliverables
+                    .filter((d) => d.sprintId === task.sprintId)
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>{d.text}</option>
+                    ))}
+                </select>
+              )}
               <button
                 onClick={() => setIsQuickOpen(!isQuickOpen)}
                 className="px-2 py-0.5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-350 hover:text-slate-100 transition"
@@ -664,7 +687,7 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
                   {/* Add to sprint action */}
                   {!isStakeholder && (
                     <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0 flex-wrap">
-                      <select 
+                      <select
                         value={sub.sprintId || ""}
                         onChange={(e) => updateTask(sub.id, { sprintId: e.target.value || null })}
                         className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition max-w-[90px] sm:max-w-none truncate"
@@ -674,6 +697,20 @@ function TaskHierarchicalRow({ task, subtasks, users, sprints, onAddSubtask, isS
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
+                      {sub.sprintId && (
+                        <select
+                          value={sub.deliverableId || ""}
+                          onChange={(e) => updateTask(sub.id, { deliverableId: e.target.value || null })}
+                          className="px-2 py-0.5 h-5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-350 outline-none cursor-pointer hover:bg-slate-800 transition max-w-[90px] sm:max-w-none truncate"
+                        >
+                          <option value="">No deliverable</option>
+                          {deliverables
+                            .filter((d: any) => d.sprintId === sub.sprintId)
+                            .map((d: any) => (
+                              <option key={d.id} value={d.id}>{d.text}</option>
+                            ))}
+                        </select>
+                      )}
                       {sub.column !== "deployed" && (
                         <button
                           onClick={() => updateTask(sub.id, { column: "deployed" })}

@@ -38,13 +38,19 @@ function BoardPage() {
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
   const [isProcessingDrop, setIsProcessingDrop] = useState(false);
   const [sprints, setSprints] = useState<any[]>([]);
+  const [deliverables, setDeliverables] = useState<any[]>([]);
 
-  // Fetch sprints for the modal
+  // Fetch sprints and deliverables for the modal
   useEffect(() => {
     if (!activeProjectId) return;
     import("@/lib/api/queen.api").then((m) => {
-      m.sprintsApi.getByProject(activeProjectId).then((data) => {
+      m.sprintsApi.getByProject(activeProjectId).then(async (data) => {
         setSprints(data);
+        // Fetch deliverables for all sprints
+        const allDeliverables = await Promise.all(
+          data.map((s: any) => m.sprintsApi.getDeliverables(s.id))
+        );
+        setDeliverables(allDeliverables.flat());
       }).catch(console.error);
     });
   }, [activeProjectId]);
@@ -259,6 +265,7 @@ function BoardPage() {
         initialColumn={quickAddCol || "new"}
         initialSprintId={activeSprintId}
         sprints={sprints}
+        deliverables={deliverables}
         users={users}
       />
     </AppShell>
