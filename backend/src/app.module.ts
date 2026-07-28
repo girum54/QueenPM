@@ -18,6 +18,7 @@ import { CallsModule } from './calls/calls.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MusicModule } from './music/music.module';
 import { QueenDjModule } from './queendj/queendj.module';
+import { QueenaiModule } from './queenai/queenai.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { QueenDjModule } from './queendj/queendj.module';
     NotificationsModule,
     MusicModule,
     QueenDjModule,
+    QueenaiModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { DRIZZLE } from '../database/database.provider';
 
@@ -13,5 +14,15 @@ export class UsersService {
     return this.db.query.user.findMany({
       orderBy: (u, { asc }) => [asc(u.name)],
     });
+  }
+
+  async findByProject(projectId: string) {
+    const projectMembers = await this.db.query.projectMembers.findMany({
+      where: eq(schema.projectMembers.projectId, projectId),
+      with: {
+        user: true,
+      },
+    });
+    return projectMembers.map((m) => m.user);
   }
 }
