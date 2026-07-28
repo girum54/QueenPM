@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth-store";
 import { channelsApi } from "@/lib/api/queen.api";
 import { useNotifications } from "@/lib/notifications-store";
 import {
-  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand, parseQueenDjCommand,
+  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenDjCommand,
   titleFromMessage,
 } from "@/lib/chat-commands";
 import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
