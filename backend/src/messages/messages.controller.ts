@@ -38,27 +38,13 @@ export class MessagesController {
           user.id,
         );
 
-        // If AI performed actions, create a response message
-        if (aiResponse.type === 'action') {
-          const actionMessages = aiResponse.results
-            .map((result: any) => result.message)
-            .join('\n');
-
-          await this.messagesService.create({
-            authorId: user.id, // AI acts as the user's agent
-            channelId: dto.channelId,
-            text: `✨ Gemini: ${actionMessages}`,
-            parentId: message.id,
-          });
-        } else if (aiResponse.type === 'text') {
-          // AI returned a text response
-          await this.messagesService.create({
-            authorId: user.id,
-            channelId: dto.channelId,
-            text: `✨ Gemini: ${aiResponse.content}`,
-            parentId: message.id,
-          });
-        }
+        // AI returned a text response
+        await this.messagesService.create({
+          authorId: user.id,
+          channelId: dto.channelId,
+          text: `✨ Gemini: ${aiResponse.content}`,
+          parentId: message.id,
+        });
       } catch (error) {
         console.error('Queen AI processing error:', error);
         // Don't fail the message creation if AI fails
