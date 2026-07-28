@@ -178,7 +178,7 @@
 }
 
 .chess-pattern-subtle-dark {
-  background-image: 
+  background-image:
     radial-gradient(circle at 50% 45%, rgba(168, 85, 247, 0.06), transparent 70%),
     linear-gradient(45deg, rgba(255,255,255,0.018) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255,255,255,0.018) 25%, transparent 25%),
@@ -187,4 +187,14 @@
   background-size: 100% 100%, 260px 260px, 260px 260px, 260px 260px, 260px 260px;
   background-position: center, 0 0, 0 130px, 130px -130px, -130px 0px;
   background-color: #030712;
+}
+
+/* Hide scrollbars */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

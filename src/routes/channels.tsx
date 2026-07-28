@@ -179,8 +179,10 @@ function ChannelsPage() {
   );
 
   useEffect(() => {
-    if (streamRef.current) streamRef.current.scrollTop = streamRef.current.scrollHeight;
-  }, [activeChannelId]);
+    if (streamRef.current) {
+      streamRef.current.scrollTop = streamRef.current.scrollHeight;
+    }
+  }, [channelMessages]);
 
   const handleInputChange = (v: string) => {
     setInput(v);
@@ -434,7 +436,7 @@ function ChannelsPage() {
           )}
 
           {/* Messages Stream */}
-          <div ref={streamRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+          <div ref={streamRef} className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4 min-h-0 scrollbar-hide">
                 {channelMessages.map((m, idx) => {
                   const author = userById(m.authorId, users)!;
                   const prev = channelMessages[idx - 1];
@@ -494,7 +496,7 @@ function ChannelsPage() {
                         </div>
 
                         {/* Message content */}
-                        {task ? (
+                        <div className="break-words overflow-wrap-anywhere">
                           <div
                             role="button"
                             tabIndex={0}
@@ -530,7 +532,7 @@ function ChannelsPage() {
                           </div>
                         ) : (
                           <div className="relative">
-                            <div className="text-sm text-slate-300 leading-relaxed">{m.text}</div>
+                            <div className="text-sm text-slate-300 leading-relaxed break-words overflow-wrap-anywhere">{m.text}</div>
                             {linkedTask && (
                               <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-800 ring-1 ring-slate-700 rounded-full px-2 py-0.5">
                                 <ListTodo className="size-3" /> Task created
@@ -548,6 +550,7 @@ function ChannelsPage() {
                             )}
                           </div>
                         )}
+                        </div>
                       </div>
                     </div>
                   );

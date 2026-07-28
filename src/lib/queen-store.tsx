@@ -411,6 +411,10 @@ export function QueenStoreProvider({ children }: { children: ReactNode }) {
       }
     }
     loadMessages();
+
+    // Poll for new messages every 3 seconds
+    const interval = setInterval(loadMessages, 3000);
+    return () => clearInterval(interval);
   }, [activeChannelId]);
 
   const handleSetActiveProjectId = (id: string) => {
