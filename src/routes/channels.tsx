@@ -284,7 +284,6 @@ function ChannelsPage() {
 
     const createCmd = parseCreateTaskCommand(v);
     const queenDjCmd = parseQueenDjCommand(v);
-    const queenCmd = parseQueenCommand(v);
 
     if (createCmd) {
       await createTaskFromChat({
@@ -309,14 +308,8 @@ function ChannelsPage() {
           requestedBy: currentUser?.name ?? "You",
         },
       }));
-    } else if (queenCmd) {
-      await createTaskFromChat({
-        title: queenCmd.title,
-        createdBy: "ai",
-        sourceText: v,
-        modalSubtitle: "Queued for Queen PM — assign an owner for now",
-      });
     } else {
+      // Send all messages (including @queen) to backend
       await addMessage({
         authorId: currentUser?.id || "me",
         channelId: activeChannelId,
