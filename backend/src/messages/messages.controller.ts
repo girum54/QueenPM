@@ -25,8 +25,8 @@ export class MessagesController {
   async create(@Body() dto: CreateMessageDto, @CurrentUser() user: any) {
     const message = await this.messagesService.create(dto);
 
-    // Check if message mentions @queen
-    if (dto.text && dto.text.toLowerCase().includes('@queen')) {
+    // Check if message mentions @gemini
+    if (dto.text && dto.text.toLowerCase().includes('@gemini')) {
       try {
         // Fetch context for AI processing
         const context = await this.queenaiService.fetchContext(dto.channelId, user.id);

@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth-store";
 import { channelsApi } from "@/lib/api/queen.api";
 import { useNotifications } from "@/lib/notifications-store";
 import {
-  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenDjCommand,
+  CHAT_QUICK_ACTIONS, parseCreateTaskCommand, parseQueenCommand, parseQueenDjCommand,
   titleFromMessage,
 } from "@/lib/chat-commands";
 import { canAssignToUser, isProjectManager } from "@/lib/project-permissions";
@@ -284,6 +284,7 @@ function ChannelsPage() {
 
     const createCmd = parseCreateTaskCommand(v);
     const queenDjCmd = parseQueenDjCommand(v);
+    const queenCmd = parseQueenCommand(v);
 
     if (createCmd) {
       await createTaskFromChat({
@@ -308,8 +309,15 @@ function ChannelsPage() {
           requestedBy: currentUser?.name ?? "You",
         },
       }));
+    } else if (queenCmd) {
+      await createTaskFromChat({
+        title: queenCmd.title,
+        createdBy: "ai",
+        sourceText: v,
+        modalSubtitle: "Queued for Queen PM — assign an owner for now",
+      });
     } else {
-      // Send all messages (including @queen) to backend
+      // Send all messages (including @gemini) to backend
       await addMessage({
         authorId: currentUser?.id || "me",
         channelId: activeChannelId,

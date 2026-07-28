@@ -18,6 +18,10 @@ export function isQueenCommand(input: string): boolean {
   return input.trim().toLowerCase().startsWith("@queen");
 }
 
+export function isGeminiCommand(input: string): boolean {
+  return input.trim().toLowerCase().startsWith("@gemini");
+}
+
 export type ParsedQueenDjCommand =
   | { type: "play"; query: string }
   | { type: "play_playlist"; playlistName?: string }
@@ -135,6 +139,12 @@ export const CHAT_QUICK_ACTIONS = [
     example: "@queen scope the auth middleware migration",
     desc: "Queen PM will handle this later — creates a tracked task for now",
     icon: "crown" as const,
+  },
+  {
+    cmd: "@gemini",
+    example: "@gemini create a task to fix the auth bug",
+    desc: "Use Gemini AI to handle tasks, edit, or answer questions",
+    icon: "sparkles" as const,
   },
   {
     cmd: "!play",
