@@ -297,7 +297,17 @@ export class QueenaiService {
   }
 
   async processMessage(message: string, context: TaskContext, actingUserId: string) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [Queen AI] Processing message:`, message.substring(0, 50) + '...');
+    console.log(`[${timestamp}] [Queen AI] Context:`, {
+      hasActiveSprint: !!context.activeSprint,
+      hasDeliverables: !!context.activeDeliverables?.length,
+      hasTeamUsers: !!context.teamUsers?.length,
+      hasCurrentTasks: !!context.currentTasks?.length,
+    });
+
     if (!this.configService.get<string>('GEMINI_API_KEY')) {
+      console.error(`[${timestamp}] [Queen AI] GEMINI_API_KEY not configured`);
       return {
         type: 'text',
         content: 'Queen AI is not configured. Please set GEMINI_API_KEY.',
@@ -310,16 +320,18 @@ export class QueenaiService {
     const fullPrompt = `${contextPrompt}\n\nUser message: ${message}`;
 
     try {
+      console.log(`[${timestamp}] [Queen AI] Calling Gemini API with model: gemini-pro`);
       // First try without tools to test API connectivity
       const result = await this.model.generateContent(fullPrompt);
 
       const text = result.text();
+      console.log(`[${timestamp}] [Queen AI] Gemini response received, length:`, text.length);
       return {
         type: 'text',
         content: text,
       };
     } catch (error) {
-      console.error('Queen AI error:', error);
+      console.error(`[${timestamp}] [Queen AI] Error:`, error);
       return {
         type: 'text',
         content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
