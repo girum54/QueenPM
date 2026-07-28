@@ -324,7 +324,7 @@ export class QueenaiService {
       // First try without tools to test API connectivity
       const result = await this.model.generateContent(fullPrompt);
 
-      const text = result.text();
+      const text = result.response.text();
       console.log(`[${timestamp}] [Queen AI] Gemini response received, length:`, text.length);
       return {
         type: 'text',
