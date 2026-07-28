@@ -496,7 +496,7 @@ function ChannelsPage() {
                         </div>
 
                         {/* Message content */}
-                        <div className="break-words overflow-wrap-anywhere">
+                        {task ? (
                           <div
                             role="button"
                             tabIndex={0}
@@ -550,7 +550,6 @@ function ChannelsPage() {
                             )}
                           </div>
                         )}
-                        </div>
                       </div>
                     </div>
                   );
