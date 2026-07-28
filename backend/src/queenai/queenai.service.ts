@@ -40,7 +40,7 @@ export class QueenaiService {
       console.warn('[Queen AI] GEMINI_API_KEY not configured - Queen AI will not function');
     }
     this.genAI = new GoogleGenerativeAI(apiKey || '');
-    const modelName = 'gemini-2.5-flash';
+    const modelName = 'gemini-3.6-flash';
     console.log('[Queen AI] Using model:', modelName);
     this.model = this.genAI.getGenerativeModel({ model: modelName });
   }
@@ -320,7 +320,7 @@ export class QueenaiService {
     const fullPrompt = `${contextPrompt}\n\nUser message: ${message}`;
 
     try {
-      console.log(`[${timestamp}] [Queen AI] Calling Gemini API with model: gemini-2.5-flash`);
+      console.log(`[${timestamp}] [Queen AI] Calling Gemini API with model: gemini-3.6-flash`);
       // First try without tools to test API connectivity
       const result = await this.model.generateContent(fullPrompt);
 
