@@ -307,31 +307,10 @@ export class QueenaiService {
     const fullPrompt = `${contextPrompt}\n\nUser message: ${message}`;
 
     try {
-      const result = await this.model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        tools: this.getFunctionTools(),
-      });
+      // First try without tools to test API connectivity
+      const result = await this.model.generateContent(fullPrompt);
 
-      const response = result.response;
-      const functionCalls = response.functionCalls();
-
-      if (functionCalls && functionCalls.length > 0) {
-        // Execute function calls
-        const results = [];
-        for (const call of functionCalls) {
-          const result = await this.executeToolCall(call.name, call.args, context, actingUserId);
-          results.push(result);
-        }
-
-        // Format response
-        return {
-          type: 'action',
-          results,
-        };
-      }
-
-      // Return text response
-      const text = response.text();
+      const text = result.text();
       return {
         type: 'text',
         content: text,
@@ -340,7 +319,7 @@ export class QueenaiService {
       console.error('Queen AI error:', error);
       return {
         type: 'text',
-        content: 'Sorry, I encountered an error processing your request.',
+        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
