@@ -3,9 +3,10 @@ import { DatabaseModule } from '../database/database.module';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
 import { QueenaiModule } from '../queenai/queenai.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [DatabaseModule, QueenaiModule],
+  imports: [DatabaseModule, QueenaiModule, UsersModule],
   controllers: [MessagesController],
   providers: [MessagesService],
   exports: [MessagesService],
