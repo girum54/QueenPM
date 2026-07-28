@@ -39,7 +39,7 @@ export class QueenaiService {
       console.warn('GEMINI_API_KEY not configured - Queen AI will not function');
     }
     this.genAI = new GoogleGenerativeAI(apiKey || '');
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
   }
 
   async fetchContext(channelId: string, userId: string): Promise<TaskContext> {
