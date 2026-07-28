@@ -25,4 +25,33 @@ export class UsersService {
     });
     return projectMembers.map((m) => m.user);
   }
+
+  async findAiUser() {
+    const aiUser = await this.db.query.user.findFirst({
+      where: eq(schema.user.isAi, true),
+    });
+    return aiUser;
+  }
+
+  async createAiUser() {
+    const existing = await this.findAiUser();
+    if (existing) return existing;
+
+    const [newUser] = await this.db
+      .insert(schema.user)
+      .values({
+        id: 'ai-gemini',
+        name: 'Gemini AI',
+        email: 'gemini@queenpm.ai',
+        emailVerified: true,
+        username: 'gemini',
+        color: 'bg-gradient-to-br from-fuchsia-500 to-violet-600',
+        isAi: true,
+        role: 'developer',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newUser;
+  }
 }

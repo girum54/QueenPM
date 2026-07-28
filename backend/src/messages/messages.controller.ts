@@ -3,12 +3,14 @@ import { MessagesService } from './messages.service';
 import { CreateMessageDto, UpdateMessageDto } from './dto/message.dto';
 import { QueenaiService } from '../queenai/queenai.service';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { UsersService } from '../users/users.service';
 
 @Controller('messages')
 export class MessagesController {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly queenaiService: QueenaiService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Get()
@@ -28,6 +30,12 @@ export class MessagesController {
     // Check if message mentions @gemini
     if (dto.text && dto.text.toLowerCase().includes('@gemini')) {
       try {
+        // Get or create AI user
+        let aiUser = await this.usersService.findAiUser();
+        if (!aiUser) {
+          aiUser = await this.usersService.createAiUser();
+        }
+
         // Fetch context for AI processing
         const context = await this.queenaiService.fetchContext(dto.channelId, user.id);
 
@@ -38,11 +46,11 @@ export class MessagesController {
           user.id,
         );
 
-        // AI returned a text response
+        // AI returned a text response - use AI user as author
         await this.messagesService.create({
-          authorId: user.id,
+          authorId: aiUser.id,
           channelId: dto.channelId,
-          text: `✨ Gemini: ${aiResponse.content}`,
+          text: aiResponse.content,
           parentId: message.id,
         });
       } catch (error) {
