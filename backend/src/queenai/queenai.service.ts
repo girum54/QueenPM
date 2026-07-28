@@ -35,11 +35,14 @@ export class QueenaiService {
     @Inject(DRIZZLE) private readonly db: Db,
   ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+    console.log('[Queen AI] Initializing with API key:', apiKey ? 'SET' : 'NOT SET');
     if (!apiKey) {
-      console.warn('GEMINI_API_KEY not configured - Queen AI will not function');
+      console.warn('[Queen AI] GEMINI_API_KEY not configured - Queen AI will not function');
     }
     this.genAI = new GoogleGenerativeAI(apiKey || '');
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const modelName = 'gemini-pro';
+    console.log('[Queen AI] Using model:', modelName);
+    this.model = this.genAI.getGenerativeModel({ model: modelName });
   }
 
   async fetchContext(channelId: string, userId: string): Promise<TaskContext> {
