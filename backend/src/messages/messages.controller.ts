@@ -47,7 +47,7 @@ export class MessagesController {
           await this.messagesService.create({
             authorId: user.id, // AI acts as the user's agent
             channelId: dto.channelId,
-            text: `👑 Queen PM: ${actionMessages}`,
+            text: `✨ Gemini: ${actionMessages}`,
             parentId: message.id,
           });
         } else if (aiResponse.type === 'text') {
@@ -55,7 +55,7 @@ export class MessagesController {
           await this.messagesService.create({
             authorId: user.id,
             channelId: dto.channelId,
-            text: `👑 Queen PM: ${aiResponse.content}`,
+            text: `✨ Gemini: ${aiResponse.content}`,
             parentId: message.id,
           });
         }
