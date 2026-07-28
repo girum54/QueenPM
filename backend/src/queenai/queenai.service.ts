@@ -129,35 +129,30 @@ export class QueenaiService {
               type: 'string',
               description: 'The ID of the task to edit',
             },
-            fieldsToUpdate: {
-              type: 'object',
-              properties: {
-                title: {
-                  type: 'string',
-                  description: 'New task title',
-                },
-                description: {
-                  type: 'string',
-                  description: 'New task description',
-                },
-                priority: {
-                  type: 'string',
-                  enum: ['low', 'medium', 'high', 'urgent'],
-                  description: 'New priority level',
-                },
-                assignedTo: {
-                  type: 'string',
-                  description: 'New assignee username or handle',
-                },
-                status: {
-                  type: 'string',
-                  enum: ['new', 'active', 'staging', 'deployed'],
-                  description: 'New task status/column',
-                },
-              },
+            title: {
+              type: 'string',
+              description: 'New task title',
+            },
+            description: {
+              type: 'string',
+              description: 'New task description',
+            },
+            priority: {
+              type: 'string',
+              enum: ['low', 'medium', 'high', 'urgent'],
+              description: 'New priority level',
+            },
+            assignedTo: {
+              type: 'string',
+              description: 'New assignee username or handle',
+            },
+            status: {
+              type: 'string',
+              enum: ['new', 'active', 'staging', 'deployed'],
+              description: 'New task status/column',
             },
           },
-          required: ['taskId', 'fieldsToUpdate'],
+          required: ['taskId'],
         },
       },
       {
@@ -199,7 +194,7 @@ export class QueenaiService {
       case 'create_tasks':
         return await this.handleCreateTasks(args.tasks, context, actingUserId);
       case 'edit_task':
-        return await this.handleEditTask(args.taskId, args.fieldsToUpdate, context, actingUserId);
+        return await this.handleEditTask(args.taskId, args, context, actingUserId);
       case 'delete_task':
         return await this.handleDeleteTask(args.taskId, actingUserId);
       case 'get_task_details':
@@ -247,20 +242,23 @@ export class QueenaiService {
     };
   }
 
-  private async handleEditTask(taskId: string, fieldsToUpdate: any, context: TaskContext, actingUserId: string) {
+  private async handleEditTask(taskId: string, args: any, context: TaskContext, actingUserId: string) {
     // Map username to userId if provided
-    if (fieldsToUpdate.assignedTo) {
-      const handle = fieldsToUpdate.assignedTo.replace('@', '');
+    if (args.assignedTo) {
+      const handle = args.assignedTo.replace('@', '');
       const user = context.teamUsers?.find((u) => u.handle === handle);
-      if (user) fieldsToUpdate.assigneeId = user.id;
-      delete fieldsToUpdate.assignedTo;
+      if (user) args.assigneeId = user.id;
+      delete args.assignedTo;
     }
 
     // Map status to column
-    if (fieldsToUpdate.status) {
-      fieldsToUpdate.column = fieldsToUpdate.status;
-      delete fieldsToUpdate.status;
+    if (args.status) {
+      args.column = args.status;
+      delete args.status;
     }
+
+    // Remove taskId from args before passing to update
+    const { taskId: _, ...fieldsToUpdate } = args;
 
     const updated = await this.tasksService.update(taskId, fieldsToUpdate, actingUserId);
     return {
