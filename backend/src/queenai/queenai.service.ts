@@ -57,15 +57,15 @@ export class QueenaiService {
     let activeSprint = null;
     let activeDeliverables = [];
     try {
-      activeSprint = await this.sprintsService.getActive(channel.projectId);
+      activeSprint = await this.sprintsService.findActive(channel.projectId);
       if (activeSprint) {
-        activeDeliverables = await this.sprintsService.getDeliverables(activeSprint.id);
+        activeDeliverables = await this.sprintsService.findDeliverables(activeSprint.id);
       }
     } catch (e) {
       console.warn('[Queen AI] No active sprint found');
     }
 
-    const currentTasks = await this.tasksService.findByProject(channel.projectId);
+    const currentTasks = await this.tasksService.findAll(channel.projectId);
 
     return {
       activeSprint,
