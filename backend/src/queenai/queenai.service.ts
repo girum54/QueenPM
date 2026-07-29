@@ -10,6 +10,8 @@ import * as schema from '../db/schema';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../database/database.provider';
 import { eq } from 'drizzle-orm';
+import * as fs from 'fs';
+import * as path from 'path';
 
 type Db = NodePgDatabase<typeof schema>;
 
@@ -52,21 +54,18 @@ export class QueenaiService {
     const project = await this.projectsService.findOne(channel.projectId);
     const teamUsers = await this.usersService.findByProject(channel.projectId);
 
-    // Get active sprint
-    const sprints = await this.sprintsService.findAllByProject(channel.projectId);
-    const activeSprint = sprints.find((s) => s.isActive);
-
-    // Get active deliverables if sprint exists
+    let activeSprint = null;
     let activeDeliverables = [];
-    if (activeSprint) {
-      activeDeliverables = await this.sprintsService.findDeliverables(activeSprint.id);
+    try {
+      activeSprint = await this.sprintsService.getActive(channel.projectId);
+      if (activeSprint) {
+        activeDeliverables = await this.sprintsService.getDeliverables(activeSprint.id);
+      }
+    } catch (e) {
+      console.warn('[Queen AI] No active sprint found');
     }
 
-    // Get current tasks in sprint
-    let currentTasks = [];
-    if (activeSprint) {
-      currentTasks = await this.tasksService.findAll(channel.projectId, activeSprint.id);
-    }
+    const currentTasks = await this.tasksService.findByProject(channel.projectId);
 
     return {
       activeSprint,
@@ -74,6 +73,28 @@ export class QueenaiService {
       teamUsers,
       currentTasks,
     };
+  }
+
+  private readContextFile(filename: string): string {
+    try {
+      const contextDir = path.join(process.cwd(), 'gemini-context');
+      const filePath = path.join(contextDir, filename);
+      if (fs.existsSync(filePath)) {
+        return fs.readFileSync(filePath, 'utf-8');
+      }
+      console.warn(`[Queen AI] Context file not found: ${filename}`);
+      return '';
+    } catch (e) {
+      console.error(`[Queen AI] Error reading context file ${filename}:`, e);
+      return '';
+    }
+  }
+
+  private getSystemContext(): string {
+    const projectContext = this.readContextFile('project-context.md');
+    const capabilities = this.readContextFile('capabilities.md');
+    
+    return `=== PROJECT CONTEXT ===\n${projectContext}\n\n=== CAPABILITIES ===\n${capabilities}`;
   }
 
   getFunctionTools() {
@@ -315,9 +336,10 @@ export class QueenaiService {
     }
 
     // Build context prompt
+    const systemContext = this.getSystemContext();
     const contextPrompt = this.buildContextPrompt(context);
 
-    const fullPrompt = `${contextPrompt}\n\nUser message: ${message}`;
+    const fullPrompt = `${systemContext}\n\n${contextPrompt}\n\nUser message: ${message}`;
 
     try {
       console.log(`[${timestamp}] [Queen AI] Calling Gemini API with model: gemini-3.6-flash`);
